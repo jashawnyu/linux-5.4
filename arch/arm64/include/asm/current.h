@@ -10,7 +10,7 @@ struct task_struct;
 
 /*
  * We don't use read_sysreg() as we want the compiler to cache the value where
- * possible.
+ * possible(我们希望编译器尽可能地缓存该值).
  */
 static __always_inline struct task_struct *get_current(void)
 {

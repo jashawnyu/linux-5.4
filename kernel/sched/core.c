@@ -2834,7 +2834,7 @@ static inline void init_schedstats(void) {}
 #endif /* CONFIG_SCHEDSTATS */
 
 /*
- * fork()/clone()-time setup:
+ * fork()/clone()-time setup:函数sched_fork为新进程设置调度器相关的参数
  */
 int sched_fork(unsigned long clone_flags, struct task_struct *p)
 {

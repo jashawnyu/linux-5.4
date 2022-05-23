@@ -630,6 +630,7 @@ struct task_struct {
 	struct thread_info		thread_info;
 #endif
 	/* -1 unrunnable, 0 runnable, >0 stopped: */
+  //进程的状态
 	volatile long			state;
 
 	/*
@@ -699,6 +700,7 @@ struct task_struct {
 #endif
 
 	unsigned int			policy;
+  //允许进程在哪些处理器上运行
 	int				nr_cpus_allowed;
 	const cpumask_t			*cpus_ptr;
 	cpumask_t			cpus_mask;
@@ -726,6 +728,9 @@ struct task_struct {
 	struct rb_node			pushable_dl_tasks;
 #endif
 
+/*  指向内存描述符进程：mm和active_mm指向同一个内存描述符
+内核线程：mm是空指针，当内核线程运行时，
+active_mm指向从进程借用的内存描述符*/
 	struct mm_struct		*mm;
 	struct mm_struct		*active_mm;
 
@@ -787,7 +792,9 @@ struct task_struct {
 
 	struct restart_block		restart_block;
 
+  //全局的进程号
 	pid_t				pid;
+  // 全局的线程组标识符
 	pid_t				tgid;
 
 #ifdef CONFIG_STACKPROTECTOR
@@ -804,6 +811,9 @@ struct task_struct {
 	struct task_struct __rcu	*real_parent;
 
 	/* Recipient of SIGCHLD, wait4() reports: */
+  /*parent指向父进程：如果进程被另一个进程（通常
+是调试器）使用系统调用ptrace跟踪，那么父进程
+是跟踪进程，否则和real_parent相同*/
 	struct task_struct __rcu	*parent;
 
 	/*
@@ -811,6 +821,7 @@ struct task_struct {
 	 */
 	struct list_head		children;
 	struct list_head		sibling;
+  //指向线程组的组长
 	struct task_struct		*group_leader;
 
 	/*
@@ -824,6 +835,7 @@ struct task_struct {
 
 	/* PID/PID hash table linkage. */
 	struct pid			*thread_pid;
+  // 进程号，线程组标识符,进程组标识符和会话标识符
 	struct hlist_node		pid_links[PIDTYPE_MAX];
 	struct list_head		thread_group;
 	struct list_head		thread_node;
@@ -874,9 +886,12 @@ struct task_struct {
 	const struct cred __rcu		*ptracer_cred;
 
 	/* Objective and real subjective task credentials (COW): */
+  //real_cred指向主体和真实客体证书
 	const struct cred __rcu		*real_cred;
 
 	/* Effective (overridable) subjective task credentials (COW): */
+  /* cred指向有效客体证书。通常情况下，cred和real_cred指向相同
+的证书，但是cred可以被临时改变 */
 	const struct cred __rcu		*cred;
 
 #ifdef CONFIG_KEYS
@@ -891,11 +906,13 @@ struct task_struct {
 	 * - access it with [gs]et_task_comm()
 	 * - lock it with task_lock()
 	 */
+  //进程名称
 	char				comm[TASK_COMM_LEN];
 
 	struct nameidata		*nameidata;
 
 #ifdef CONFIG_SYSVIPC
+  // UNIX系统5信号量和共享内存
 	struct sysv_sem			sysvsem;
 	struct sysv_shm			sysvshm;
 #endif
@@ -904,12 +921,15 @@ struct task_struct {
 	unsigned long			last_switch_time;
 #endif
 	/* Filesystem information: */
+  // 文件系统信息，主要是进程的根目录和当前工作目录
 	struct fs_struct		*fs;
 
 	/* Open file information: */
+  // 打开文件表
 	struct files_struct		*files;
 
 	/* Namespaces: */
+  // 命名空间代理包含除了user以外的所有其他命名空间的地址
 	struct nsproxy			*nsproxy;
 
 	/* Signal handlers: */

@@ -18,13 +18,21 @@ union thread_union;
 #define CLONE_LEGACY_FLAGS 0xffffffffULL
 
 struct kernel_clone_args {
+/*克隆标志，最低字节指定了进程退出时发给父进程的信号，创建线程时，该
+参数的最低字节是0，表示线程退出时不需要向父进程发送信号*/
 	u64 flags;
 	int __user *pidfd;
+  /*在创建线程时有意义，存放新线程保存自己的进程标识符的位置。如果参数clone_flags指定了标志位CLONE_CHILD_CLEARTID，那么线程退出时需要清除自己的进程标识符。如果参数clone_flags指定了标志位CLONE_CHILD_SETTID，那么新线程第一次被调度时需要把自己的进程标识符写到参数child_tidptr指定的位置*/
 	int __user *child_tid;
+  /*在创建线程时有意义，如果参数flags指定了标志位CLONE_PARENT_SETTID，那么调用线程需要把新线程的进程标识符写到参数parent_tidptr指定的位置，也就是新线程保存自己的进程标识符的位置*/
 	int __user *parent_tid;
 	int exit_signal;
+  //在创建线程时有意义，用来指定新线程的用户栈的起始地址
 	unsigned long stack;
+  //在创建线程时有意义，用来指定新线程的用户栈的长度。这个参数已经废弃。
 	unsigned long stack_size;
+  /*在创建线程时有意义，如果参数clone_flags指定了标志位CLONE_SETTLS，那么参数
+tls指定新线程的线程本地存储的地址。*/
 	unsigned long tls;
 };
 

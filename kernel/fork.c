@@ -212,7 +212,7 @@ static int free_vm_stack_cache(unsigned int cpu)
 
 static unsigned long *alloc_thread_stack_node(struct task_struct *tsk, int node)
 {
-#ifdef CONFIG_VMAP_STACK
+#ifdef CONFIG_VMAP_STACK 
 	void *stack;
 	int i;
 
@@ -853,6 +853,7 @@ void set_task_stack_end_magic(struct task_struct *tsk)
 	*stackend = STACK_END_MAGIC;	/* for overflow detection */
 }
 
+/*函数dup_task_struct为新进程的进程描述符分配内存，把当前进程的进程描述符复制一份，为新进程分配内核栈*/
 static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
 {
 	struct task_struct *tsk;
@@ -873,12 +874,13 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
 	if (memcg_charge_kernel_stack(tsk))
 		goto free_stack;
 
+  //alloc_thread_stack_node  alloc it before
 	stack_vm_area = task_stack_vm_area(tsk);
 
 	err = arch_dup_task_struct(tsk, orig);
 
 	/*
-	 * arch_dup_task_struct() clobbers the stack-related fields.  Make
+	 * arch_dup_task_struct() clobbers the stack-related fields(清除与堆栈相关的字段).  Make
 	 * sure they're properly initialized before using any stack-related
 	 * functions again.
 	 */
@@ -903,12 +905,15 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
 	tsk->seccomp.filter = NULL;
 #endif
 
+  //do nothing
 	setup_thread_stack(tsk, orig);
+  //do nothing
 	clear_user_return_notifier(tsk);
 	clear_tsk_need_resched(tsk);
+  //insert STACK_END_MAGIC
 	set_task_stack_end_magic(tsk);
 
-#ifdef CONFIG_STACKPROTECTOR
+#ifdef CONFIG_STACKPROTECTOR //1
 	tsk->stack_canary = get_random_canary();
 #endif
 	if (orig->cpus_ptr == &orig->cpus_mask)
@@ -930,13 +935,14 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
 
 	account_kernel_stack(tsk, 1);
 
+  //do nothing
 	kcov_task_init(tsk);
 
-#ifdef CONFIG_FAULT_INJECTION
+#ifdef CONFIG_FAULT_INJECTION //0
 	tsk->fail_nth = 0;
 #endif
 
-#ifdef CONFIG_BLK_CGROUP
+#ifdef CONFIG_BLK_CGROUP //1
 	tsk->throttle_queue = NULL;
 	tsk->use_memdelay = 0;
 #endif
@@ -1805,6 +1811,7 @@ static __latent_entropy struct task_struct *copy_process(
 	 * multi-rooted process trees, prevent global and container-inits
 	 * from creating siblings.
 	 */
+  /*新进程想要和当前进程成为兄弟进程，并且当前进程是某个进程号命名空间中的1号进程。这种标志组合是非法的，说明1号进程不存在兄弟进程*/
 	if ((clone_flags & CLONE_PARENT) &&
 				current->signal->flags & SIGNAL_UNKILLABLE)
 		return ERR_PTR(-EINVAL);
@@ -1813,6 +1820,7 @@ static __latent_entropy struct task_struct *copy_process(
 	 * If the new process will be in a different pid or user namespace
 	 * do not allow it to share a thread group with the forking task.
 	 */
+  //说明同一个线程组的所有线程必须属于相同的用户命名空间和进程号命名空间
 	if (clone_flags & CLONE_THREAD) {
 		if ((clone_flags & (CLONE_NEWUSER | CLONE_NEWPID)) ||
 		    (task_active_pid_ns(current) !=
@@ -1831,7 +1839,7 @@ static __latent_entropy struct task_struct *copy_process(
 	}
 
 	/*
-	 * Force any signals received before this point to be delivered
+	 * Force any signals received before this point to be delivered(投递)
 	 * before the fork happens.  Collect up signals sent to multiple
 	 * processes that happen during the fork and delay them so that
 	 * they appear to happen after the fork.
@@ -1869,7 +1877,7 @@ static __latent_entropy struct task_struct *copy_process(
 
 	rt_mutex_init_task(p);
 
-#ifdef CONFIG_PROVE_LOCKING
+#ifdef CONFIG_PROVE_LOCKING //1
 	DEBUG_LOCKS_WARN_ON(!p->hardirqs_enabled);
 	DEBUG_LOCKS_WARN_ON(!p->softirqs_enabled);
 #endif
@@ -1881,7 +1889,7 @@ static __latent_entropy struct task_struct *copy_process(
 			goto bad_fork_free;
 	}
 	current->flags &= ~PF_NPROC_EXCEEDED;
-
+  //函数copy_creds负责复制或共享证书，证书存放进程的用户标识符、组标识符和访问权限
 	retval = copy_creds(p, clone_flags);
 	if (retval < 0)
 		goto bad_fork_free;
@@ -2341,6 +2349,7 @@ long _do_fork(struct kernel_clone_args *args)
 {
 	u64 clone_flags = args->flags;
 	struct completion vfork;
+  //进程标识符
 	struct pid *pid;
 	struct task_struct *p;
 	int trace = 0;
@@ -2352,6 +2361,7 @@ long _do_fork(struct kernel_clone_args *args)
 	 * requested, no event is reported; otherwise, report if the event
 	 * for the type of forking is enabled.
 	 */
+  /*确定是否和哪个事件报告给ptracer。当显式请求从kernel_thread或clone_untracing调用时，不会报告任何事件;否则，如果启用了fork类型的事件，请报告。*/
 	if (!(clone_flags & CLONE_UNTRACED)) {
 		if (clone_flags & CLONE_VFORK)
 			trace = PTRACE_EVENT_VFORK;
@@ -2363,7 +2373,8 @@ long _do_fork(struct kernel_clone_args *args)
 		if (likely(!ptrace_event_enabled(current, trace)))
 			trace = 0;
 	}
-
+  printk("yjx\n");
+  //创建新进程
 	p = copy_process(NULL, trace, NUMA_NO_NODE, args);
 	add_latent_entropy();
 

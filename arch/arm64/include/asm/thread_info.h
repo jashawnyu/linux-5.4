@@ -24,7 +24,9 @@ typedef unsigned long mm_segment_t;
  * low level task data that entry.S needs immediate access to.
  */
 struct thread_info {
+  /*flags：底层标志，常用的标志是_TIF_SIGPENDING和_TIF_NEED_RESCHED，前者表示进程有需要处理的信号，后者表示调度器需要重新调度进程*/
 	unsigned long		flags;		/* low level flags */
+  /*addr_limit：进程可以访问的地址空间的上限。对于进程，它的值是用户地址空间的上限；对于内核线程，它的值是内核地址空间的上限*/
 	mm_segment_t		addr_limit;	/* address limit */
 #ifdef CONFIG_ARM64_SW_TTBR0_PAN
 	u64			ttbr0;		/* saved TTBR0_EL1 */

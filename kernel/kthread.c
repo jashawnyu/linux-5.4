@@ -260,8 +260,8 @@ static int kthread(void *_create)
 /* called from do_fork() to get node information for about to be created task */
 int tsk_fork_get_node(struct task_struct *tsk)
 {
-#ifdef CONFIG_NUMA
-	if (tsk == kthreadd_task)
+#ifdef CONFIG_NUMA //1
+	if (tsk == kthreadd_task) //1
 		return tsk->pref_node_fork;
 #endif
 	return NUMA_NO_NODE;
