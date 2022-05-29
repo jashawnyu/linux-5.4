@@ -183,7 +183,7 @@ void sched_init_granularity(void)
 	update_sysctl();
 }
 
-#define WMULT_CONST	(~0U)
+#define WMULT_CONST	(~0U) // 2^32
 #define WMULT_SHIFT	32
 
 static void __update_inv_weight(struct load_weight *lw)
@@ -192,9 +192,10 @@ static void __update_inv_weight(struct load_weight *lw)
 
 	if (likely(lw->inv_weight))
 		return;
+  //lw->weight=2097152=0x200000;
+	w = scale_load_down(lw->weight);//2048
 
-	w = scale_load_down(lw->weight);
-
+  //64>32
 	if (BITS_PER_LONG > 32 && unlikely(w >= WMULT_CONST))
 		lw->inv_weight = 1;
 	else if (unlikely(!w))
@@ -217,9 +218,11 @@ static void __update_inv_weight(struct load_weight *lw)
  */
 static u64 __calc_delta(u64 delta_exec, unsigned long weight, struct load_weight *lw)
 {
-	u64 fact = scale_load_down(weight);
-	int shift = WMULT_SHIFT;
+  //eg. weight=1048576=0x100000
+	u64 fact = scale_load_down(weight); //1024
+	int shift = WMULT_SHIFT;//32
 
+  //lw->weight=2097152=0x200000;
 	__update_inv_weight(lw);
 
 	if (unlikely(fact >> 32)) {
@@ -552,6 +555,7 @@ static void update_min_vruntime(struct cfs_rq *cfs_rq)
 	}
 
 	/* ensure we never gain time by being placed backwards. */
+  //monotone increasing 
 	cfs_rq->min_vruntime = max_vruntime(cfs_rq->min_vruntime, vruntime);
 #ifndef CONFIG_64BIT
 	smp_wmb();
@@ -706,6 +710,7 @@ static u64 sched_slice(struct cfs_rq *cfs_rq, struct sched_entity *se)
 			update_load_add(&lw, se->load.weight);
 			load = &lw;
 		}
+    /*第二个功能：计算调度实体se的权重占整个就绪队列权重的比例，然后乘以调度周期时间即可得到当前调度实体应该运行的时间*/
 		slice = __calc_delta(slice, se->load.weight, load);
 	}
 	return slice;
@@ -839,6 +844,7 @@ static void update_curr(struct cfs_rq *cfs_rq)
 	if (unlikely(!curr))
 		return;
 
+  //delta_exec计算本次更新虚拟时间距离上次更新虚拟时间的差值
 	delta_exec = now - curr->exec_start;
 	if (unlikely((s64)delta_exec <= 0))
 		return;
@@ -851,12 +857,18 @@ static void update_curr(struct cfs_rq *cfs_rq)
 	curr->sum_exec_runtime += delta_exec;
 	schedstat_add(cfs_rq->exec_clock, delta_exec);
 
+  /*更新当前调度实体虚拟时间，calc_delta_fair()函数根据上面说的虚拟时间的计算公式计算虚拟时间*/
 	curr->vruntime += calc_delta_fair(delta_exec, curr);
+  /*拥有最小虚拟时间的地方:
+   * 1. 就绪队列本身的cfs_rq->min_vruntime成员
+   * 2. 当前正在运行的进程的最下虚拟时间，因为CFS调度器选择最适合运行的进程是选择维护的红黑树中虚拟时间最小的进程
+   * 3. 如果在当前进程运行的过程中，有进程加入就绪队列，那么红黑树最左边的进程的虚拟时间同样也有可能是最小的虚拟时间*/
 	update_min_vruntime(cfs_rq);
 
 	if (entity_is_task(curr)) {
 		struct task_struct *curtask = task_of(curr);
 
+    //for ftrace, first set aside
 		trace_sched_stat_runtime(curtask, delta_exec, curr->vruntime);
 		cgroup_account_cputime(curtask, delta_exec);
 		account_group_exec_runtime(curtask, delta_exec);
@@ -3883,24 +3895,26 @@ place_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int initial)
 	 * little, place the new task so that it fits in the slot that
 	 * stays open at the end.
 	 */
+  //count刚创建进程的punish时间
 	if (initial && sched_feat(START_DEBIT))
 		vruntime += sched_vslice(cfs_rq, se);
 
 	/* sleeps up to a single latency don't count. */
 	if (!initial) {
-		unsigned long thresh = sysctl_sched_latency;
+		unsigned long thresh = sysctl_sched_latency; //6ms
 
 		/*
 		 * Halve their sleep time's effect, to allow
 		 * for a gentler effect of sleepers:
 		 */
-		if (sched_feat(GENTLE_FAIR_SLEEPERS))
+		if (sched_feat(GENTLE_FAIR_SLEEPERS))//y
 			thresh >>= 1;
 
 		vruntime -= thresh;
 	}
 
 	/* ensure we never gain time by being placed backwards. */
+  /*我们保证调度实体的虚拟时间不能倒退。为何呢？可以想一下，如果一个进程刚睡眠1ms，然后醒来后你却要奖励3ms（虚拟时间减去3ms），然后他竟然赚了2ms。作为调度器，我们不做亏本生意。你睡眠100ms，奖励你3ms，那就是没问题的*/
 	se->vruntime = max_vruntime(se->vruntime, vruntime);
 }
 
@@ -9971,11 +9985,15 @@ static void task_fork_fair(struct task_struct *p)
 	update_rq_clock(rq);
 
 	cfs_rq = task_cfs_rq(current);
+  //cfs_rq是CFS调度器就绪队列，curr指向当前正在cpu上运行的task的调度实体
 	curr = cfs_rq->curr;
 	if (curr) {
+    //主要是更新当前正在运行的调度实体的运行时间信息
 		update_curr(cfs_rq);
+    //初始化当前创建的新进程的虚拟时间
 		se->vruntime = curr->vruntime;
 	}
+  /*place_entity()函数在进程创建以及唤醒的时候都会调用，创建进程的时候传递参数initial=1。主要目的是更新调度实体得到虚拟时间（se->vruntime成员）。要和cfs_rq->min_vruntime的值保持差别不大，否则疯狂占用cpu运行*/
 	place_entity(cfs_rq, se, 1);
 
 	if (sysctl_sched_child_runs_first && curr && entity_before(curr, se)) {
@@ -9987,7 +10005,7 @@ static void task_fork_fair(struct task_struct *p)
 		resched_curr(rq);
 	}
 
-	se->vruntime -= cfs_rq->min_vruntime;
+	se->vruntime -= cfs_rq->min_vruntime;//?
 	rq_unlock(rq, &rf);
 }
 

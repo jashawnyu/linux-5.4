@@ -2270,7 +2270,8 @@ int copy_semundo(unsigned long clone_flags, struct task_struct *tsk)
 {
 	struct sem_undo_list *undo_list;
 	int error;
-
+  /*如果调用者传入标志CLONE_SYSVSEM，表示共享UNIX系统5信号量，那么新进
+程和当前进程共享UNIX系统5信号量的撤销请求链表，对应结构体sem_undo_list，把计数加1。当进程退出时，内核需要把信号量的计数值加上该进程曾经减去的数值*/
 	if (clone_flags & CLONE_SYSVSEM) {
 		error = get_undo_list(&undo_list);
 		if (error)
@@ -2278,6 +2279,7 @@ int copy_semundo(unsigned long clone_flags, struct task_struct *tsk)
 		refcount_inc(&undo_list->refcnt);
 		tsk->sysvsem.undo_list = undo_list;
 	} else
+    /*新进程的UNIX系统5信号量的撤销请求链表是空的*/
 		tsk->sysvsem.undo_list = NULL;
 
 	return 0;

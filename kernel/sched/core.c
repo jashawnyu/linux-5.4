@@ -746,14 +746,14 @@ int tg_nop(struct task_group *tg, void *data)
 
 static void set_load_weight(struct task_struct *p, bool update_load)
 {
-	int prio = p->static_prio - MAX_RT_PRIO;
+	int prio = p->static_prio - MAX_RT_PRIO;//MAX_RT_PRIO=100
 	struct load_weight *load = &p->se.load;
 
 	/*
 	 * SCHED_IDLE tasks get minimal weight:
 	 */
 	if (task_has_idle_policy(p)) {
-		load->weight = scale_load(WEIGHT_IDLEPRIO);
+		load->weight = scale_load(WEIGHT_IDLEPRIO);//(3)
 		load->inv_weight = WMULT_IDLEPRIO;
 		p->se.runnable_weight = load->weight;
 		return;
@@ -2695,7 +2695,7 @@ static void __sched_fork(unsigned long clone_flags, struct task_struct *p)
 	p->se.cfs_rq			= NULL;
 #endif
 
-#ifdef CONFIG_SCHEDSTATS
+#ifdef CONFIG_SCHEDSTATS //Collect scheduler statistics
 	/* Even if schedstat is disabled, there should not be garbage */
 	memset(&p->se.statistics, 0, sizeof(p->se.statistics));
 #endif
@@ -2840,30 +2840,35 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 {
 	unsigned long flags;
 
-	__sched_fork(clone_flags, p);
+	__sched_fork(clone_flags, p);//调用函数__sched_fork以执行基本设置
 	/*
 	 * We mark the process as NEW here. This guarantees that
 	 * nobody will actually run it, and a signal or other external
 	 * event cannot wake it up and insert it on the runqueue either.
 	 */
-	p->state = TASK_NEW;
+	p->state = TASK_NEW; //把新进程的状态设置为TASK_NEW
 
 	/*
 	 * Make sure we do not leak PI boosting priority to the child.
 	 */
+  /*把新进程的调度优先级设置为当前进程的正常优先级,为什么不设置为当前进程的调度优先级？因为当前进程可能因为占有实时互斥锁而被临时提升了优先级*/
 	p->prio = current->normal_prio;
 
-	uclamp_fork(p);
+	uclamp_fork(p);//0
 
 	/*
 	 * Revert to default priority/policy on fork if requested.
 	 */
+  /*当前进程使用sched_setscheduler设置调度策略和相关参数时设置了标志
+SCHED_RESET_ON_FORK，要求创建新进程时把新进程的调度策略和优先级设置为默认值*/
 	if (unlikely(p->sched_reset_on_fork)) {
 		if (task_has_dl_policy(p) || task_has_rt_policy(p)) {
 			p->policy = SCHED_NORMAL;
-			p->static_prio = NICE_TO_PRIO(0);
+			p->static_prio = NICE_TO_PRIO(0);//对应静态优先级120
 			p->rt_priority = 0;
 		} else if (PRIO_TO_NICE(p->static_prio) < 0)
+      /*如果当前进程是普通进程，并且nice值小于0，那么把新进程的nice值恢
+复成默认值0，对应静态优先级120*/
 			p->static_prio = NICE_TO_PRIO(0);
 
 		p->prio = p->normal_prio = __normal_prio(p);
@@ -2897,7 +2902,9 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 	 * We're setting the CPU for the first time, we don't migrate,
 	 * so use __set_task_cpu().
 	 */
+  /*设置新进程在哪个处理器上，如果开启公平组调度和实时组调度，那么还需要设置新进程属于哪个公平运行队列和哪个实时运行队列*/
 	__set_task_cpu(p, smp_processor_id());
+  //执行调度类的task_fork方法
 	if (p->sched_class->task_fork)
 		p->sched_class->task_fork(p);
 	raw_spin_unlock_irqrestore(&p->pi_lock, flags);
@@ -2909,6 +2916,8 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 #if defined(CONFIG_SMP)
 	p->on_cpu = 0;
 #endif
+  /*初始化新进程的抢占计数器，在抢占式内核中设置为2，在非抢占式内核中设置为0。
+因为在抢占式内核中，如果函数schedule()在调度进程时选中了新进程，那么调用函数rq_unlock_irq()和sched_preempt_enable_no_resched()时会把新进程的抢占计数减两次*/
 	init_task_preempt_count(p);
 #ifdef CONFIG_SMP
 	plist_node_init(&p->pushable_tasks, MAX_PRIO);

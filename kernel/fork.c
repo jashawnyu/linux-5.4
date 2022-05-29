@@ -2027,6 +2027,7 @@ static __latent_entropy struct task_struct *copy_process(
 	retval = copy_io(clone_flags, p);
 	if (retval)
 		goto bad_fork_cleanup_namespaces;
+  //调用函数copy_thread_tls复制当前进程的寄存器值，并且修改一部分寄存器值
 	retval = copy_thread_tls(clone_flags, args->stack, args->stack_size, p,
 				 args->tls);
 	if (retval)
@@ -2376,6 +2377,7 @@ long _do_fork(struct kernel_clone_args *args)
   printk("yjx\n");
   //创建新进程
 	p = copy_process(NULL, trace, NUMA_NO_NODE, args);
+  //??
 	add_latent_entropy();
 
 	if (IS_ERR(p))
