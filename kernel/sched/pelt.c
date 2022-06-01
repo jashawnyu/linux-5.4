@@ -38,7 +38,8 @@ static u64 decay_load(u64 val, u64 n)
 {
 	unsigned int local_n;
 
-	if (unlikely(n > LOAD_AVG_PERIOD * 63))
+  /* 我们认为当时间经过2016个周期后，衰减后的值为0。即val*yn=0, n > 2016 */
+	if (unlikely(n > LOAD_AVG_PERIOD * 63)) //2016
 		return 0;
 
 	/* after bounds checking we can collapse to 32-bit */
@@ -78,6 +79,9 @@ static u32 __accumulate_pelt_segments(u64 periods, u32 d1, u32 d3)
 	 *    = 1024 ( \Sum y^n - \Sum y^n - y^0 )
 	 *              n=0        n=p
 	 */
+  /*  y^0+...+y^n=y^0+...y^p-1+y^p+...+y^n
+   * y^1+...y^p-1=y^0+...+y^n-(y^p+...+y^n)-y^0
+   * */
 	c2 = LOAD_AVG_MAX - decay_load(LOAD_AVG_MAX, periods) - 1024;
 
 	return c1 + c2 + c3;
@@ -113,13 +117,17 @@ accumulate_sum(u64 delta, struct sched_avg *sa,
 	u32 contrib = (u32)delta; /* p == 0 -> delta < 1024 */
 	u64 periods;
 
+  //period_contrib记录的是上次更新负载不足1024us周期的时间
+  //delta是经过的时间，为了计算经过的周期个数需要加上period_contrib，然后整除1024
 	delta += sa->period_contrib;
+  //计算周期个数
 	periods = delta / 1024; /* A period is 1024us (~1ms) */
 
 	/*
 	 * Step 1: decay old *_sum if we crossed period boundaries.
 	 */
 	if (periods) {
+    //调用decay_load()函数计算公式中的step1部分
 		sa->load_sum = decay_load(sa->load_sum, periods);
 		sa->runnable_load_sum =
 			decay_load(sa->runnable_load_sum, periods);
@@ -132,6 +140,7 @@ accumulate_sum(u64 delta, struct sched_avg *sa,
 		contrib = __accumulate_pelt_segments(periods,
 				1024 - sa->period_contrib, delta);
 	}
+  //period_contrib记录的是上次更新负载不足1024us周期的时间
 	sa->period_contrib = delta;
 
 	if (load)
@@ -277,7 +286,7 @@ int __update_load_avg_blocked_se(u64 now, struct sched_entity *se)
 int __update_load_avg_se(u64 now, struct cfs_rq *cfs_rq, struct sched_entity *se)
 {
 	if (___update_load_sum(now, &se->avg, !!se->on_rq, !!se->on_rq,
-				cfs_rq->curr == se)) {
+				cfs_rq->curr == se)) { //return 1 if update sucessful
 
 		___update_load_avg(&se->avg, se_weight(se), se_runnable(se));
 		cfs_se_util_change(&se->avg);

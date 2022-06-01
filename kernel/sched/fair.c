@@ -2768,15 +2768,18 @@ static inline void update_scan_period(struct task_struct *p, int new_cpu)
 static void
 account_entity_enqueue(struct cfs_rq *cfs_rq, struct sched_entity *se)
 {
+  //更新就绪队列权重，就是将se权重加在就绪队列权重上面
 	update_load_add(&cfs_rq->load, se->load.weight);
 #ifdef CONFIG_SMP
 	if (entity_is_task(se)) {
 		struct rq *rq = rq_of(cfs_rq);
 
 		account_numa_enqueue(rq, task_of(se));
+    //将调度实体se加入链表
 		list_add(&se->group_node, &rq->cfs_tasks);
 	}
 #endif
+  //nr_running成员是就绪队列中所有调度实体的个数
 	cfs_rq->nr_running++;
 }
 
@@ -3601,6 +3604,10 @@ static void detach_entity_load_avg(struct cfs_rq *cfs_rq, struct sched_entity *s
 #define DO_ATTACH	0x4
 
 /* Update task and its cfs_rq load average */
+
+/* 1. 向就绪队列中添加一个进程，在CFS中就是enqueue_entity操作。
+   2. 从就绪队列中删除一个进程，在CFS中就是dequeue_entity操作。
+   3. scheduler tick，周期性调用更新负载信息 */
 static inline void update_load_avg(struct cfs_rq *cfs_rq, struct sched_entity *se, int flags)
 {
 	u64 now = cfs_rq_clock_pelt(cfs_rq);
@@ -3611,6 +3618,7 @@ static inline void update_load_avg(struct cfs_rq *cfs_rq, struct sched_entity *s
 	 * track group sched_entity load average for task_h_load calc in migration
 	 */
 	if (se->avg.last_update_time && !(flags & SKIP_AGE_LOAD))
+    //更新调度实体se的负载信息
 		__update_load_avg_se(now, cfs_rq, se);
 
 	decayed  = update_cfs_rq_load_avg(now, cfs_rq);
@@ -3993,6 +4001,7 @@ enqueue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int flags)
 	 * fairness detriment of existing tasks.
 	 */
 	if (renorm && !curr)
+    /* 还记得之前在task_fork_fair()函数最后减去的min_vruntime吗？现在是时候加回来了 */
 		se->vruntime += cfs_rq->min_vruntime;
 
 	/*
@@ -4006,6 +4015,7 @@ enqueue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int flags)
 	update_load_avg(cfs_rq, se, UPDATE_TG | DO_ATTACH);
 	update_cfs_group(se);
 	enqueue_runnable_load_avg(cfs_rq, se);
+  /*更新就绪队列相关信息，例如就绪队列的权*/
 	account_entity_enqueue(cfs_rq, se);
 
 	if (flags & ENQUEUE_WAKEUP)
@@ -4016,6 +4026,7 @@ enqueue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int flags)
 	check_spread(cfs_rq, se);
 	if (!curr)
 		__enqueue_entity(cfs_rq, se);
+  //所有的操作完毕也意味着se已经加入就绪队列，置位on_rq成员
 	se->on_rq = 1;
 
 	if (cfs_rq->nr_running == 1) {
@@ -4133,9 +4144,11 @@ check_preempt_tick(struct cfs_rq *cfs_rq, struct sched_entity *curr)
 	struct sched_entity *se;
 	s64 delta;
 
+  //计算curr进程在本次调度周期中应该分配的时间片。时间片用完就应该被抢占
 	ideal_runtime = sched_slice(cfs_rq, curr);
 	delta_exec = curr->sum_exec_runtime - curr->prev_sum_exec_runtime;
 	if (delta_exec > ideal_runtime) {
+    /*如果实际运行时间已经超过分配给进程的时间片，自然就需要抢占当前进程。设置TIF_NEED_RESCHED flag*/
 		resched_curr(rq_of(cfs_rq));
 		/*
 		 * The current task ran long enough, ensure it doesn't get
@@ -4153,12 +4166,15 @@ check_preempt_tick(struct cfs_rq *cfs_rq, struct sched_entity *curr)
 	if (delta_exec < sysctl_sched_min_granularity)
 		return;
 
+  //红黑树中找到虚拟时间最小的调度实体
 	se = __pick_first_entity(cfs_rq);
 	delta = curr->vruntime - se->vruntime;
 
+  //如果当前进程的虚拟时间仍然比红黑树中最左边调度实体虚拟时间小，也不应该发生调度
 	if (delta < 0)
 		return;
 
+  /* 这里应该是 if (delta > 0)，也就是当 curr->vruntime 大于红黑树上的 leftmost->vruntime 时，就执行调度，这才符合 cfs 的策略：始终让 vruntime 最小的进程执行。但实际上明显不是这样，而是让当前运行进程至少比 leftmost 高出一个 idle_time 才会让出 CPU，这种做法倒是体现出了不同优先级之间的区别，因为不同优先级的 idle_time 是不同的，低优先级的进程更容易让出 CPU */
 	if (delta > ideal_runtime)
 		resched_curr(rq_of(cfs_rq));
 }
@@ -4265,6 +4281,7 @@ static void put_prev_entity(struct cfs_rq *cfs_rq, struct sched_entity *prev)
 	 * If still on the runqueue then deactivate_task()
 	 * was not called and update_curr() has to be done:
 	 */
+  /* 如果prev进程依然在就绪队列上，极有可能是prev进程被强占的情况。在让出cpu之前需要更新进程虚拟时间等信息。如果prev进程不在就绪队列上，这里可以直接跳过更新。因为，prev进程在deactivate_task()中已经调用了update_curr() */
 	if (prev->on_rq)
 		update_curr(cfs_rq);
 
@@ -4276,8 +4293,10 @@ static void put_prev_entity(struct cfs_rq *cfs_rq, struct sched_entity *prev)
 	if (prev->on_rq) {
 		update_stats_wait_start(cfs_rq, prev);
 		/* Put 'current' back into the tree. */
+    //如果prev进程依然在就绪队列上，我们需要重新将prev进程插入红黑树等待调度
 		__enqueue_entity(cfs_rq, prev);
 		/* in !on_rq case, update occurred at dequeue */
+    //update_load_avg()是更新prev进程的负载信息，这些信息在负载均衡的时候会用到
 		update_load_avg(cfs_rq, prev, 0);
 	}
 	cfs_rq->curr = NULL;
@@ -5222,6 +5241,7 @@ enqueue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 		cpufreq_update_util(rq, SCHED_CPUFREQ_IOWAIT);
 
 	for_each_sched_entity(se) {
+    /* on_rq成员代表调度实体是否已经在就绪队列中。值为1代表在就绪队列中，当然就不需要继续添加就绪队列了 */
 		if (se->on_rq)
 			break;
 		cfs_rq = cfs_rq_of(se);
@@ -6730,6 +6750,7 @@ static void check_preempt_wakeup(struct rq *rq, struct task_struct *p, int wake_
 	find_matching_se(&se, &pse);
 	update_curr(cfs_rq_of(se));
 	BUG_ON(!pse);
+  //检查唤醒的进程是否满足抢占当前进程的条件
 	if (wakeup_preempt_entity(se, pse) == 1) {
 		/*
 		 * Bias pick_next to pick the sched entity that is
@@ -6743,6 +6764,7 @@ static void check_preempt_wakeup(struct rq *rq, struct task_struct *p, int wake_
 	return;
 
 preempt:
+  //如果可以抢占当前进程，设置TIF_NEED_RESCHED flag
 	resched_curr(rq);
 	/*
 	 * Only set the backward buddy when the current task is still
@@ -6763,6 +6785,7 @@ preempt:
 static struct task_struct *
 pick_next_task_fair(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 {
+  //从根CFS就绪队列开始便利
 	struct cfs_rq *cfs_rq = &rq->cfs;
 	struct sched_entity *se;
 	struct task_struct *p;
@@ -6851,6 +6874,7 @@ again:
 simple:
 #endif
 	if (prev)
+    //主要是处理prev进程的后事，当进程让出cpu时就会调用该函数
 		put_prev_task(rq, prev);
 
 	do {

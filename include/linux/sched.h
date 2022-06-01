@@ -395,12 +395,16 @@ struct util_est {
  */
 struct sched_avg {
 	u64				last_update_time;
+  /* 基于可运行（runnable）时间的负载贡献总和。runnable时间包含两部分：一是在rq中等待cpu调度运行的时间，二是正在cpu上运行的时间 */
 	u64				load_sum;
 	u64				runnable_load_sum;
+  //running时间是指调度实体se正在cpu上执行时间
 	u32				util_sum;
 	u32				period_contrib;
+  //基于可运行（runnable）时间的平均负载贡献
 	unsigned long			load_avg;
 	unsigned long			runnable_load_avg;
+  //基于正在运行（running）时间的平均负载贡献
 	unsigned long			util_avg;
 	struct util_est			util_est;
 } ____cacheline_aligned;
