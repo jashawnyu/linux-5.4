@@ -35,7 +35,9 @@ extern unsigned long long max_possible_pfn;
 enum memblock_flags {
 	MEMBLOCK_NONE		= 0x0,	/* No special request */
 	MEMBLOCK_HOTPLUG	= 0x1,	/* hotpluggable region */
+  /* 内存镜像是内存冗余技术的一种，工作原理与硬盘的热备份类似，将内存数据做两个复制，分别放在主内存和镜像内存中 */
 	MEMBLOCK_MIRROR		= 0x2,	/* mirrored region */
+  //不添加到内核直接映射区域（即线性映射区域）
 	MEMBLOCK_NOMAP		= 0x4,	/* don't add to kernel direct mapping */
 };
 
@@ -49,8 +51,9 @@ enum memblock_flags {
 struct memblock_region {
 	phys_addr_t base;
 	phys_addr_t size;
+  // 成员flags是标志，可以是MEMBLOCK_NONE或其他标志的组合
 	enum memblock_flags flags;
-#ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP
+#ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP //1
 	int nid;
 #endif
 };
@@ -67,6 +70,7 @@ struct memblock_type {
 	unsigned long cnt;
 	unsigned long max;
 	phys_addr_t total_size;
+  //成员regions指向内存块区域数组
 	struct memblock_region *regions;
 	char *name;
 };
@@ -80,10 +84,15 @@ struct memblock_type {
  * @physmem: all physical memory
  */
 struct memblock {
+  /* 成员bottom_up表示分配内存的方式，值为真表示从低地址向上分配，值为假表示从高地址向下分配 */
 	bool bottom_up;  /* is bottom up direction? */
+  //成员current_limit是可分配内存的最大物理地址
 	phys_addr_t current_limit;
+  //memory是内存类型（包括已分配的内存和未分配的内存)
 	struct memblock_type memory;
+  // reserved是预留类型（已分配的内存）
 	struct memblock_type reserved;
+  /* physmem是物理内存类型。物理内存类型和内存类型的区别是：内存类型是物理内存类型的子集，在引导内核时可以使用内核参数“mem=nn[KMG]”指定可用内存的大小，导致内核不能看见所有内存；物理内存类型总是包含所有内存范围，内存类型只包含内核参数“mem=”指定的可用内存范围 */
 #ifdef CONFIG_HAVE_MEMBLOCK_PHYS_MAP
 	struct memblock_type physmem;
 #endif
@@ -109,6 +118,7 @@ phys_addr_t memblock_find_in_range(phys_addr_t start, phys_addr_t end,
 				   phys_addr_t size, phys_addr_t align);
 void memblock_allow_resize(void);
 int memblock_add_node(phys_addr_t base, phys_addr_t size, int nid);
+//memblock分配器对外提供的接口如下
 int memblock_add(phys_addr_t base, phys_addr_t size);
 int memblock_remove(phys_addr_t base, phys_addr_t size);
 int memblock_free(phys_addr_t base, phys_addr_t size);
@@ -365,6 +375,7 @@ void *memblock_alloc_try_nid(phys_addr_t size, phys_addr_t align,
 			     phys_addr_t min_addr, phys_addr_t max_addr,
 			     int nid);
 
+/* memblock分配器把所有内存添加到memblock.memory中，把分配出去的内存块添加到memblock.reserved中。内存块类型中的内存块区域数组按起始物理地址从小到大排序 */
 static inline void * __init memblock_alloc(phys_addr_t size,  phys_addr_t align)
 {
 	return memblock_alloc_try_nid(size, align, MEMBLOCK_LOW_LIMIT, //0

@@ -292,10 +292,10 @@ static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
  * Hugetlb definitions.
  */
 #define HUGE_MAX_HSTATE		4
-#define HPAGE_SHIFT		PMD_SHIFT
+#define HPAGE_SHIFT		PMD_SHIFT //21
 #define HPAGE_SIZE		(_AC(1, UL) << HPAGE_SHIFT)
 #define HPAGE_MASK		(~(HPAGE_SIZE - 1))
-#define HUGETLB_PAGE_ORDER	(HPAGE_SHIFT - PAGE_SHIFT)
+#define HUGETLB_PAGE_ORDER	(HPAGE_SHIFT - PAGE_SHIFT)//(21-12)=9
 
 static inline pte_t pgd_pte(pgd_t pgd)
 {

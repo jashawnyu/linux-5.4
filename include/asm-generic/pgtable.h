@@ -526,6 +526,7 @@ static inline pgprot_t pgprot_modify(pgprot_t oldprot, pgprot_t newprot)
  * vma end wraps to 0, rounded up __boundary may wrap to 0 throughout.
  */
 
+//注意当addr够大时，会导致((addr) + PGDIR_SIZE)溢出，__boundary 是有可能为0,所以-1
 #define pgd_addr_end(addr, end)						\
 ({	unsigned long __boundary = ((addr) + PGDIR_SIZE) & PGDIR_MASK;	\
 	(__boundary - 1 < (end) - 1)? __boundary: (end);		\

@@ -305,11 +305,15 @@ static void __init fdt_enforce_memory_region(void)
 		memblock_cap_memory_range(reg.base, reg.size);
 }
 
+// 在内核初始化的过程中需要分配内存，内核提供了临时的引导内存分配器, ARM64内核初始化memblock分配器
 void __init arm64_memblock_init(void)
 {
 	const s64 linear_region_size = BIT(vabits_actual - 1);
 
 	/* Handle linux,usable-memory-range property */
+  //解析设备树二进制文件中的节点“/memory”，把所有物理内存范围添加到memblock. memory , 涉及到设备树的解析暂不分析
+  /* 调用函数fdt_enforce_memory_region解析设备树二进制文件中节点“/chosen”的属
+性“linux,usable-memory-range”，得到可用内存的范围，把超出这个范围的物理内存范围从memblock.memory中删除 */
 	fdt_enforce_memory_region();
 
 	/* Remove memory above our supported physical address size */
@@ -318,6 +322,7 @@ void __init arm64_memblock_init(void)
 	/*
 	 * Select a suitable value for the base of physical memory.
 	 */
+  //全局变量memstart_addr记录内存的起始物理地址
 	memstart_addr = round_down(memblock_start_of_DRAM(),
 				   ARM64_MEMSTART_ALIGN);
 
@@ -340,6 +345,7 @@ void __init arm64_memblock_init(void)
 	 * linear mapping. Take care not to clip the kernel which may be
 	 * high in memory.
 	 */
+  // 把线性映射区域不能覆盖的物理内存范围从memblock.memory中删除
 	memblock_remove(max_t(u64, memstart_addr + linear_region_size,
 			__pa_symbol(_end)), ULLONG_MAX);
 	if (memstart_addr + linear_region_size < memblock_end_of_DRAM()) {
@@ -354,6 +360,8 @@ void __init arm64_memblock_init(void)
 	 * high up in memory, add back the kernel region that must be accessible
 	 * via the linear mapping.
 	 */
+  /*设备树二进制文件中节点“/chosen”的属性“bootargs”指定的命令行中，可以使用参
+数“mem”指定可用内存的大小。如果指定了内存的大小，那么把超过可用长度的物理内存范围从memblock.memory中删除。因为内核镜像可以被加载到内存的高地址部分，并且内核镜像必须是可以通过线性映射区域访问的，所以需要把内核镜像占用的物理内存范围重新添加到memblock.memory中*/
 	if (memory_limit != PHYS_ADDR_MAX) {
 		memblock_mem_limit_remove_map(memory_limit);
 		memblock_add(__pa_symbol(_text), (u64)(_end - _text));
@@ -409,6 +417,7 @@ void __init arm64_memblock_init(void)
 	 * Register the kernel text, kernel data, initrd, and initial
 	 * pagetables with memblock.
 	 */
+  //把内核镜像占用的物理内存范围添加到memblock.reserved中
 	memblock_reserve(__pa_symbol(_text), _end - _text);
 	if (IS_ENABLED(CONFIG_BLK_DEV_INITRD) && phys_initrd_size) {
 		/* the generic initrd code expects virtual addresses */
@@ -416,6 +425,7 @@ void __init arm64_memblock_init(void)
 		initrd_end = initrd_start + phys_initrd_size;
 	}
 
+  /* 从设备树二进制文件中的内存保留区域（memory reserve map，对应设备树源文件的字段“/memreserve/”）和节点“/reserved-memory”读取保留的物理内存范围，添加到memblock.reserved中 */
 	early_init_fdt_scan_reserved_mem();
 
 	/* 4GB maximum for 32-bit only capable devices */

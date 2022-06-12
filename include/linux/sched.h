@@ -753,6 +753,7 @@ active_mm指向从进程借用的内存描述符*/
 	unsigned long			jobctl;
 
 	/* Used for emulating ABI behavior of previous Linux versions: */
+  //影响进程是否使用虚拟地址空间随机化的两个因素其中之一,another is randomize_va_space
 	unsigned int			personality;
 
 	/* Scheduler bits, serialized by scheduler locks: */

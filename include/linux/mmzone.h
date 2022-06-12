@@ -42,7 +42,9 @@ enum migratetype {
 	MIGRATE_UNMOVABLE,
 	MIGRATE_MOVABLE,
 	MIGRATE_RECLAIMABLE,
+  //定义内存区域的每处理器页集合中链表的数量 
 	MIGRATE_PCPTYPES,	/* the number of types on the pcp lists */
+  //用于高阶原子分配
 	MIGRATE_HIGHATOMIC = MIGRATE_PCPTYPES,
 #ifdef CONFIG_CMA
 	/*
@@ -58,9 +60,11 @@ enum migratetype {
 	 * MAX_ORDER_NR_PAGES should biggest page be bigger then
 	 * a single pageblock.
 	 */
+  //用于连续内存分配器
 	MIGRATE_CMA,
 #endif
 #ifdef CONFIG_MEMORY_ISOLATION
+  /*MIGRATE_ISOLATE用来隔离物理页（由连续内存分配器、内存热插拔和从内存硬件错误恢复等功能使用）*/
 	MIGRATE_ISOLATE,	/* can't allocate from here */
 #endif
 	MIGRATE_TYPES
@@ -319,8 +323,11 @@ struct lruvec {
 typedef unsigned __bitwise isolate_mode_t;
 
 enum zone_watermarks {
+  //最低水线（min）：如果内存区域的空闲页数小于最低水线，说明该内存区域的内存严重不足
 	WMARK_MIN,
+  //低水线（low）：如果内存区域的空闲页数小于低水线，说明该内存区域的内存轻微不足
 	WMARK_LOW,
+  //高水线（high）：如果内存区域的空闲页数大于高水线，说明该内存区域的内存充足
 	WMARK_HIGH,
 	NR_WMARK
 };
@@ -393,6 +400,7 @@ enum zone_type {
 	 * performed on pages in ZONE_NORMAL if the DMA devices support
 	 * transfers to all addressable memory.
 	 */
+  /* 直接映射到内核虚拟地址空间的内存区域，直译为“普通区域”，意译为“直接映射区域”或“线性映射区域”。内核虚拟地址和物理地址是线性映射的关系，即虚拟地址 =（物理地址 + 常量）。是否需要使用页表映射？不同处理器的实现不同，例如ARM处理器需要使用页表映射，而MIPS处理器不需要使用页表映射 */
 	ZONE_NORMAL,
 #ifdef CONFIG_HIGHMEM
 	/*
@@ -405,8 +413,10 @@ enum zone_type {
 	 */
 	ZONE_HIGHMEM,
 #endif
+  //它是一个伪内存区域，用来防止内存碎片，后面讲反碎片技术的时候具体描述
 	ZONE_MOVABLE,
 #ifdef CONFIG_ZONE_DEVICE
+  // 为支持持久内存（persistent memory）热插拔增加的内存区域
 	ZONE_DEVICE,
 #endif
 	__MAX_NR_ZONES
@@ -419,9 +429,11 @@ struct zone {
 	/* Read-mostly fields */
 
 	/* zone watermarks, access with *_wmark_pages(zone) macros */
+  //页分配器使用的水线,区域水线，使用*_wmark_pages(zone) 宏访问
 	unsigned long _watermark[NR_WMARK];
 	unsigned long watermark_boost;
 
+  /* zone->nr_reserved_highatomic < (zone->managed_pages / 100) + pageblock_nr_pages，即必须小于（伙伴分配器管理的总页数 / 100 + 分组阶数对应的页数）*/
 	unsigned long nr_reserved_highatomic;
 
 	/*
@@ -433,23 +445,29 @@ struct zone {
 	 * recalculated at runtime if the sysctl_lowmem_reserve_ratio sysctl
 	 * changes.
 	 */
+  // 页分配器使用，当前区域保留多少页不能借给高的区域类型 
+  /*zone[i]->lowmem_reserve[j]表示区域类型i应该保留多少页不能借给区域类型j，仅当j大于i时有意义*/ 
 	long lowmem_reserve[MAX_NR_ZONES];
 
 #ifdef CONFIG_NUMA
 	int node;
 #endif
+  // 指向内存节点的pglist_data实例
 	struct pglist_data	*zone_pgdat;
+  //每处理器页集合
 	struct per_cpu_pageset __percpu *pageset;
 
-#ifndef CONFIG_SPARSEMEM
+#ifndef CONFIG_SPARSEMEM //1
 	/*
 	 * Flags for a pageblock_nr_pages block. See pageblock-flags.h.
 	 * In SPARSEMEM, this map is stored in struct mem_section
 	 */
+  //pageblock_flags指向页块标志位图
 	unsigned long		*pageblock_flags;
 #endif /* CONFIG_SPARSEMEM */
 
 	/* zone_start_pfn == zone_start_paddr >> PAGE_SHIFT */
+  // 当前区域的起始物理页号
 	unsigned long		zone_start_pfn;
 
 	/*
@@ -487,10 +505,14 @@ struct zone {
 	 * mem_hotplug_begin/end(). Any reader who can't tolerant drift of
 	 * present_pages should get_online_mems() to get a stable value.
 	 */
+  // 伙伴分配器管理的物理页的数量
 	atomic_long_t		managed_pages;
+  // 当前区域跨越的总页数，包括空洞
 	unsigned long		spanned_pages;
+  // 当前区域存在的物理页的数量，不包括空洞
 	unsigned long		present_pages;
 
+  // 区域名称
 	const char		*name;
 
 #ifdef CONFIG_MEMORY_ISOLATION
@@ -513,6 +535,7 @@ struct zone {
 	ZONE_PADDING(_pad1_)
 
 	/* free areas of different sizes */
+  // 不同长度的空闲区域
 	struct free_area	free_area[MAX_ORDER];
 
 	/* zone flags, see below */
@@ -696,11 +719,19 @@ struct deferred_split {
  * per-zone basis.
  */
 struct bootmem_data;
+//内存节点使用一个pglist_data结构体描述内存布局
+//对于平坦内存模型，只有一个pglist_data实例：contig_page_data
 typedef struct pglist_data {
+  //node_zones是内存区域数组
 	struct zone node_zones[MAX_NR_ZONES];
+  //备用区域列表
 	struct zonelist node_zonelists[MAX_ZONELISTS];
+  //nr_zones是内存节点包含的内存区域的数量
 	int nr_zones;
 #ifdef CONFIG_FLAT_NODE_MEM_MAP	/* means !SPARSEMEM */
+  /* 成员node_mem_map指向页描述符数组，每个物理页对应一个页描述符。注意：成员
+node_mem_map可能不是指向数组的第一个元素，因为页描述符数组的大小必须对齐到2
+的（MAX_ORDER − 1）次方，（MAX_ORDER − 1）是页分配器可分配的最大阶数 */
 	struct page *node_mem_map;
 #ifdef CONFIG_PAGE_EXTENSION
 	struct page_ext *node_page_ext;
@@ -719,10 +750,14 @@ typedef struct pglist_data {
 	 */
 	spinlock_t node_size_lock;
 #endif
+  //成员node_start_pfn是起始物理页号
 	unsigned long node_start_pfn;
+  //成员node_present_pages是实际存在的物理页的总数
 	unsigned long node_present_pages; /* total number of physical pages */
+  //成员node_spanned_pages是包括空洞的物理页总数
 	unsigned long node_spanned_pages; /* total size of physical page
 					     range, including holes */
+  // 节点标识符
 	int node_id;
 	wait_queue_head_t kswapd_wait;
 	wait_queue_head_t pfmemalloc_wait;

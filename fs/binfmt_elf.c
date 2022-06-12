@@ -864,6 +864,8 @@ out_free_interp:
 
 	/* Do this so that we can load the interpreter, if need be.  We will
 	   change some of these later */
+  /* 函数setup_arg_pages把栈顶设置为STACK_TOP
+减去随机值，然后把环境变量和参数从临时栈移到最终的用户栈 */
 	retval = setup_arg_pages(bprm, randomize_stack_top(STACK_TOP),
 				 executable_stack);
 	if (retval < 0)
@@ -894,6 +896,7 @@ out_free_interp:
 			/* There was a PT_LOAD segment with p_memsz > p_filesz
 			   before this one. Map anonymous pages, if needed,
 			   and clear the area.  */
+      //set_brk设置堆的起始地址，如果启用堆随机化，把堆的起始地址加上随机值
 			retval = set_brk(elf_bss + load_bias,
 					 elf_brk + load_bias,
 					 bss_prot);

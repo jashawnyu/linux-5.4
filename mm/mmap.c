@@ -1441,6 +1441,7 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
 	/* Obtain the address to map to. we verify (or select) it and ensure
 	 * that it represents a valid section of the address space.
 	 */
+  /* 从进程的虚拟地址空间分配一个虚拟地址范围,函数get_unmapped_area根据情况调用特定函数以分配虚拟地址范围 */
 	addr = get_unmapped_area(file, addr, len, pgoff, flags);
 	if (offset_in_page(addr))
 		return addr;
@@ -1462,6 +1463,11 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
 	 * to. we assume access permissions have been handled by the open
 	 * of the memory object, so we don't do any here.
 	 */
+  //系统调用中指定的保护位和标志合并到一个标志集合中
+  //函数calc_vm_prot_bits把以“PROT_”开头的保护位转换成以“VM_”开头的标志
+  //函数calc_vm_flag_bits把以“MAP_”开头的标志转换成以“VM_”开头的标志
+  /* mm->def_flags是默认的虚拟内存标志：进程默认的虚拟内存标志是VM_NOHUGEPAGE，即不使用透明巨型页；内核线程默认的虚拟内存标志是0 */
+  /* VM_MAYREAD表示允许设置标志VM_READ，VM_MAYWRITE表示允许设置标志VM_WRITE，VM_MAYEXEC表示允许设置标志VM_EXEC。这3个标志是系统调用mprotect所需要的 */
 	vm_flags |= calc_vm_prot_bits(prot, pkey) | calc_vm_flag_bits(flags) |
 			mm->def_flags | VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC;
 
@@ -1573,7 +1579,7 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
 		if (file && is_file_hugepages(file))
 			vm_flags |= VM_NORESERVE;
 	}
-
+  //调用函数mmap_region以创建虚拟内存区域
 	addr = mmap_region(file, addr, len, vm_flags, pgoff, uf);
 	if (!IS_ERR_VALUE(addr) &&
 	    ((vm_flags & VM_LOCKED) ||
@@ -1591,6 +1597,7 @@ unsigned long ksys_mmap_pgoff(unsigned long addr, unsigned long len,
 
 	addr = untagged_addr(addr);
 
+  //如果是创建文件映射，根据文件描述符在进程的打开文件表中找到file实例
 	if (!(flags & MAP_ANONYMOUS)) {
 		audit_mmap_fd(fd, flags);
 		file = fget(fd);
@@ -1602,6 +1609,7 @@ unsigned long ksys_mmap_pgoff(unsigned long addr, unsigned long len,
 		if (unlikely(flags & MAP_HUGETLB && !is_file_hugepages(file)))
 			goto out_fput;
 	} else if (flags & MAP_HUGETLB) {
+    //匿名巨型页映射
 		struct user_struct *user = NULL;
 		struct hstate *hs;
 
@@ -1626,6 +1634,7 @@ unsigned long ksys_mmap_pgoff(unsigned long addr, unsigned long len,
 
 	flags &= ~(MAP_EXECUTABLE | MAP_DENYWRITE);
 
+  //这个file, 如果是创建文件映射或匿名巨型页映射,file!=0
 	retval = vm_mmap_pgoff(file, addr, len, prot, flags, pgoff);
 out_fput:
 	if (file)
@@ -1706,6 +1715,12 @@ int vma_wants_writenotify(struct vm_area_struct *vma, pgprot_t vm_page_prot)
  * We account for memory if it's a private writeable mapping,
  * not hugepages and VM_NORESERVE wasn't set.
  */
+/*
+* 如果是需要记账的映射，那么检查所有进程申请的虚拟内存的总和是否超过物理内存的容量。需要记账的映射具备以下3个条件。
+* （1）私有的可写映射。
+* （2）不是标准巨型页（因为标准巨型页单独记账）。
+* （3）需要预留物理内存（即未设置VM_NORESERVE）。
+*/
 static inline int accountable_mapping(struct file *file, vm_flags_t vm_flags)
 {
 	/*
@@ -1729,6 +1744,7 @@ unsigned long mmap_region(struct file *file, unsigned long addr,
 	unsigned long charged = 0;
 
 	/* Check against address space limit. */
+  /* 调用函数may_expand_vm以检查进程申请的虚拟内存是否超过限制 */
 	if (!may_expand_vm(mm, vm_flags, len >> PAGE_SHIFT)) {
 		unsigned long nr_pages;
 
@@ -1744,6 +1760,7 @@ unsigned long mmap_region(struct file *file, unsigned long addr,
 	}
 
 	/* Clear old maps */
+  /* 如果是固定映射，调用者强制指定虚拟地址范围，可能和旧的虚拟内存区域重叠，那么需要从旧的虚拟内存区域删除重叠的部分 */
 	while (find_vma_links(mm, addr, addr + len, &prev, &rb_link,
 			      &rb_parent)) {
 		if (do_munmap(mm, addr, len, uf))
@@ -1753,8 +1770,10 @@ unsigned long mmap_region(struct file *file, unsigned long addr,
 	/*
 	 * Private writable mapping: check memory availability
 	 */
+  /*如果是私有的可写映射，检查所有进程申请的虚拟内存的总和是否超过物理内存的容量*/
 	if (accountable_mapping(file, vm_flags)) {
 		charged = len >> PAGE_SHIFT;
+    /* 根据虚拟内存过量提交的策略，判断物理内存是否足够。*/
 		if (security_vm_enough_memory_mm(mm, charged))
 			return -ENOMEM;
 		vm_flags |= VM_ACCOUNT;
@@ -1763,16 +1782,20 @@ unsigned long mmap_region(struct file *file, unsigned long addr,
 	/*
 	 * Can we just expand an old mapping?
 	 */
+  /* 如果可以和已有的虚拟内存区域合并，那么调用函数vma_merge，和已有的虚拟内存区域合并 */
 	vma = vma_merge(mm, prev, addr, addr + len, vm_flags,
 			NULL, file, pgoff, NULL, NULL_VM_UFFD_CTX);
 	if (vma)
+    //可以合并这里直接出去了
 		goto out;
 
+  //如果不能和已有的虚拟内存区域合并，处理如下
 	/*
 	 * Determine the object being mapped and call the appropriate
 	 * specific mapper. the address has already been validated, but
 	 * not unmapped, but the maps are removed from the list.
 	 */
+  //创建新的虚拟内存区域
 	vma = vm_area_alloc(mm);
 	if (!vma) {
 		error = -ENOMEM;
@@ -1803,6 +1826,9 @@ unsigned long mmap_region(struct file *file, unsigned long addr,
 		 * new file must not have been exposed to user-space, yet.
 		 */
 		vma->vm_file = get_file(file);
+    /* 如果是文件映射，那么调用文件的文件操作集合中的mmap方法（file->f_op->mmap）*/
+    /* mmap方法的主要功能是设置虚拟内存区域的虚拟内存操作集合（vm_area_struct.vm_ops）*/
+    /* 很多文件系统把文件操作集合中的mmap方法设置为公共函数generic_file_mmap*/
 		error = call_mmap(file, vma);
 		if (error)
 			goto unmap_and_free_vma;
@@ -1819,6 +1845,7 @@ unsigned long mmap_region(struct file *file, unsigned long addr,
 		addr = vma->vm_start;
 		vm_flags = vma->vm_flags;
 	} else if (vm_flags & VM_SHARED) {
+    //如果是共享的匿名映射
 		error = shmem_zero_setup(vma);
 		if (error)
 			goto free_vma;
@@ -1826,6 +1853,8 @@ unsigned long mmap_region(struct file *file, unsigned long addr,
 		vma_set_anonymous(vma);
 	}
 
+  /* 把虚拟内存区域添加到链表和红黑树中。如果虚拟内存区域关联文件，那么把虚
+拟内存区域添加到文件的区间树中，文件的区间树用来跟踪文件被映射到哪些虚拟内存区域 */
 	vma_link(mm, vma, prev, rb_link, rb_parent);
 	/* Once vma denies write, undo our temporary denial count */
 	if (file) {
@@ -1860,6 +1889,8 @@ out:
 	 */
 	vma->vm_flags |= VM_SOFTDIRTY;
 
+  /* 调用函数 vma_set_page_prot，根据虚拟内存标志（vma->vm_flags）计算页保护位（vma->vm_page_prot），如果共享的可写映射想要把页标记为只读，目的是跟踪写事件，那么从页保护位删除可
+写位 */
 	vma_set_page_prot(vma);
 
 	return addr;
@@ -2213,6 +2244,7 @@ get_unmapped_area(struct file *file, unsigned long addr, unsigned long len,
 		return -ENOMEM;
 
 	get_area = current->mm->get_unmapped_area;
+  /* 如果是创建文件映射或匿名巨型页映射，那么调用file->f_op->get_unmapped_area以分配虚拟地址范围 */
 	if (file) {
 		if (file->f_op->get_unmapped_area)
 			get_area = file->f_op->get_unmapped_area;
@@ -2223,9 +2255,11 @@ get_unmapped_area(struct file *file, unsigned long addr, unsigned long len,
 		 * do_mmap_pgoff() will clear pgoff, so match alignment.
 		 */
 		pgoff = 0;
+    //如果是创建共享的匿名映射，那么调用shmem_get_unmapped_area以分配虚拟地址范围
 		get_area = shmem_get_unmapped_area;
 	}
 
+  //如果是创建私有的匿名映射，那么调用mm->get_unmapped_area以分配虚拟地址范围
 	addr = get_area(file, addr, len, pgoff, flags);
 	if (IS_ERR_VALUE(addr))
 		return addr;
@@ -2760,9 +2794,11 @@ int __do_munmap(struct mm_struct *mm, unsigned long start, size_t len,
 	 * and finish any rbtree manipulation before this code
 	 * runs and also starts to manipulate the rbtree.
 	 */
+  //用函数arch_unmap执行处理器架构特定的处理。各种处理器架构自定义函数arch_unmap，它默认是一个空函数
 	arch_unmap(mm, start, end);
 
 	/* Find the first overlapping VMA */
+  //根据起始地址找到要删除的第一个虚拟内存区域vma
 	vma = find_vma(mm, start);
 	if (!vma)
 		return 0;
@@ -2780,6 +2816,7 @@ int __do_munmap(struct mm_struct *mm, unsigned long start, size_t len,
 	 * unmapped vm_area_struct will remain in use: so lower split_vma
 	 * places tmp vma above, and higher split_vma places tmp vma below.
 	 */
+  //如果只删除虚拟内存区域vma的一部分，那么分裂虚拟内存区域vma
 	if (start > vma->vm_start) {
 		int error;
 
@@ -2798,7 +2835,9 @@ int __do_munmap(struct mm_struct *mm, unsigned long start, size_t len,
 	}
 
 	/* Does it split the last one? */
+  //根据结束地址找到要删除的最后一个虚拟内存区域last
 	last = find_vma(mm, end);
+  //如果只删除虚拟内存区域last的一部分，那么分裂虚拟内存区域last
 	if (last && end > last->vm_start) {
 		int error = __split_vma(mm, last, end, 1);
 		if (error)
@@ -2829,6 +2868,7 @@ int __do_munmap(struct mm_struct *mm, unsigned long start, size_t len,
 		while (tmp && tmp->vm_start < end) {
 			if (tmp->vm_flags & VM_LOCKED) {
 				mm->locked_vm -= vma_pages(tmp);
+        /* 针对所有删除目标，如果虚拟内存区域被锁定在内存中（不允许换出到交换区），那么调用函数munlock_vma_pages_all以解除锁定 */
 				munlock_vma_pages_all(tmp);
 			}
 
@@ -2837,14 +2877,17 @@ int __do_munmap(struct mm_struct *mm, unsigned long start, size_t len,
 	}
 
 	/* Detach vmas from rbtree */
+  /* 调用函数detach_vmas_to_be_unmapped，把所有删除目标从进程的虚拟内存区域链表和树中删除，单独组成一条临时的链表 */
 	detach_vmas_to_be_unmapped(mm, vma, prev, end);
 
 	if (downgrade)
 		downgrade_write(&mm->mmap_sem);
 
+  /* 调用函数unmap_region，针对所有删除目标，在进程的页表中删除映射，并且从处理器的页表缓存中删除映射 */
 	unmap_region(mm, vma, prev, start, end);
 
 	/* Fix up all other VM information */
+  //调用函数remove_vma_list删除所有目标
 	remove_vma_list(mm, vma);
 
 	return downgrade ? 1 : 0;
@@ -3296,9 +3339,11 @@ out:
  */
 bool may_expand_vm(struct mm_struct *mm, vm_flags_t flags, unsigned long npages)
 {
+  //首先检查（进程的虚拟内存总数 + 申请的页数）是否超过地址空间限制
 	if (mm->total_vm + npages > rlimit(RLIMIT_AS) >> PAGE_SHIFT)
 		return false;
 
+  /* 如果是私有的可写映射，并且不是栈，那么检查（进程数据的虚拟内存总数 + 申请的页数）是否超过最大数据长度 */
 	if (is_data_mapping(flags) &&
 	    mm->data_vm + npages > rlimit(RLIMIT_DATA) >> PAGE_SHIFT) {
 		/* Workaround for Valgrind */

@@ -331,8 +331,11 @@ extern struct list_head task_groups;
 struct cfs_bandwidth {
 #ifdef CONFIG_CFS_BANDWIDTH
 	raw_spinlock_t		lock;
+  //设定的定时器周期时间
 	ktime_t			period;
+  /* quota是指在period周期时间内，一个组可以使用的CPU时间限额 */
 	u64			quota;
+  //剩余可运行时间，在每次定时器回调函数中更新值为quota
 	u64			runtime;
 	s64			hierarchical_quota;
 
@@ -340,8 +343,10 @@ struct cfs_bandwidth {
 	u8			period_active;
 	u8			distribute_running;
 	u8			slack_started;
+  //高精度定时器
 	struct hrtimer		period_timer;
-	struct hrtimer		slack_timer;
+	struct hrtimer		slack_timer;//松弛的
+  /*所有被throttle的cfs_rq挂入此链表，在定时器的回调函数中便利链表执行unthrottle cfs_rq操作*/                                
 	struct list_head	throttled_cfs_rq;
 
 	/* Statistics: */
@@ -549,6 +554,7 @@ struct cfs_rq {
 #endif /* CONFIG_SMP */
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
+  //cfs_rq依附的cpu runqueue，每个CPU有且仅有一个rq运行队列
 	struct rq		*rq;	/* CPU runqueue to which this cfs_rq is attached */
 
 	/*
@@ -564,12 +570,18 @@ struct cfs_rq {
 	struct task_group	*tg;	/* group that "owns" this runqueue */
 
 #ifdef CONFIG_CFS_BANDWIDTH
+  /* 该就绪队列是否已经开启带宽限制，默认带宽限制是关闭的，如果带宽限制使能，runtime_enabled的值为1 */
 	int			runtime_enabled;
+  /*cfs_rq从全局时间池申请的时间片剩余时间，当剩余时间小于等于0的时候，就需要重新申请时间片 */
 	s64			runtime_remaining;
 
+  //当cfs_rq被throttle的时候，方便统计被throttle的时间，需要记录throttle开始的时间
 	u64			throttled_clock;
 	u64			throttled_clock_task;
+  //throttled_clock_task_time时间还包括由于parent cfs_rq被throttle的时间
+  /*虽然自己是unthrottle状态，但是parent cfs_rq是throttle状态，自己也是没办法运行的。所以throttled_clock_task_time统计的是cfs_rq->throttle_count从非零变成0经历的时间总和*/
 	u64			throttled_clock_task_time;
+  /* 如果cfs_rq被throttle后，throttled变量置1，unthrottle的时候，throttled变量置0；throttle_count：由于task_group支持嵌套，当parent task_group的cfs_rq被throttle的时候，其chaild task_group对应的cfs_rq的throttle_count成员计数增加*/
 	int			throttled;
 	int			throttle_count;
 	struct list_head	throttled_list;

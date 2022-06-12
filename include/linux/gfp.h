@@ -311,6 +311,7 @@ static inline int gfpflags_to_migratetype(const gfp_t gfp_flags)
 	BUILD_BUG_ON((1UL << GFP_MOVABLE_SHIFT) != ___GFP_MOVABLE);
 	BUILD_BUG_ON((___GFP_MOVABLE >> GFP_MOVABLE_SHIFT) != MIGRATE_MOVABLE);
 
+  //如果禁用根据可移动性分组，那么总是申请不可移动页
 	if (unlikely(page_group_by_mobility_disabled))
 		return MIGRATE_UNMOVABLE;
 
@@ -403,13 +404,14 @@ static inline bool gfpflags_normal_context(const gfp_t gfp_flags)
 /* ZONE_DEVICE is not a valid GFP zone specifier */
 #define GFP_ZONES_SHIFT 2
 #else
-#define GFP_ZONES_SHIFT ZONES_SHIFT
+#define GFP_ZONES_SHIFT ZONES_SHIFT //2
 #endif
 
 #if 16 * GFP_ZONES_SHIFT > BITS_PER_LONG
 #error GFP_ZONES_SHIFT too large to create GFP_ZONE_TABLE integer
 #endif
 
+//解释请看http://t.zoukankan.com/sky-heaven-p-13515028.html
 #define GFP_ZONE_TABLE ( \
 	(ZONE_NORMAL << 0 * GFP_ZONES_SHIFT)				       \
 	| (OPT_ZONE_DMA << ___GFP_DMA * GFP_ZONES_SHIFT)		       \

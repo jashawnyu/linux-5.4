@@ -313,7 +313,7 @@ unsigned long randomize_stack_top(unsigned long stack_top)
 		random_variable &= STACK_RND_MASK;
 		random_variable <<= PAGE_SHIFT;
 	}
-#ifdef CONFIG_STACK_GROWSUP
+#ifdef CONFIG_STACK_GROWSUP //n
 	return PAGE_ALIGN(stack_top) + random_variable;
 #else
 	return PAGE_ALIGN(stack_top) - random_variable;
@@ -359,18 +359,19 @@ static int mmap_is_legacy(struct rlimit *rlim_stack)
  * Leave enough space between the mmap area and the stack to honour ulimit in
  * the face of randomisation.
  */
-#define MIN_GAP		(SZ_128M)
-#define MAX_GAP		(STACK_TOP / 6 * 5)
+#define MIN_GAP		(SZ_128M) //0x08000000
+#define MAX_GAP		(STACK_TOP / 6 * 5) //0x10000 0000 0000 / 6*5
 
 static unsigned long mmap_base(unsigned long rnd, struct rlimit *rlim_stack)
 {
 	unsigned long gap = rlim_stack->rlim_cur;
-	unsigned long pad = stack_guard_gap;
+	unsigned long pad = stack_guard_gap; //0x100 << 12
 
 	/* Account for stack randomization if necessary */
 	if (current->flags & PF_RANDOMIZE)
-		pad += (STACK_RND_MASK << PAGE_SHIFT);
+		pad += (STACK_RND_MASK << PAGE_SHIFT); //0x3ffff << 12=0x3ffff000
 
+  //pad = 0x3ffff000 + 0x100000 = 0x400ff000
 	/* Values close to RLIM_INFINITY can overflow. */
 	if (gap + pad > gap)
 		gap += pad;
@@ -390,6 +391,7 @@ void arch_pick_mmap_layout(struct mm_struct *mm, struct rlimit *rlim_stack)
 	if (current->flags & PF_RANDOMIZE)
 		random_factor = arch_mmap_rnd();
 
+  /*如果给进程描述符的成员personality设置标志位ADDR_COMPAT_LAYOUT表示使用传统的虚拟地址空间布局*/
 	if (mmap_is_legacy(rlim_stack)) {
 		mm->mmap_base = TASK_UNMAPPED_BASE + random_factor;
 		mm->get_unmapped_area = arch_get_unmapped_area;
@@ -491,12 +493,17 @@ unsigned long vm_mmap_pgoff(struct file *file, unsigned long addr,
 
 	ret = security_mmap_file(file, prot, flag);
 	if (!ret) {
+    //以写者身份申请读写信号量mm->mmap_sem
 		if (down_write_killable(&mm->mmap_sem))
 			return -EINTR;
+    //把创建内存映射的主要工作委托给函数do_mmap
 		ret = do_mmap_pgoff(file, addr, len, prot, flag, pgoff,
 				    &populate, &uf);
+    //释放读写信号量mm->mmap_sem
 		up_write(&mm->mmap_sem);
 		userfaultfd_unmap_complete(mm, &uf);
+    /* 如果调用者要求把页锁定在内存中，或者要求填充页表并且允许阻塞，那么调用函数mm_populate，分配物理页，并且在页表中把虚拟页映射到物理页 */
+    /* 常见的情况是：创建内存映射的时候不分配物理页，等到进程第一次访问虚拟页的时候，生成页错误异常，页错误异常处理程序分配物理页，在页表中把虚拟页映射到物理页 */
 		if (populate)
 			mm_populate(ret, populate);
 	}
@@ -734,6 +741,9 @@ int overcommit_kbytes_handler(struct ctl_table *table, int write,
 /*
  * Committed memory limit enforced when OVERCOMMIT_NEVER policy is used
  */
+/* 计算提交内存的上限。有两个控制参数：sysctl_overcommit_kbytes是字节数，
+sysctl_overcommit_ratio 是比例值，sysctl_overcommit_kbytes 的默认值是 0，sysctl_overcommit_ratio的默认值是50。如果sysctl_overcommit_kbytes不是0，那么上限等于“sysctl_overcommit_kbytes + 交换区的空闲页数”，否则上限等于“（物理内存容量 − 巨型页总数）* sysctl_overcommit_ratio/100 + 交换区的空闲页数” */
+
 unsigned long vm_commit_limit(void)
 {
 	unsigned long allowed;
@@ -797,31 +807,40 @@ int __vm_enough_memory(struct mm_struct *mm, long pages, int cap_sys_admin)
 	/*
 	 * Sometimes we want to use more memory than we have
 	 */
+  //如果使用总是允许过量提交的策略，那么允许创建新的内存映射
 	if (sysctl_overcommit_memory == OVERCOMMIT_ALWAYS)
 		return 0;
 
+  //如果使用猜测的过量提交策略，那么估算可用内存的数量，处理如下
 	if (sysctl_overcommit_memory == OVERCOMMIT_GUESS) {
 		if (pages > totalram_pages() + total_swap_pages)
 			goto error;
+    //如果可用内存的页数大于申请的页数，那么允许创建新的内存映射
 		return 0;
 	}
 
+  // 使用不允许过量提交的策略，那么处理如下
 	allowed = vm_commit_limit();
 	/*
 	 * Reserve some for root
 	 */
+  //如果进程没有系统管理权限，那么需要为根用户保留一部分内存
 	if (!cap_sys_admin)
 		allowed -= sysctl_admin_reserve_kbytes >> (PAGE_SHIFT - 10);
 
 	/*
 	 * Don't let a single process grow so big a user can't recover
 	 */
+  /* 为了防止一个用户启动一个消耗内存大的进程，保留一部分内存：取“进程虚拟内存
+长度的1/32”和“用户保留的页数”的较小值 */
 	if (mm) {
 		long reserve = sysctl_user_reserve_kbytes >> (PAGE_SHIFT - 10);
 
 		allowed -= min_t(long, mm->total_vm / 32, reserve);
 	}
 
+  /* vm_committed_as是所有进程提交的虚拟内存的总和，如果它小于allowed，那么
+允许创建新的内存映射*/
 	if (percpu_counter_read_positive(&vm_committed_as) < allowed)
 		return 0;
 error:

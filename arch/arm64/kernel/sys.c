@@ -22,9 +22,11 @@ SYSCALL_DEFINE6(mmap, unsigned long, addr, unsigned long, len,
 		unsigned long, prot, unsigned long, flags,
 		unsigned long, fd, unsigned long, off)
 {
+  //检查偏移是不是页的整数倍，如果偏移不是页的整数倍，返回“-EINVAL”
 	if (offset_in_page(off) != 0)
 		return -EINVAL;
 
+  /* off >> PAGE_SHIFT,如果偏移是页的整数倍，那么把偏移转换成以页为单位的偏移，然后调用函数sys_mmap_pgoff */
 	return ksys_mmap_pgoff(addr, len, prot, flags, fd, off >> PAGE_SHIFT);
 }
 

@@ -111,6 +111,7 @@ static struct memblock_region memblock_reserved_init_regions[INIT_MEMBLOCK_RESER
 static struct memblock_region memblock_physmem_init_regions[INIT_PHYSMEM_REGIONS] __initdata_memblock;
 #endif
 
+//全局变量memblock，把成员bottom_up初始化为假，表示从高地址向下分配
 struct memblock memblock __initdata_memblock = {
 	.memory.regions		= memblock_memory_init_regions,
 	.memory.cnt		= 1,	/* empty dummy entry */
@@ -315,6 +316,7 @@ static phys_addr_t __init_memblock memblock_find_in_range_node(phys_addr_t size,
 			  "memblock: bottom-up allocation failed, memory hotremove may be affected\n");
 	}
 
+  //默认从高地址向下分配
 	return __memblock_find_range_top_down(start, end, size, align, nid,
 					      flags);
 }
@@ -1129,7 +1131,7 @@ void __init_memblock __next_mem_range_rev(u64 *idx, int nid,
 			idx_b = 0;
 	}
 
-	for (; idx_a >= 0; idx_a--) {
+	for (; idx_a >= 0; idx_a--) { //memblock.memory循环
 		struct memblock_region *m = &type_a->regions[idx_a];
 
 		phys_addr_t m_start = m->base;
@@ -1139,7 +1141,8 @@ void __init_memblock __next_mem_range_rev(u64 *idx, int nid,
 		if (should_skip_region(m, nid, flags))
 			continue;
 
-		if (!type_b) {
+    //如果没有reversed块直接从块基地址开始分配
+		if (!type_b) { //memblock.reversed
 			if (out_start)
 				*out_start = m_start;
 			if (out_end)
@@ -1158,6 +1161,7 @@ void __init_memblock __next_mem_range_rev(u64 *idx, int nid,
 			phys_addr_t r_end;
 
 			r = &type_b->regions[idx_b];
+      //这种取值方式
 			r_start = idx_b ? r[-1].base + r[-1].size : 0;
 			r_end = idx_b < type_b->cnt ?
 				r->base : PHYS_ADDR_MAX;
@@ -1357,6 +1361,7 @@ static phys_addr_t __init memblock_alloc_range_nid(phys_addr_t size,
 	}
 
 again:
+/* 函数memblock_find_in_range_node有两层循环，外层循环从高到低遍历memblock.memory的内存块区域数组；针对每个内存块区域M1，执行内层循环，从高到低遍历memblock.reserved的内存块区域数组。针对每个内存块区域M2，目标区域是内存块区域M2和前一个内存块区域之间的区域，如果目标区域属于内存块区域M1，并且长度大于或等于请求分配的长度，那么可以从目标区域分配内存 */
 	found = memblock_find_in_range_node(size, align, start, end, nid,
 					    flags);
     //把分配出去的内存块区域添加到memblock.reserved中
@@ -1367,6 +1372,7 @@ again:
 		found = memblock_find_in_range_node(size, align, start,
 						    end, NUMA_NO_NODE,
 						    flags);
+    /* 调用函数memblock_reserve，把分配出去的内存块区域添加到memblock.reserved中。*/
 		if (found && !memblock_reserve(found, size))
 			goto done;
 	}

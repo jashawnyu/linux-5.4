@@ -4120,6 +4120,7 @@ dequeue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int flags)
 		se->vruntime -= cfs_rq->min_vruntime;
 
 	/* return excess runtime on last dequeue */
+  //该cfs_rq上只有一个进程
 	return_cfs_rq_runtime(cfs_rq);
 
 	update_cfs_group(se);
@@ -4411,32 +4412,40 @@ static int assign_cfs_rq_runtime(struct cfs_rq *cfs_rq)
 	u64 amount = 0, min_amount;
 
 	/* note: this is a positive sum as runtime_remaining <= 0 */
+  //从全局时间池申请的时间片默认是5ms
 	min_amount = sched_cfs_bandwidth_slice() - cfs_rq->runtime_remaining;
 
 	raw_spin_lock(&cfs_b->lock);
+  /*如果该cfs_rq不限制带宽，那么quota的值为RUNTIME_INF，既然不限制带宽，自然时间池的时间是取之不尽用之不竭的，所以申请时间片一定成功 */
 	if (cfs_b->quota == RUNTIME_INF)
 		amount = min_amount;
 	else {
+    /*确保定时器是打开的，如果关闭状态，就打开定时器。该定时器会在定时时间到达后，重置全局时间池可用剩余时间 */
 		start_cfs_bandwidth(cfs_b);
 
 		if (cfs_b->runtime > 0) {
 			amount = min(cfs_b->runtime, min_amount);
+      //申请时间片成功，全局时间池剩余可用时间更新
 			cfs_b->runtime -= amount;
 			cfs_b->idle = 0;
 		}
 	}
 	raw_spin_unlock(&cfs_b->lock);
 
+  //cfs_rq剩余可用时间增加
 	cfs_rq->runtime_remaining += amount;
 
+  /*如果cfs_rq向全局时间池申请不到时间片，那么该函数返回0，否则返回1，代表申请时间片成功，不需要throttle */
 	return cfs_rq->runtime_remaining > 0;
 }
 
 static void __account_cfs_rq_runtime(struct cfs_rq *cfs_rq, u64 delta_exec)
 {
 	/* dock delta_exec before expiring quota (as it could span periods) */
+  //进程已经运行delta_exec时间，因此cfs_rq剩余可运行时间减少
 	cfs_rq->runtime_remaining -= delta_exec;
 
+  //如果cfs_rq剩余运行时间还有，那么没必要向全局时间池申请时间片
 	if (likely(cfs_rq->runtime_remaining > 0))
 		return;
 
@@ -4446,13 +4455,16 @@ static void __account_cfs_rq_runtime(struct cfs_rq *cfs_rq, u64 delta_exec)
 	 * if we're unable to extend our runtime we resched so that the active
 	 * hierarchy can be throttled
 	 */
+  //如果cfs_rq可运行时间不足，assign_cfs_rq_runtime()负责从全局时间池中申请时间片
 	if (!assign_cfs_rq_runtime(cfs_rq) && likely(cfs_rq->curr))
+  /*如果全局时间片时间不够，就需要throttle当前cfs_rq。当然这里是设置TIF_NEED_RESCHED flag。在后面throttle */
 		resched_curr(rq_of(cfs_rq));
 }
 
 static __always_inline
 void account_cfs_rq_runtime(struct cfs_rq *cfs_rq, u64 delta_exec)
 {
+  //如果使能CFS bandwidth control功能，cfs_bandwidth_used()返回1
 	if (!cfs_bandwidth_used() || !cfs_rq->runtime_enabled)
 		return;
 
@@ -4505,6 +4517,7 @@ static int tg_unthrottle_up(struct task_group *tg, void *data)
 	return 0;
 }
 
+//eg. data = rq
 static int tg_throttle_down(struct task_group *tg, void *data)
 {
 	struct rq *rq = data;
@@ -4513,6 +4526,7 @@ static int tg_throttle_down(struct task_group *tg, void *data)
 	/* group is entering throttled state, stop time */
 	if (!cfs_rq->throttle_count) {
 		cfs_rq->throttled_clock_task = rq_clock_task(rq);
+    //删掉leaf_cfs_rq_list 链表, 清除on_list
 		list_del_leaf_cfs_rq(cfs_rq);
 	}
 	cfs_rq->throttle_count++;
@@ -4528,26 +4542,31 @@ static void throttle_cfs_rq(struct cfs_rq *cfs_rq)
 	long task_delta, idle_task_delta, dequeue = 1;
 	bool empty;
 
+  /*throttle对应的cfs_rq可以将对应的group se从其就绪队列的红黑树上删除，这样在pick_next_task的时候，顺着根cfs_rq的红黑树往下便利，就不会找到已经throttle的se，也就是没有机会运行*/
 	se = cfs_rq->tg->se[cpu_of(rq_of(cfs_rq))];
 
 	/* freeze hierarchy runnable averages while throttled */
 	rcu_read_lock();
+  /* task_group可以父子关系嵌套。walk_tg_tree_from()函数功能是顺着cfs_rq->tg往下便利每一个child task_group，并且对每个task_group调用tg_throttle_down()函数。tg_throttle_down()负责增加cfs_rq->throttle_count计数 */
 	walk_tg_tree_from(cfs_rq->tg, tg_throttle_down, tg_nop, (void *)rq);
 	rcu_read_unlock();
 
 	task_delta = cfs_rq->h_nr_running;
 	idle_task_delta = cfs_rq->idle_h_nr_running;
 	for_each_sched_entity(se) {
+    //???
 		struct cfs_rq *qcfs_rq = cfs_rq_of(se);
 		/* throttled entity or throttle-on-deactivate */
 		if (!se->on_rq)
 			break;
 
 		if (dequeue)
+      //从依附的cfs_rq的红黑树上删除
 			dequeue_entity(qcfs_rq, se, DEQUEUE_SLEEP);
 		qcfs_rq->h_nr_running -= task_delta;
 		qcfs_rq->idle_h_nr_running -= idle_task_delta;
 
+    /* 如果qcfs_rq运行的进程只有即将被dequeue的se一个的话，那么parent se也需要dequeue。如果qcfs_rq->load.weight不为0，说明qcfs_rq就绪队列上运行的进程不止se一个，那么parent se理所应当不能被dequeue */
 		if (qcfs_rq->load.weight)
 			dequeue = 0;
 	}
@@ -4556,6 +4575,7 @@ static void throttle_cfs_rq(struct cfs_rq *cfs_rq)
 		sub_nr_running(rq, task_delta);
 
 	cfs_rq->throttled = 1;
+  //记录throttle时刻
 	cfs_rq->throttled_clock = rq_clock(rq);
 	raw_spin_lock(&cfs_b->lock);
 	empty = list_empty(&cfs_b->throttled_cfs_rq);
@@ -4565,6 +4585,7 @@ static void throttle_cfs_rq(struct cfs_rq *cfs_rq)
 	 * distribute_cfs_runtime will not see us. If disribute_cfs_runtime is
 	 * not running add to the tail so that later runqueues don't get starved.
 	 */
+  /*被throttle的cfs_rq加入cfs_b链表中，方便后续unthrottle操作可以找到这些已经被throttle的cfs_rq */
 	if (cfs_b->distribute_running)
 		list_add_rcu(&cfs_rq->throttled_list, &cfs_b->throttled_cfs_rq);
 	else
@@ -4638,6 +4659,7 @@ static u64 distribute_cfs_runtime(struct cfs_bandwidth *cfs_b, u64 remaining)
 	u64 starting_runtime = remaining;
 
 	rcu_read_lock();
+  //循环便利所有已经throttle cfs_rq，函数参数remaining是全局时间池剩余可运行时间
 	list_for_each_entry_rcu(cfs_rq, &cfs_b->throttled_cfs_rq,
 				throttled_list) {
 		struct rq *rq = rq_of(cfs_rq);
@@ -4653,11 +4675,13 @@ static u64 distribute_cfs_runtime(struct cfs_bandwidth *cfs_b, u64 remaining)
 		runtime = -cfs_rq->runtime_remaining + 1;
 		if (runtime > remaining)
 			runtime = remaining;
+    //remaining是全局时间池剩余时间，这里借给cfs_rq的时间是runtime
 		remaining -= runtime;
 
 		cfs_rq->runtime_remaining += runtime;
 
 		/* we check whether we're throttled above */
+    /* 如果从全局时间池借到的时间保证cfs_rq->runtime_remaining的值应该大于0，执行unthrottle操作 */
 		if (cfs_rq->runtime_remaining > 0)
 			unthrottle_cfs_rq(cfs_rq);
 
@@ -4796,6 +4820,7 @@ static void start_cfs_slack_bandwidth(struct cfs_bandwidth *cfs_b)
 static void __return_cfs_rq_runtime(struct cfs_rq *cfs_rq)
 {
 	struct cfs_bandwidth *cfs_b = tg_cfs_bandwidth(cfs_rq->tg);
+  /* min_cfs_rq_runtime的值是1ms，我们选择至少保留min_cfs_rq_runtime时间给自己，剩下的时间归返全局时间池。全部归返的做法也是不明智的，有可能该cfs_rq上很快就会有进程运行。如果全部归返，进程运行的时候需要立刻去全局时间池申请，效率低*/
 	s64 slack_runtime = cfs_rq->runtime_remaining - min_cfs_rq_runtime;
 
 	if (slack_runtime <= 0)
@@ -4803,6 +4828,7 @@ static void __return_cfs_rq_runtime(struct cfs_rq *cfs_rq)
 
 	raw_spin_lock(&cfs_b->lock);
 	if (cfs_b->quota != RUNTIME_INF) {
+    //归返全局时间池slack_runtime时间
 		cfs_b->runtime += slack_runtime;
 
 		/* we are under rq->lock, defer unthrottling using a timer */
@@ -4843,7 +4869,7 @@ static void do_sched_cfs_slack_timer(struct cfs_bandwidth *cfs_b)
 		raw_spin_unlock_irqrestore(&cfs_b->lock, flags);
 		return;
 	}
-
+  /* 检查period_timer定是时间是否即将到来，如果period_timer时间到了会刷新全局时间池。因此借助于period_timer即可unthrottle cfs_rq。如果，period_timer定是时间还有一段时间，那么此时此刻需要借助当前函数unthrottle cfs_rq */
 	if (runtime_refresh_within(cfs_b, min_bandwidth_expiration)) {
 		raw_spin_unlock_irqrestore(&cfs_b->lock, flags);
 		return;
@@ -4915,6 +4941,7 @@ static bool check_cfs_rq_runtime(struct cfs_rq *cfs_rq)
 	if (!cfs_bandwidth_used())
 		return false;
 
+  //检查cfs_rq是否满足被throttle的条件，可用运行时间小于0
 	if (likely(!cfs_rq->runtime_enabled || cfs_rq->runtime_remaining > 0))
 		return false;
 
@@ -4922,6 +4949,7 @@ static bool check_cfs_rq_runtime(struct cfs_rq *cfs_rq)
 	 * it's possible for a throttled entity to be forced into a running
 	 * state (e.g. set_curr_task), in this case we're finished.
 	 */
+  //如果该cfs_rq已经被throttle，这不需要重复操作
 	if (cfs_rq_throttled(cfs_rq))
 		return true;
 
@@ -4941,6 +4969,7 @@ static enum hrtimer_restart sched_cfs_slack_timer(struct hrtimer *timer)
 
 extern const u64 max_cfs_quota_period;
 
+//回调函数中刷新quota，并调用distribute_cfs_runtime()函数unthrottle cfs_rq
 static enum hrtimer_restart sched_cfs_period_timer(struct hrtimer *timer)
 {
 	struct cfs_bandwidth *cfs_b =

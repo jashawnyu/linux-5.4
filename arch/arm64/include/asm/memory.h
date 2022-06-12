@@ -43,9 +43,10 @@
  * KIMAGE_VADDR - the virtual address of the start of the kernel image.
  * VA_BITS - the maximum number of bits for virtual addresses.
  */
-#define VA_BITS			(CONFIG_ARM64_VA_BITS)
-#define _PAGE_OFFSET(va)	(-(UL(1) << (va)))
-#define PAGE_OFFSET		(_PAGE_OFFSET(VA_BITS))
+#define VA_BITS			(CONFIG_ARM64_VA_BITS) //48
+#define _PAGE_OFFSET(va)	(-(UL(1) << (va))) //负号这样可以把高位变1
+//长度是内核虚拟地址空间的一半
+#define PAGE_OFFSET		(_PAGE_OFFSET(VA_BITS)) //0xffff 0000 0000 0000
 #define KIMAGE_VADDR		(MODULES_END)
 #define BPF_JIT_REGION_START	(KASAN_SHADOW_END)
 #define BPF_JIT_REGION_SIZE	(SZ_128M)
@@ -58,7 +59,7 @@
 #define PCI_IO_START		(PCI_IO_END - PCI_IO_SIZE)
 #define FIXADDR_TOP		(PCI_IO_START - SZ_2M)
 
-#if VA_BITS > 48
+#if VA_BITS > 48 //48
 #define VA_BITS_MIN		(48)
 #else
 #define VA_BITS_MIN		(VA_BITS)

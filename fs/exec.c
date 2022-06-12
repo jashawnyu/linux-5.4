@@ -1355,6 +1355,11 @@ void setup_new_exec(struct linux_binprm * bprm)
 			bprm->rlim_stack.rlim_cur = _STK_LIM;
 	}
 
+  // 负责选择内存映射区域的布局,增长方向不同，这就导致用户虚拟地址空间有两种布局
+  /* 先计算内存映射区域的起始地址和栈顶的间隙：初始值取用户栈的最大
+长度，限定不能小于“128MB + 栈的最大随机偏移值 + 1”，确保用户栈最
+大可以达到128MB；限定不能超过STACK_TOP的5/6。内存映射区域的
+起始地址等于“STACK_TOP−间隙−随机值”，然后向下对齐到页长度 */
 	arch_pick_mmap_layout(current->mm, &bprm->rlim_stack);
 
 	current->sas_ss_sp = current->sas_ss_size = 0;
