@@ -91,10 +91,13 @@ struct kmem_cache {
 	/* Number of per cpu partial objects to keep around */
 	unsigned int cpu_partial;
 #endif
+  /* 成员oo存放最优slab的阶数和对象数，低16位是对象数，高16位是slab的阶数，即oo等于（（slab的阶数<< 16）| 对象数）。最优slab是剩余部分最小的slab */
 	struct kmem_cache_order_objects oo;
 
 	/* Allocation and freeing of slabs */
 	struct kmem_cache_order_objects max;
+  //成员min存放最小slab的阶数和对象数，格式和oo相同。最小slab只需要足够存放一个对象。
+  //当设备长时间运行以后，内存碎片化，分配连续物理页很难成功，如果分配最优slab失败，就分配最小slab
 	struct kmem_cache_order_objects min;
 	gfp_t allocflags;	/* gfp flags to use on each alloc */
 	int refcount;		/* Refcount for slab cache destroy */

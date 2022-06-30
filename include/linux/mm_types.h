@@ -125,6 +125,7 @@ FLAGS是标志位 */
 			/* Double-word boundary */
 			void *freelist;		/* first free object */
 			union {
+        /* page结构体的成员s_mem存放第一个对象的地址，等于（slab的起始地址 + slab的颜色偏移） */
 				void *s_mem;	/* slab: first object */
 				unsigned long counters;		/* SLUB */
 				struct {			/* SLUB */

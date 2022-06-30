@@ -601,10 +601,13 @@ struct kmem_cache_node {
 #ifdef CONFIG_SLAB
 	struct list_head slabs_partial;	/* partial list first, better asm code */
 	struct list_head slabs_full;
+  //slabs_free是空闲slab链表的头节点
 	struct list_head slabs_free;
 	unsigned long total_slabs;	/* length of all slab lists */
 	unsigned long free_slabs;	/* length of free slab list only */
+  //free_objects是空闲对象的数量
 	unsigned long free_objects;
+  //free_limit是空闲对象的数量限制
 	unsigned int free_limit;
 	unsigned int colour_next;	/* Per-node cache coloring */
 	struct array_cache *shared;	/* shared per node */
@@ -614,7 +617,9 @@ struct kmem_cache_node {
 #endif
 
 #ifdef CONFIG_SLUB
+  //成员nr_partial是部分空闲slab的数量
 	unsigned long nr_partial;
+  //链表partial把部分空闲的slab链接起来
 	struct list_head partial;
 #ifdef CONFIG_SLUB_DEBUG
 	atomic_long_t nr_slabs;
@@ -685,7 +690,7 @@ static inline bool slab_want_init_on_alloc(gfp_t flags, struct kmem_cache *c)
 
 static inline bool slab_want_init_on_free(struct kmem_cache *c)
 {
-	if (static_branch_unlikely(&init_on_free))
+	if (static_branch_unlikely(&init_on_free)) //0
 		return !(c->ctor ||
 			 (c->flags & (SLAB_TYPESAFE_BY_RCU | SLAB_POISON)));
 	return false;

@@ -2374,7 +2374,6 @@ long _do_fork(struct kernel_clone_args *args)
 		if (likely(!ptrace_event_enabled(current, trace)))
 			trace = 0;
 	}
-  printk("yjx\n");
   //创建新进程
 	p = copy_process(NULL, trace, NUMA_NO_NODE, args);
   //??

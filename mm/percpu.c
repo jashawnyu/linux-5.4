@@ -34,7 +34,7 @@
  * The static data is copied from the original section managed by the
  * linker.  The reserved section, if non-zero, primarily manages static
  * percpu variables from kernel modules.  Finally, the dynamic section
- * takes care of normal allocations.
+ * takes care of(负责) normal allocations.
  *
  * The allocator organizes chunks into lists according to free size and
  * tries to allocate from the fullest chunk first.  Each chunk is managed
@@ -135,10 +135,12 @@ void *pcpu_base_addr __ro_after_init;
 EXPORT_SYMBOL_GPL(pcpu_base_addr);
 
 static const int *pcpu_unit_map __ro_after_init;		/* cpu -> unit */
+//每个group中的unit地址距离base地址的偏移记录在全局数组pcpu_unit_offsets[cpu]中
 const unsigned long *pcpu_unit_offsets __ro_after_init;	/* cpu -> unit offset */
 
 /* group information, used for vm allocation */
 static int pcpu_nr_groups __ro_after_init;
+//每个group起始地址距离base地址的偏移记录在全局数组pcpu_group_offsets[group]中
 static const unsigned long *pcpu_group_offsets __ro_after_init;
 static const size_t *pcpu_group_sizes __ro_after_init;
 
@@ -159,6 +161,7 @@ struct pcpu_chunk *pcpu_reserved_chunk __ro_after_init;
 DEFINE_SPINLOCK(pcpu_lock);	/* all internal data structures */
 static DEFINE_MUTEX(pcpu_alloc_mutex);	/* chunk create/destroy, [de]pop, map ext */
 
+//dynamic chunk使用哈希表pcpu_slot[slot]进行管理，哈希冲突使用拉链法解决
 struct list_head *pcpu_slot __ro_after_init; /* chunk list slots */
 
 /* chunks which need their map areas extended, protected by pcpu_lock */
@@ -217,6 +220,7 @@ static bool pcpu_addr_in_chunk(struct pcpu_chunk *chunk, void *addr)
 	return addr >= start_addr && addr < end_addr;
 }
 
+//输入的size为chunk连续的可分配的最小单元数（chunk_md->contig_hint），输出对应的哈希表的slot号
 static int __pcpu_size_to_slot(int size)
 {
 	int highbit = fls(size);	/* size is in bytes */
@@ -1209,9 +1213,11 @@ static int pcpu_alloc_area(struct pcpu_chunk *chunk, int alloc_bits,
 		pcpu_block_update_scan(chunk, area_off, area_bits);
 
 	/* update alloc map */
+  /*内核管理chunk的最小单位为PCPU_MIN_ALLOC_SIZE，将chunk按照该size进行划分,内核使用两个bitmap记录这些小块的分配情况，一个是pcpu_chunk->alloc_map，当小块被分配出去后，即将alloc_map中对应的bit置1*/
 	bitmap_set(chunk->alloc_map, bit_off, alloc_bits);
 
 	/* update boundary map */
+  //用于记录分配区域的边界
 	set_bit(bit_off, chunk->bound_map);
 	bitmap_clear(chunk->bound_map, bit_off + 1, alloc_bits - 1);
 	set_bit(bit_off + alloc_bits, chunk->bound_map);
@@ -2561,7 +2567,7 @@ static struct pcpu_alloc_info * __init pcpu_build_alloc_info(
 
 	/* determine the maximum # of units that can fit in an allocation */
 	alloc_size = roundup(min_unit_size, atom_size);
-	upa = alloc_size / min_unit_size;
+	upa = alloc_size / min_unit_size; //1
 	while (alloc_size % upa || (offset_in_page(alloc_size / upa)))
 		upa--;
 	max_upa = upa;

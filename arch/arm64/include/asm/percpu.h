@@ -19,6 +19,7 @@ static inline void set_my_cpu_offset(unsigned long off)
 			:: "r" (off) : "memory");
 }
 
+//存放当前cpu的per_cpu变量的offset值
 static inline unsigned long __my_cpu_offset(void)
 {
 	unsigned long off;
@@ -26,6 +27,8 @@ static inline unsigned long __my_cpu_offset(void)
 	/*
 	 * We want to allow caching the value, so avoid using volatile and
 	 * instead use a fake stack read to hazard against barrier().
+   * 相反，使用伪堆栈读取来冒险使用barrier()
+   * "Q" is Constraints for Particular Machines in asm arguments: A memory address which uses a single base register with no offset
 	 */
 	asm(ALTERNATIVE("mrs %0, tpidr_el1",
 			"mrs %0, tpidr_el2",

@@ -21,6 +21,7 @@
  *	and fixed mappings
  */
 #define VMALLOC_START		(MODULES_END)
+//PUD_SIZE是一个页上层目录表项映射的地址空间长度
 #define VMALLOC_END		(- PUD_SIZE - VMEMMAP_SIZE - SZ_64K)
 
 #define FIRST_USER_ADDRESS	0UL

@@ -278,7 +278,7 @@ alternative_else_nop_endif
 	ct_user_enter
 	.endif
 
-#ifdef CONFIG_ARM64_SW_TTBR0_PAN
+#ifdef CONFIG_ARM64_SW_TTBR0_PAN //0
 	/*
 	 * Restore access to TTBR0_EL1. If returning to EL0, no need for SPSR
 	 * PAN bit checking.
@@ -603,12 +603,14 @@ el1_da:
 	/*
 	 * Data abort handling
 	 */
+  //获取数据的虚拟地址，存放在寄存器x3中
 	mrs	x3, far_el1
 	inherit_daif	pstate=x23, tmp=x2
 	untagged_addr	x0, x3
 	mov	x2, sp				// struct pt_regs
 	bl	do_mem_abort
 
+  //恢复当前进程的寄存器，重新执行触发页错误异常的指令
 	kernel_exit 1
 el1_pc:
 	/*
@@ -714,7 +716,9 @@ ENDPROC(el1_irq)
  */
 	.align	6
 el0_sync:
+  //把所有通用寄存器的值保存在当前进程的内核栈中
 	kernel_entry 0
+  //从寄存器ESR_EL1的第26～31位得到异常类别
 	mrs	x25, esr_el1			// read the syndrome register
 	lsr	x24, x25, #ESR_ELx_EC_SHIFT	// exception class
 	cmp	x24, #ESR_ELx_EC_SVC64		// SVC in 64-bit state
@@ -806,13 +810,20 @@ el0_da:
 	/*
 	 * Data abort handling
 	 */
+  //获取数据的虚拟地址，存放在寄存器x26中
 	mrs	x26, far_el1
+  //开启调试异常和中断
 	ct_user_exit_irqoff
 	enable_daif
+  //寄存器x0存放第一个参数：数据的虚拟地址
 	untagged_addr	x0, x26
+  //寄存器x1存放第二个参数：寄存器ESR_EL1的值，即生成异常的原因
 	mov	x1, x25
+  /* 寄存器x2存放第三个参数：保存在内核栈里面的结构体pt_regs的起始
+地址，结构体pt_regs保存所有通用寄存器的值*/
 	mov	x2, sp
 	bl	do_mem_abort
+  //恢复当前进程的寄存器，返回用户模式，重新执行触发页错误异常的指令
 	b	ret_to_user
 el0_ia:
 	/*

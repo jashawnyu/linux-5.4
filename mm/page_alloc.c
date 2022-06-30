@@ -4477,6 +4477,10 @@ retry_cpuset:
 	compaction_retries = 0;
 	no_progress_loops = 0;
 	compact_priority = DEF_COMPACT_PRIORITY;
+  /*
+   * 后面可能检查cpuset是否允许当前进程从哪些内存节点申请页，
+   * 需要读当前进程的成员mems_allowed。使用顺序锁保护
+   */
 	cpuset_mems_cookie = read_mems_allowed_begin();
 
 	/*
@@ -4787,13 +4791,12 @@ __alloc_pages_nodemask(gfp_t gfp_mask, unsigned int order, int preferred_nid,
 
 	/*
 	 * There are several places where we assume that the order value is sane
-	 * so bail out early if the request is out of bound.
+	 * so bail out(退出) early if the request is out of bound.
 	 */
-	if (unlikely(order >= MAX_ORDER)) {
+	if (unlikely(order >= MAX_ORDER)) {//11
 		WARN_ON_ONCE(!(gfp_mask & __GFP_NOWARN));
 		return NULL;
 	}
-
 	gfp_mask &= gfp_allowed_mask;
 	alloc_mask = gfp_mask;
 	if (!prepare_alloc_pages(gfp_mask, order, preferred_nid, nodemask, &ac, &alloc_mask, &alloc_flags))

@@ -38,8 +38,10 @@ struct pcpu_chunk {
 #endif
 
 	struct list_head	list;		/* linked to pcpu_slot lists */
+  //可用于实际分配的区域大小记录在 pcpu_chunk->free_bytes中
 	int			free_bytes;	/* free bytes in the chunk */
 	struct pcpu_block_md	chunk_md;
+  //对齐后的起始地址记录在pcpu_chunk->base_addr中
 	void			*base_addr;	/* base address of this chunk */
 
 	unsigned long		*alloc_map;	/* allocation map */
@@ -48,6 +50,7 @@ struct pcpu_chunk {
 
 	void			*data;		/* chunk data */
 	bool			immutable;	/* no [de]population allowed */
+  //chunk区域需要向前页对齐，向后lcm对齐（在arm64体系架构中也为PAGE_SIZE对齐），对齐的部分记录在pcpu_chunk->start_offset和pcpu_chunk->end_offset中 
 	int			start_offset;	/* the overlap with the previous
 						   region to have a page aligned
 						   base_addr */
@@ -55,9 +58,12 @@ struct pcpu_chunk {
 						   have the region end page
 						   aligned */
 
+  //chunk的page总数
 	int			nr_pages;	/* # of pages served by this chunk */
+  //已经分配并映射过物理地址的页数
 	int			nr_populated;	/* # of populated pages */
 	int                     nr_empty_pop_pages; /* # of empty populated pages */
+  //用于记录已经分配并映射过物理地址的chunk区域，以页为单位
 	unsigned long		populated[];	/* populated bitmap */
 };
 

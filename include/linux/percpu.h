@@ -14,7 +14,7 @@
 
 /* enough to cover all DEFINE_PER_CPUs in modules */
 #ifdef CONFIG_MODULES
-#define PERCPU_MODULE_RESERVE		(8 << 10)
+#define PERCPU_MODULE_RESERVE		(8 << 10) //8K
 #else
 #define PERCPU_MODULE_RESERVE		0
 #endif
@@ -24,7 +24,7 @@
 
 /* minimum allocation size and shift in bytes */
 #define PCPU_MIN_ALLOC_SHIFT		2
-#define PCPU_MIN_ALLOC_SIZE		(1 << PCPU_MIN_ALLOC_SHIFT)
+#define PCPU_MIN_ALLOC_SIZE		(1 << PCPU_MIN_ALLOC_SHIFT) //4
 
 /*
  * The PCPU_BITMAP_BLOCK_SIZE must be the same size as PAGE_SIZE as the
@@ -57,7 +57,7 @@
  * intelligent way to determine this would be nice.
  */
 #if BITS_PER_LONG > 32
-#define PERCPU_DYNAMIC_RESERVE		(28 << 10)
+#define PERCPU_DYNAMIC_RESERVE		(28 << 10) //28K
 #else
 #define PERCPU_DYNAMIC_RESERVE		(20 << 10)
 #endif
@@ -66,6 +66,8 @@ extern void *pcpu_base_addr;
 extern const unsigned long *pcpu_unit_offsets;
 
 struct pcpu_group_info {
+  //group中unit的数量按照upa对齐
+  //每个group的upa对齐后的nr_units数记录在gi->nr_units中
 	int			nr_units;	/* aligned # of units */
 	unsigned long		base_offset;	/* base address offset */
 	unsigned int		*cpu_map;	/* unit->cpu map, empty
@@ -76,10 +78,12 @@ struct pcpu_alloc_info {
 	size_t			static_size;
 	size_t			reserved_size;
 	size_t			dyn_size;
+  //为每个cpu分配的用于分配percpu变量的单元内存大小
 	size_t			unit_size;
 	size_t			atom_size;
 	size_t			alloc_size;
 	size_t			__ai_size;	/* internal, don't use */
+  //内核将每个内存node中的cpu划分为一个group，group总数记录在ai->nr_groups中
 	int			nr_groups;	/* 0 if grouping unnecessary */
 	struct pcpu_group_info	groups[];
 };

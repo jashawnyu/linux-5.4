@@ -182,10 +182,14 @@ typedef unsigned short freelist_idx_t;
  *
  */
 struct array_cache {
+  //成员avail是数组存放的对象的数量
 	unsigned int avail;
+  /* limit是数组的大小，和结构体kmem_cache的成员limit的值相同，是根据对象长度猜测的一个值 */
 	unsigned int limit;
+  /* batchcount是批量值，和结构体kmem_cache的成员batchcount的值相同，批量值是数组大小的一半 */
 	unsigned int batchcount;
 	unsigned int touched;
+  //entry是存放对象地址的数组
 	void *entry[];	/*
 			 * Must have this definition in here for the proper
 			 * alignment of array_cache. Also simplifies accessing
@@ -421,9 +425,9 @@ static unsigned int cache_estimate(unsigned long gfporder, size_t buffer_size,
 	 * correct alignment when allocated.
 	 */
 	if (flags & (CFLGS_OBJFREELIST_SLAB | CFLGS_OFF_SLAB)) {
-		num = slab_size / buffer_size;
-		*left_over = slab_size % buffer_size;
-	} else {
+		num = slab_size / buffer_size; //4096/168 = 24
+		*left_over = slab_size % buffer_size; //0
+	} else { //空闲对象链表放在slab尾部
 		num = slab_size / (buffer_size + sizeof(freelist_idx_t));
 		*left_over = slab_size %
 			(buffer_size + sizeof(freelist_idx_t));
@@ -1655,19 +1659,21 @@ static size_t calculate_slab_order(struct kmem_cache *cachep,
 {
 	size_t left_over = 0;
 	int gfporder;
-
-	for (gfporder = 0; gfporder <= KMALLOC_MAX_ORDER; gfporder++) {
+  //从0阶到kmalloc()函数支持的最大阶数（KMALLOC_MAX_ORDER=10）
+	for (gfporder = 0; gfporder <= KMALLOC_MAX_ORDER; gfporder++) { //10
 		unsigned int num;
 		size_t remainder;
-
+    //计算对象数量和剩余长度
 		num = cache_estimate(gfporder, size, flags, &remainder);
+    //如果对象数量是0，那么不合适
 		if (!num)
 			continue;
 
 		/* Can't handle number of objects more than SLAB_OBJ_MAX_NUM */
+    /* 如果对象数量大于允许的最大slab对象数量，那么不合适。允许的最大slab对象数量是SLAB_OBJ_MAX_NUM，等于（2^sizeof(freelist_idx_t) × 8 − 1），freelist_idx_t是对象索引的数据类型 */
 		if (num > SLAB_OBJ_MAX_NUM)
 			break;
-
+    /*对于空闲对象链表在slab外面的情况，如果空闲对象链表的长度大于对象长度的一半，那么不合适*/
 		if (flags & CFLGS_OFF_SLAB) {
 			struct kmem_cache *freelist_cache;
 			size_t freelist_size;
@@ -1699,6 +1705,7 @@ static size_t calculate_slab_order(struct kmem_cache *cachep,
 		 * as GFP_NOFS and we really don't want to have to be allocating
 		 * higher-order pages when we are unable to shrink dcache.
 		 */
+    /* 如果slab是可回收的（设置了标志位SLAB_RECLAIM_ACCOUNT），那么选择这个阶数 */
 		if (flags & SLAB_RECLAIM_ACCOUNT)
 			break;
 
@@ -1706,12 +1713,14 @@ static size_t calculate_slab_order(struct kmem_cache *cachep,
 		 * Large number of objects is good, but very large slabs are
 		 * currently bad for the gfp()s.
 		 */
+    /* slab_max_order：允许的最大slab阶数。如果内存容量大于32MB，那么默认值是1，否则默认值是0 */
 		if (gfporder >= slab_max_order)
 			break;
 
 		/*
 		 * Acceptable internal fragmentation?
 		 */
+    //如果剩余长度小于或等于slab长度的1/8，那么选择这个阶数
 		if (left_over * 8 <= (PAGE_SIZE << gfporder))
 			break;
 	}
@@ -1816,9 +1825,9 @@ static bool set_objfreelist_slab_cache(struct kmem_cache *cachep,
 	 * off-slab, so that its contents don't end up in one of the allocated
 	 * objects.
 	 */
-	if (unlikely(slab_want_init_on_free(cachep)))
+	if (unlikely(slab_want_init_on_free(cachep)))//0
 		return false;
-
+  /* 如果指定了对象的构造函数，如果指定了标志位SLAB_TYPESAFE_BY_RCU，表示使用RCU技术延迟释放slab，那么这种方案不适合 */
 	if (cachep->ctor || flags & SLAB_TYPESAFE_BY_RCU)
 		return false;
 
@@ -2021,17 +2030,18 @@ int __kmem_cache_create(struct kmem_cache *cachep, slab_flags_t flags)
 		}
 	}
 #endif
-
+  //创建内存缓存的时候，确定空闲对象链表的位置的方法如下:
+  //1. 首先尝试使用一个对象存放空闲对象链表
 	if (set_objfreelist_slab_cache(cachep, size, flags)) {
-		flags |= CFLGS_OBJFREELIST_SLAB;
+		flags |= CFLGS_OBJFREELIST_SLAB; //分配成功设置标志位
 		goto done;
 	}
-
+  //2. 接着尝试把空闲对象链表放在slab外面
 	if (set_off_slab_cache(cachep, size, flags)) {
 		flags |= CFLGS_OFF_SLAB;
 		goto done;
 	}
-
+  //3. 最后尝试把空闲对象链表放在slab尾部
 	if (set_on_slab_cache(cachep, size, flags))
 		goto done;
 

@@ -2655,7 +2655,7 @@ static inline bool want_init_on_alloc(gfp_t flags)
 	return flags & __GFP_ZERO;
 }
 
-#ifdef CONFIG_INIT_ON_FREE_DEFAULT_ON
+#ifdef CONFIG_INIT_ON_FREE_DEFAULT_ON //0
 DECLARE_STATIC_KEY_TRUE(init_on_free);
 #else
 DECLARE_STATIC_KEY_FALSE(init_on_free);

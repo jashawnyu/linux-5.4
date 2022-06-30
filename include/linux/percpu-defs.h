@@ -250,6 +250,7 @@ do {									\
 	SHIFT_PERCPU_PTR(ptr, my_cpu_offset);				\
 })
 #else
+//当前处理器的变量副本的地址等于基准地址加上当前处理器的偏移
 #define this_cpu_ptr(ptr) raw_cpu_ptr(ptr)
 #endif
 

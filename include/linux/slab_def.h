@@ -14,6 +14,7 @@ struct kmem_cache {
 /* 1) Cache tunables. Protected by slab_mutex */
 	unsigned int batchcount;
 	unsigned int limit;
+  //用来控制共享数组缓存的大小，当前代码实现指定的值是8
 	unsigned int shared;
 
 	unsigned int size;

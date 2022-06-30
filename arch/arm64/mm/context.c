@@ -16,12 +16,16 @@
 #include <asm/smp.h>
 #include <asm/tlbflush.h>
 
+//保存ASID长度
 static u32 asid_bits;
 static DEFINE_RAW_SPINLOCK(cpu_asid_lock);
 
+//全局变量asid_generation的高56位保存全局ASID版本号
 static atomic64_t asid_generation;
+//记录哪些ASID被分配
 static unsigned long *asid_map;
 
+//保存处理器正在使用的ASID
 static DEFINE_PER_CPU(atomic64_t, active_asids);
 static DEFINE_PER_CPU(u64, reserved_asids);
 static cpumask_t tlb_flush_pending;
@@ -83,8 +87,10 @@ static void flush_context(void)
 	u64 asid;
 
 	/* Update the list of reserved ASIDs and the ASID bitmap. */
+  //把ASID位图清零
 	bitmap_clear(asid_map, 0, NUM_USER_ASIDS);
 
+  //把每个处理器的active_asids设置为0，active_asids为0具有特殊含义，说明全局ASID版本号变化，ASID回绕。然后把每个处理器正在执行的进程的ASID设置为保留ASID，为保留ASID在ASID位图中设置已分配的标志
 	for_each_possible_cpu(i) {
 		asid = atomic64_xchg_relaxed(&per_cpu(active_asids, i), 0);
 		/*
@@ -104,6 +110,7 @@ static void flush_context(void)
 	 * Queue a TLB invalidation for each CPU to perform on next
 	 * context-switch
 	 */
+  //所有处理器需要清空页表缓存，在位图tlb_flush_pending中设置所有处理器对应的位
 	cpumask_setall(&tlb_flush_pending);
 }
 
@@ -144,6 +151,7 @@ static u64 new_context(struct mm_struct *mm)
 		 * If our current ASID was active during a rollover, we
 		 * can continue to use it and this was just a false alarm.
 		 */
+    //如果进程已经有ASID，并且进程的ASID是保留ASID，那么继续使用原来的ASID，只需更新ASID版本号
 		if (check_update_reserved_asid(asid, newasid))
 			return newasid;
 
@@ -151,6 +159,7 @@ static u64 new_context(struct mm_struct *mm)
 		 * We had a valid ASID in a previous life, so try to re-use
 		 * it if possible.
 		 */
+    //如果进程已经有ASID，并且ASID在位图中是空闲的，那么继续使用原来的ASID，只需更新ASID版本号
 		if (!__test_and_set_bit(asid2idx(asid), asid_map))
 			return newasid;
 	}
@@ -162,32 +171,40 @@ static u64 new_context(struct mm_struct *mm)
 	 * a reserved TTBR0 for the init_mm and we allocate ASIDs in even/odd
 	 * pairs.
 	 */
+  //从上一次分配的ASID开始分配ASID，如果存在空闲的ASID，那么分配给进程，然后跳转到第28行的标号set_asid去设置ASID位图
 	asid = find_next_zero_bit(asid_map, NUM_USER_ASIDS, cur_idx);
 	if (asid != NUM_USER_ASIDS)
 		goto set_asid;
 
 	/* We're out of ASIDs, so increment the global generation count */
+  //如果ASID已经分配完，那么把全局ASID版本号加1
 	generation = atomic64_add_return_relaxed(ASID_FIRST_VERSION,
 						 &asid_generation);
+  //调用函数flush_context重新初始化ASID分配状态
 	flush_context();
 
 	/* We have more ASIDs than CPUs, so this will always succeed */
+  //从1开始分配ASID
 	asid = find_next_zero_bit(asid_map, NUM_USER_ASIDS, 1);
 
 set_asid:
+  //为刚分配的ASID在位图中设置已分配的标志
 	__set_bit(asid, asid_map);
+  //使用静态变量cur_idx记录刚分配的ASID，下次分配ASID时从这次分配的ASID开始查找
 	cur_idx = asid;
+  //返回ASID和版本号
 	return idx2asid(asid) | generation;
 }
-
+//检查是否需要给进程重新分配ASID
 void check_and_switch_context(struct mm_struct *mm, unsigned int cpu)
 {
 	unsigned long flags;
 	u64 asid, old_active_asid;
 
-	if (system_supports_cnp())
+	if (system_supports_cnp()) //1
 		cpu_set_reserved_ttbr0();
 
+  //Address Space Identifier
 	asid = atomic64_read(&mm->context.id);
 
 	/*
@@ -205,13 +222,19 @@ void check_and_switch_context(struct mm_struct *mm, unsigned int cpu)
 	 *   because atomic RmWs are totally ordered for a given location.
 	 */
 	old_active_asid = atomic64_read(&per_cpu(active_asids, cpu));
+  //如果进程的ASID版本号和全局ASID版本号相同
+  //atomic64_cmpxchg_relaxed把当前处理器的active_asids设置成进程的ASID
+  //,并且返回active_asids的旧值
 	if (old_active_asid &&
 	    !((asid ^ atomic64_read(&asid_generation)) >> asid_bits) &&
 	    atomic64_cmpxchg_relaxed(&per_cpu(active_asids, cpu),
 				     old_active_asid, asid))
 		goto switch_mm_fastpath;
+  //如果active_asids的旧值是0，说明其他处理器在分配ASID时把全局ASID版本号加1了，那么执行慢速路径
 
+  //禁止硬中断并且申请自旋锁cpu_asid_lock
 	raw_spin_lock_irqsave(&cpu_asid_lock, flags);
+  //在申请自旋锁cpu_asid_lock之后重新比较进程的ASID版本号和全局ASID版本号，如果进程的ASID版本号和全局ASID版本号不同，那么调用函数new_context给进程重新分配ASID
 	/* Check that our ASID belongs to the current generation. */
 	asid = atomic64_read(&mm->context.id);
 	if ((asid ^ atomic64_read(&asid_generation)) >> asid_bits) {
@@ -230,7 +253,7 @@ switch_mm_fastpath:
 	arm64_apply_bp_hardening();
 
 	/*
-	 * Defer TTBR0_EL1 setting for user threads to uaccess_enable() when
+	 * Defer(延迟) TTBR0_EL1 setting for user threads to uaccess_enable() when
 	 * emulating PAN.
 	 */
 	if (!system_uses_ttbr0_pan())
