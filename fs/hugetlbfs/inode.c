@@ -147,12 +147,14 @@ static int hugetlbfs_file_mmap(struct file *file, struct vm_area_struct *vma)
 	 * way when do_mmap_pgoff unwinds (may be important on powerpc
 	 * and ia64).
 	 */
+  //设置标准巨型页标志VM_HUGETLB 和不允许扩展标志VM_DONTEXPAND
 	vma->vm_flags |= VM_HUGETLB | VM_DONTEXPAND;
+  //虚拟内存区域的成员vm_ops指向巨型页特有的虚拟内存操作集合hugetlb_vm_ops
 	vma->vm_ops = &hugetlb_vm_ops;
 
 	/*
 	 * page based offset in vm_pgoff could be sufficiently large to
-	 * overflow a loff_t when converted to byte offset.  This can
+	 * overflow a loff_t when converted to byte offset(vm_pgoff中的基于页面的偏移量可能大到在转换为字节偏移时溢出loff_t).  This can
 	 * only happen on architectures where sizeof(loff_t) ==
 	 * sizeof(unsigned long).  So, only check in those instances.
 	 */
@@ -162,6 +164,7 @@ static int hugetlbfs_file_mmap(struct file *file, struct vm_area_struct *vma)
 	}
 
 	/* must be huge page aligned */
+  //检查文件的偏移是不是巨型页长度的整数倍
 	if (vma->vm_pgoff & (~huge_page_mask(h) >> PAGE_SHIFT))
 		return -EINVAL;
 
@@ -175,6 +178,7 @@ static int hugetlbfs_file_mmap(struct file *file, struct vm_area_struct *vma)
 	file_accessed(file);
 
 	ret = -ENOMEM;
+  //调用函数hugetlb_reserve_pages()，向巨型页池申请预留巨型页
 	if (hugetlb_reserve_pages(inode,
 				vma->vm_pgoff >> huge_page_order(h),
 				len >> huge_page_shift(h), vma,

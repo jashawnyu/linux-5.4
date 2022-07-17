@@ -203,6 +203,7 @@ static inline void pagefault_enable(void)
 /*
  * Is the pagefault handler disabled? If so, user access methods will not sleep.
  */
+/*禁止执行页错误异常处理程序：有些系统调用传入用户空间的缓冲区，内核使用用户虚拟地址访问缓冲区，可能生成页错误异常，页错误异常处理程序可能睡眠，但是内核不想睡眠，在使用用户虚拟地址访问缓冲区之前，调用函数pagefault_disable()禁止执行页错误异常处理程序*/
 static inline bool pagefault_disabled(void)
 {
 	return current->pagefault_disabled != 0;

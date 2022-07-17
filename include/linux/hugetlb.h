@@ -27,14 +27,20 @@ typedef struct { unsigned long pd; } hugepd_t;
 #include <linux/shm.h>
 #include <asm/tlbflush.h>
 
+//结构体hugepage_subpool描述子池的信息
 struct hugepage_subpool {
 	spinlock_t lock;
 	long count;
+  //成员max_hpages是允许的最大巨型页数量
 	long max_hpages;	/* Maximum huge pages or -1 if no maximum. */
+  //used_hpages是已使用的巨型页数量，包括分配的和预留的
 	long used_hpages;	/* Used count against maximum, includes */
 				/* both alloced and reserved pages. */
+  //成员hstate指向巨型页池
 	struct hstate *hstate;
+  //成员min_hpages是最小巨型页数量
 	long min_hpages;	/* Minimum huge pages or -1 if no minimum. */
+  //成员rsv_hpages是子池向巨型页池申请预留的巨型页的数量
 	long rsv_hpages;	/* Pages reserved against global pool to */
 				/* sasitfy minimum size. */
 };
@@ -258,10 +264,14 @@ enum {
 
 #ifdef CONFIG_HUGETLBFS
 struct hugetlbfs_sb_info {
+  //允许的索引节点最大数量
 	long	max_inodes;   /* inodes allowed */
+  //空闲的索引节点数量
 	long	free_inodes;  /* inodes free */
 	spinlock_t	stat_lock;
+  //成员hstate指向关联的巨型页池
 	struct hstate *hstate;
+  //如果指定了最大巨型页数量或最小巨型页数量，那么为巨型页池创建一个子池，成员spool指向子池
 	struct hugepage_subpool *spool;
 	kuid_t	uid;
 	kgid_t	gid;

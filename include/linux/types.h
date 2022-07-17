@@ -42,7 +42,7 @@ typedef __kernel_old_uid_t	old_uid_t;
 typedef __kernel_old_gid_t	old_gid_t;
 #endif /* CONFIG_UID16 */
 
-#if defined(__GNUC__)
+#if defined(__GNUC__) //yes ,means gcc version
 typedef __kernel_loff_t		loff_t;
 #endif
 

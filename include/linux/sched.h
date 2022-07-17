@@ -1786,6 +1786,7 @@ static inline int test_tsk_need_resched(struct task_struct *tsk)
  * value indicates whether a reschedule was done in fact.
  * cond_resched_lock() will drop the spinlock before scheduling,
  */
+/*Cond_resched()和cond_resched_lock():通过在安全的地方显式重调度来减少延迟。 cond_resched_lock()将在调度之前删除自旋锁 */
 #ifndef CONFIG_PREEMPTION
 extern int _cond_resched(void);
 #else

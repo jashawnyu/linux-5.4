@@ -12,6 +12,7 @@
 
 /*
  * Software defined PTE bits definition.
+ * (软件定义了PTE位的定义)
  */
 #define PTE_WRITE		(PTE_DBM)		 /* same as DBM (51) */
 #define PTE_DIRTY		(_AT(pteval_t, 1) << 55)

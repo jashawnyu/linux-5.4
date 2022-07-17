@@ -334,7 +334,7 @@ static void set_thread_esr(unsigned long address, unsigned int esr)
 	current->thread.fault_address = address;
 
 	/*
-	 * If the faulting address is in the kernel, we must sanitize the ESR.
+	 * If the faulting address is in the kernel, we must sanitize(清洁) the ESR.
 	 * From userspace's point of view, kernel-only mappings don't exist
 	 * at all, so we report them as level 0 translation faults.
 	 * (This is not quite the way that "no mapping there at all" behaves:
@@ -392,13 +392,16 @@ static void do_bad_area(unsigned long addr, unsigned int esr, struct pt_regs *re
 	 * If we are in kernel mode at this point, we have no context to
 	 * handle this fault with.
 	 */
+
 	if (user_mode(regs)) {
+    //如果异常是在用户模式下生成的，根据异常症状寄存器的指令特定字段的指令错误状态码在数组fault_info中取出信号，然后调用函数__do_user_fault发送信号以杀死进程
 		const struct fault_info *inf = esr_to_fault_info(esr);
 
-		set_thread_esr(addr, esr);
+		set_thread_esr(addr, esr); //??
 		arm64_force_sig_fault(inf->sig, inf->code, (void __user *)addr,
 				      inf->name);
 	} else {
+    //如果异常是在内核模式下生成的，调用函数__do_kernel_fault来处理
 		__do_kernel_fault(addr, esr, regs);
 	}
 }
@@ -411,6 +414,7 @@ static vm_fault_t __do_page_fault(struct mm_struct *mm, unsigned long addr,
 {
 	struct vm_area_struct *vma = find_vma(mm, addr);
 
+  //如果没有找到虚拟内存区域，说明内核没有把触发异常的虚拟地址分配给进程，虚拟地址是非法的，那么返回VM_FAULT_BADMAP
 	if (unlikely(!vma))
 		return VM_FAULT_BADMAP;
 
@@ -418,9 +422,12 @@ static vm_fault_t __do_page_fault(struct mm_struct *mm, unsigned long addr,
 	 * Ok, we have a good vm_area for this memory access, so we can handle
 	 * it.
 	 */
+  /* 根据触发异常的虚拟地址在进程的虚拟内存区域红黑树中查找一个满足条件的
+虚拟内存区域：触发异常的虚拟地址小于虚拟内存区域的结束地址 */
 	if (unlikely(vma->vm_start > addr)) {
 		if (!(vma->vm_flags & VM_GROWSDOWN))
 			return VM_FAULT_BADMAP;
+    //如果这个虚拟内存区域是栈，那么调用函数expand_stack，扩大栈的虚拟内存区域
 		if (expand_stack(vma, addr))
 			return VM_FAULT_BADMAP;
 	}
@@ -429,8 +436,12 @@ static vm_fault_t __do_page_fault(struct mm_struct *mm, unsigned long addr,
 	 * Check that the permissions on the VMA allow for the fault which
 	 * occurred.
 	 */
+  /* 检查访问权限，如果虚拟内存区域没有授予触发页错误异常的访问权限，那
+么返回VM_FAULT_BADACCESS */
 	if (!(vma->vm_flags & vm_flags))
 		return VM_FAULT_BADACCESS;
+  //从函数handle_mm_fault开始的部分是所有处理器架构共用的部分
+  //调用函数handle_mm_fault处理页错误异常
 	return handle_mm_fault(vma, addr & PAGE_MASK, mm_flags);
 }
 
@@ -445,6 +456,8 @@ static bool is_el0_instruction_abort(unsigned int esr)
  */
 static bool is_write_abort(unsigned int esr)
 {
+  //WnR是“Write not Read”的缩写
+  //CM是Cache Maintenance
 	return (esr & ESR_ELx_WNR) && !(esr & ESR_ELx_CM);
 }
 
@@ -464,30 +477,41 @@ static int __kprobes do_page_fault(unsigned long addr, unsigned int esr,
 	 * If we're in an interrupt or have no user context, we must not take
 	 * the fault.
 	 */
+  /*如果禁止执行页错误异常处理程序，或者处于原子上下文，或者当前进程是内核线程，那么跳转到标号no_context*/
 	if (faulthandler_disabled() || !mm)
 		goto no_context;
 
+  //如果是在用户模式下生成的异常，那么mm_flags设置标志位FAULT_FLAG_USER
 	if (user_mode(regs))
 		mm_flags |= FAULT_FLAG_USER;
 
+  /*如果是异常级别0的指令中止，即用户模式下取指令时生成页错误异
+常，那么把vm_flags设置为VM_EXEC*/
 	if (is_el0_instruction_abort(esr)) {
 		vm_flags = VM_EXEC;
 		mm_flags |= FAULT_FLAG_INSTRUCTION;
 	} else if (is_write_abort(esr)) {
+    /*如果是写数据时生成页错误异常，那么把vm_flags设置为VM_WRITE，
+mm_flags 设置标志位FAULT_FLAG_WRITE*/
 		vm_flags = VM_WRITE;
 		mm_flags |= FAULT_FLAG_WRITE;
 	}
 
+  //如果页错误异常是进程在内核模式下访问用户虚拟地址的时候，因为访问权限而触发的
 	if (is_ttbr0_addr(addr) && is_el1_permission_fault(addr, esr, regs)) {
 		/* regs->orig_addr_limit may be 0 if we entered from EL0 */
+    //如果进程在内核模式下把地址上界设置为内核虚拟地址空间上界以后访问用户虚拟地址，那么内核打印错误信息，然后死掉
+    /regs->orig_addr_limit等于当前进程的进程描述符的成员thread_info.addr_limit，KERNEL_DS是内核虚拟地址空间的上界
 		if (regs->orig_addr_limit == KERNEL_DS)
 			die_kernel_fault("access to user memory with fs=KERNEL_DS",
 					 addr, esr, regs);
 
+    //如果进程在内核模式下试图执行用户空间的指令，那么内核打印错误信息然后死掉
 		if (is_el1_instruction_abort(esr))
 			die_kernel_fault("execution of user memory",
 					 addr, esr, regs);
 
+    //如果根据触发异常的指令的虚拟地址在异常表中没有找到异常修正程序，那么内核打印错误信息，然后死掉
 		if (!search_exception_tables(regs->pc))
 			die_kernel_fault("access to user memory outside uaccess routines",
 					 addr, esr, regs);
@@ -499,10 +523,16 @@ static int __kprobes do_page_fault(unsigned long addr, unsigned int esr,
 	 * As per x86, we may deadlock here. However, since the kernel only
 	 * validly references user space from well defined areas of the code,
 	 * we can bug out early if this is from code which shouldn't.
+   * (根据x86，我们可能会在这里死锁。然而，由于内核只从定义良好的代码区域中有效地引用用户空间，所以如果这是来自不应该这样做的代码，我们可能会提前发现错误)
 	 */
+  //尝试以读模式申请内存描述符的读写信号量mmap_sem，如果申请信号量失败，处理如下
 	if (!down_read_trylock(&mm->mmap_sem)) {
+    /* 如果是在内核模式下生成的异常，并且根据触发异常的指令的虚拟地址
+在异常表中没有找到表项，那么跳转到标号no_context，调用函数__do_kernel_fault处
+理内核模式生成的页错误异常*/
 		if (!user_mode(regs) && !search_exception_tables(regs->pc))
 			goto no_context;
+    //以读模式申请内存描述符的读写信号量mmap_sem，可能挂起等待
 retry:
 		down_read(&mm->mmap_sem);
 	} else {
@@ -519,9 +549,11 @@ retry:
 #endif
 	}
 
+  // 调用函数__do_page_fault处理页错误异常
 	fault = __do_page_fault(mm, addr, mm_flags, vm_flags);
 	major |= fault & VM_FAULT_MAJOR;
 
+  //如果函数__do_page_fault返回VM_FAULT_RETRY，表示页错误异常处理程序被阻塞，必须重试，那么重新尝试处理页错误异常
 	if (fault & VM_FAULT_RETRY) {
 		/*
 		 * If we need to retry but a fatal signal is pending,
@@ -529,6 +561,7 @@ retry:
 		 * the mmap_sem because it would already be released
 		 * in __lock_page_or_retry in mm/filemap.c.
 		 */
+    //如果需要重新尝试处理页错误异常，但是进程已经收到致命的信号，那么先处理信号
 		if (fatal_signal_pending(current)) {
 			if (!user_mode(regs))
 				goto no_context;
@@ -539,6 +572,7 @@ retry:
 		 * Clear FAULT_FLAG_ALLOW_RETRY to avoid any risk of
 		 * starvation.
 		 */
+    //如果允许重新尝试处理页错误异常，那么处理如下
 		if (mm_flags & FAULT_FLAG_ALLOW_RETRY) {
 			mm_flags &= ~FAULT_FLAG_ALLOW_RETRY;
 			mm_flags |= FAULT_FLAG_TRIED;
@@ -550,6 +584,7 @@ retry:
 	/*
 	 * Handle the "normal" (no error) case first.
 	 */
+  //如果成功地处理页错误异常，返回
 	if (likely(!(fault & (VM_FAULT_ERROR | VM_FAULT_BADMAP |
 			      VM_FAULT_BADACCESS)))) {
 		/*
@@ -558,6 +593,10 @@ retry:
 		 * likely that the page will be found in page cache at
 		 * that point.
 		 */
+    /* 如果函数__do_page_fault返回VM_FAULT_MAJOR，表示主要页错
+误，即页错误异常处理程序需要从存储设备读文件，那么把进程描述符的主要页错误
+计数maj_flt加1；否则，表示次要页错误，即不需要从存储设备读文件，那么把进程描
+述符的次要页错误计数min_flt加1 */
 		if (major) {
 			current->maj_flt++;
 			perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS_MAJ, 1, regs,
@@ -575,9 +614,13 @@ retry:
 	 * If we are in kernel mode at this point, we have no context to
 	 * handle this fault with.
 	 */
+  //如果是在内核模式下生成的异常，那么跳转到标号no_context，调用函数__do_kernel_fault处理内核模式生成的页错误异常
 	if (!user_mode(regs))
 		goto no_context;
 
+  /* 如果内存耗尽，页错误异常处理程序申请内存失败，那么使用内存耗尽杀手
+选择进程杀死，然后页错误异常处理程序返回。当前进程要么在重新执行指令时生成页错
+误异常，要么被内存耗尽杀手杀死 */
 	if (fault & VM_FAULT_OOM) {
 		/*
 		 * We ran out of memory, call the OOM killer, and return to
@@ -611,6 +654,8 @@ retry:
 		 * Something tried to access memory that isn't in our memory
 		 * map.
 		 */
+    /* 如果是在用户模式下生成的异常，那么发送总线地址错误信号SIGBUS或段
+违法信号SIGSEGV杀死进程 */
 		arm64_force_sig_fault(SIGSEGV,
 				      fault == VM_FAULT_BADACCESS ? SEGV_ACCERR : SEGV_MAPERR,
 				      (void __user *)addr,
@@ -628,9 +673,10 @@ static int __kprobes do_translation_fault(unsigned long addr,
 					  unsigned int esr,
 					  struct pt_regs *regs)
 {
+  //如果触发异常的虚拟地址是用户虚拟地址，调用函数do_page_fault来处理
 	if (is_ttbr0_addr(addr))
 		return do_page_fault(addr, esr, regs);
-
+  // 如果触发异常的虚拟地址是内核虚拟地址或不规范地址，调用函数do_bad_area来处理
 	do_bad_area(addr, esr, regs);
 	return 0;
 }

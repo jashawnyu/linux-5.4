@@ -75,6 +75,7 @@ static __always_inline void queued_spin_lock(struct qspinlock *lock)
 {
 	u32 val = 0;
 
+  /* tomic_try_cmpxchg_acquire是一个原子操作，如果第一个参数指向的原子类型变量的值和第二个参数指向的变量的值相同，则将第一个参数指向的原子变量赋值成第三个参数的值，并返回真；否则，则读取第一个参数指向的原子变量的值，将其赋值给第二个参数指向的变量，并返回假 */
 	if (likely(atomic_try_cmpxchg_acquire(&lock->val, &val, _Q_LOCKED_VAL)))
 		return;
 
