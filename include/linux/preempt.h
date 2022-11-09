@@ -166,6 +166,11 @@ extern void preempt_count_sub(int val);
 
 #ifdef CONFIG_PREEMPT_COUNT
 
+// 编译器发现临界区和前后的代码不存在数据依赖关系， 就会优化代码， 可能把代码重新排列如下
+/* 临界区
+  preempt_disable();
+  preempt_enable(); */
+
 #define preempt_disable() \
 do { \
 	preempt_count_inc(); \

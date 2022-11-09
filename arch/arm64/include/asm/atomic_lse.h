@@ -10,6 +10,10 @@
 #ifndef __ASM_ATOMIC_LSE_H
 #define __ASM_ATOMIC_LSE_H
 
+//Atomic bit set on word or doubleword in memory, without return, atomically loads a 32-bit word or 64-bit doubleword from memory, performs a bitwise OR with the value held in a register on it, and stores the result back to memory 
+//"+Q" : 'Q' means A memory address which uses a single base register with no offset 
+
+
 #define ATOMIC_OP(op, asm_op)						\
 static inline void __lse_atomic_##op(int i, atomic_t *v)			\
 {									\

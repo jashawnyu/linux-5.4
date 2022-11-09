@@ -532,9 +532,10 @@ atomic_fetch_or(int i, atomic_t *v)
 static inline int
 atomic_fetch_or_acquire(int i, atomic_t *v)
 {
-	kasan_check_write(v, sizeof(*v));
+	kasan_check_write(v, sizeof(*v));  
 	return arch_atomic_fetch_or_acquire(i, v);
 }
+//这里宏名和标识符一样，应该是方便未来改函数名
 #define atomic_fetch_or_acquire atomic_fetch_or_acquire
 #endif
 

@@ -901,24 +901,24 @@ do_group_exit(int exit_code)
 
 	BUG_ON(exit_code & 0x80); /* core dumps don't get here */
 
-	if (signal_group_exit(sig))
+	if (signal_group_exit(sig))//如果线程组正在退出， 那么从信号结构体的成员group_exit_code取出退出码
 		exit_code = sig->group_exit_code;
-	else if (!thread_group_empty(current)) {
+	else if (!thread_group_empty(current)) {//如果线程组未处于正在退出的状态， 并且线程组至少有两个线程
 		struct sighand_struct *const sighand = current->sighand;
 
-		spin_lock_irq(&sighand->siglock);
-		if (signal_group_exit(sig))
+		spin_lock_irq(&sighand->siglock); //关中断并申请锁
+		if (signal_group_exit(sig))//如果线程组正在退出， 那么从信号结构体的成员group_exit_code取出退出码
 			/* Another thread got here before we took the lock.  */
 			exit_code = sig->group_exit_code;
 		else {
-			sig->group_exit_code = exit_code;
-			sig->flags = SIGNAL_GROUP_EXIT;
-			zap_other_threads(current);
+			sig->group_exit_code = exit_code;//把退出码保存在信号结构体的成员group_exit_code中， 传递给其他线程
+			sig->flags = SIGNAL_GROUP_EXIT;//给线程组设置正在退出的标志
+			zap_other_threads(current);//向线程组的其他线程发送杀死信号， 然后唤醒线程， 让线程处理杀死信号
 		}
-		spin_unlock_irq(&sighand->siglock);
+		spin_unlock_irq(&sighand->siglock);//释放锁并开中断
 	}
 
-	do_exit(exit_code);
+	do_exit(exit_code);// 当前线程调用函数do_exit以退出
 	/* NOTREACHED */
 }
 

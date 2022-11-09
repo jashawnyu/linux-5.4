@@ -153,6 +153,8 @@ do {									\
 #define smp_store_release(p, v) __smp_store_release(p, v)
 #endif
 
+//获取操作后面的内存访问操作只能在获取操作完成之后被观察到
+//获取操作前面的内存访问操作可能在获取操作完成之后被观察到
 #ifndef smp_load_acquire
 #define smp_load_acquire(p) __smp_load_acquire(p)
 #endif

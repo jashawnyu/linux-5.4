@@ -627,7 +627,7 @@ int get_spectre_v2_workaround_state(void);
 
 static inline int arm64_get_ssbd_state(void)
 {
-#ifdef CONFIG_ARM64_SSBD
+#ifdef CONFIG_ARM64_SSBD //1
 	extern int ssbd_state;
 	return ssbd_state;
 #else

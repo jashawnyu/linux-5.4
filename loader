@@ -1,0 +1,473 @@
+./fs/binfmt_script.c:	if ((bprm->buf[0] != '#') || (bprm->buf[1] != '!'))
+./fs/binfmt_script.c:	if (bprm->interp_flags & BINPRM_FLAGS_PATH_INACCESSIBLE)
+./fs/binfmt_script.c:	allow_write_access(bprm->file);
+./fs/binfmt_script.c:	fput(bprm->file);
+./fs/binfmt_script.c:	bprm->file = NULL;
+./fs/binfmt_script.c:	 * because bprm->buf is not yet guaranteed to be NUL-terminated
+./fs/binfmt_script.c:	buf_end = bprm->buf + sizeof(bprm->buf) - 1;
+./fs/binfmt_script.c:	cp = strnchr(bprm->buf, sizeof(bprm->buf), '\n');
+./fs/binfmt_script.c:		cp = next_non_spacetab(bprm->buf + 2, buf_end);
+./fs/binfmt_script.c:	while (cp > bprm->buf) {
+./fs/binfmt_script.c:	for (cp = bprm->buf+2; (*cp == ' ') || (*cp == '\t'); cp++);
+./fs/binfmt_script.c:	retval = copy_strings_kernel(1, &bprm->interp, bprm);
+./fs/binfmt_script.c:	bprm->argc++;
+./fs/binfmt_script.c:		bprm->argc++;
+./fs/binfmt_script.c:	bprm->argc++;
+./fs/binfmt_script.c:	bprm->file = file;
+./fs/binfmt_aout.c:	int argc = bprm->argc;
+./fs/binfmt_aout.c:	int envc = bprm->envc;
+./fs/binfmt_aout.c:	if (bprm->loader) {
+./fs/binfmt_aout.c:		put_user(bprm->loader, --sp);
+./fs/binfmt_aout.c:	put_user(bprm->exec, --sp);
+./fs/binfmt_aout.c:	ex = *((struct exec *) bprm->buf);		/* exec-header */
+./fs/binfmt_aout.c:	    i_size_read(file_inode(bprm->file)) < ex.a_text+ex.a_data+N_SYMSIZE(ex)+N_TXTOFF(ex)) {
+./fs/binfmt_aout.c:	if (!bprm->file->f_op->mmap)
+./fs/binfmt_aout.c:		error = read_code(bprm->file, text_addr, pos,
+./fs/binfmt_aout.c:			       bprm->file);
+./fs/binfmt_aout.c:		if (!bprm->file->f_op->mmap||((fd_offset & ~PAGE_MASK) != 0)) {
+./fs/binfmt_aout.c:			read_code(bprm->file, N_TXTADDR(ex), fd_offset,
+./fs/binfmt_aout.c:		error = vm_mmap(bprm->file, N_TXTADDR(ex), ex.a_text,
+./fs/binfmt_aout.c:		error = vm_mmap(bprm->file, N_DATADDR(ex), ex.a_data,
+./fs/binfmt_aout.c:		(unsigned long) create_aout_tables((char __user *) bprm->p, bprm);
+./fs/loader:./binfmt_script.c:	if ((bprm->buf[0] != '#') || (bprm->buf[1] != '!'))
+./fs/loader:./binfmt_script.c:	if (bprm->interp_flags & BINPRM_FLAGS_PATH_INACCESSIBLE)
+./fs/loader:./binfmt_script.c:	allow_write_access(bprm->file);
+./fs/loader:./binfmt_script.c:	fput(bprm->file);
+./fs/loader:./binfmt_script.c:	bprm->file = NULL;
+./fs/loader:./binfmt_script.c:	 * because bprm->buf is not yet guaranteed to be NUL-terminated
+./fs/loader:./binfmt_script.c:	buf_end = bprm->buf + sizeof(bprm->buf) - 1;
+./fs/loader:./binfmt_script.c:	cp = strnchr(bprm->buf, sizeof(bprm->buf), '\n');
+./fs/loader:./binfmt_script.c:		cp = next_non_spacetab(bprm->buf + 2, buf_end);
+./fs/loader:./binfmt_script.c:	while (cp > bprm->buf) {
+./fs/loader:./binfmt_script.c:	for (cp = bprm->buf+2; (*cp == ' ') || (*cp == '\t'); cp++);
+./fs/loader:./binfmt_script.c:	retval = copy_strings_kernel(1, &bprm->interp, bprm);
+./fs/loader:./binfmt_script.c:	bprm->argc++;
+./fs/loader:./binfmt_script.c:		bprm->argc++;
+./fs/loader:./binfmt_script.c:	bprm->argc++;
+./fs/loader:./binfmt_script.c:	bprm->file = file;
+./fs/loader:./binfmt_aout.c:	int argc = bprm->argc;
+./fs/loader:./binfmt_aout.c:	int envc = bprm->envc;
+./fs/loader:./binfmt_aout.c:	if (bprm->loader) {
+./fs/loader:./binfmt_aout.c:		put_user(bprm->loader, --sp);
+./fs/loader:./binfmt_aout.c:	put_user(bprm->exec, --sp);
+./fs/loader:./binfmt_aout.c:	ex = *((struct exec *) bprm->buf);		/* exec-header */
+./fs/loader:./binfmt_aout.c:	    i_size_read(file_inode(bprm->file)) < ex.a_text+ex.a_data+N_SYMSIZE(ex)+N_TXTOFF(ex)) {
+./fs/loader:./binfmt_aout.c:	if (!bprm->file->f_op->mmap)
+./fs/loader:./binfmt_aout.c:		error = read_code(bprm->file, text_addr, pos,
+./fs/loader:./binfmt_aout.c:			       bprm->file);
+./fs/loader:./binfmt_aout.c:		if (!bprm->file->f_op->mmap||((fd_offset & ~PAGE_MASK) != 0)) {
+./fs/loader:./binfmt_aout.c:			read_code(bprm->file, N_TXTADDR(ex), fd_offset,
+./fs/loader:./binfmt_aout.c:		error = vm_mmap(bprm->file, N_TXTADDR(ex), ex.a_text,
+./fs/loader:./binfmt_aout.c:		error = vm_mmap(bprm->file, N_DATADDR(ex), ex.a_data,
+./fs/loader:./binfmt_aout.c:		(unsigned long) create_aout_tables((char __user *) bprm->p, bprm);
+./fs/loader:./binfmt_elf.c:	unsigned long p = bprm->p;
+./fs/loader:./binfmt_elf.c:	int argc = bprm->argc;
+./fs/loader:./binfmt_elf.c:	int envc = bprm->envc;
+./fs/loader:./binfmt_elf.c:	NEW_AUX_ENT(AT_SECURE, bprm->secureexec);
+./fs/loader:./binfmt_elf.c:	NEW_AUX_ENT(AT_EXECFN, bprm->exec);
+./fs/loader:./binfmt_elf.c:	if (bprm->interp_flags & BINPRM_FLAGS_EXECFD) {
+./fs/loader:./binfmt_elf.c:		NEW_AUX_ENT(AT_EXECFD, bprm->interp_data);
+./fs/loader:./binfmt_elf.c:	bprm->p = STACK_ROUND(sp, items);
+./fs/loader:./binfmt_elf.c:	sp = (elf_addr_t __user *)bprm->p - items - ei_index;
+./fs/loader:./binfmt_elf.c:	bprm->exec = (unsigned long)sp; /* XXX: PARISC HACK */
+./fs/loader:./binfmt_elf.c:	sp = (elf_addr_t __user *)bprm->p;
+./fs/loader:./binfmt_elf.c:	vma = find_extend_vma(current->mm, bprm->p);
+./fs/loader:./binfmt_elf.c:	loc->elf_ex = *((struct elfhdr *)bprm->buf);
+./fs/loader:./binfmt_elf.c:	if (!bprm->file->f_op->mmap)
+./fs/loader:./binfmt_elf.c:	elf_phdata = load_elf_phdrs(&loc->elf_ex, bprm->file);
+./fs/loader:./binfmt_elf.c:		retval = kernel_read(bprm->file, elf_interpreter,
+./fs/loader:./binfmt_elf.c:						  bprm->file, false,
+./fs/loader:./binfmt_elf.c:		error = elf_map(bprm->file, load_bias + vaddr, elf_ppnt,
+./fs/loader:./binfmt_elf.c:	current->mm->start_stack = bprm->p;
+./fs/loader:./binfmt_elf.c:	start_thread(regs, elf_entry, bprm->p);
+./fs/loader:./binfmt_misc.c:	char *p = strrchr(bprm->interp, '.');
+./fs/loader:./binfmt_misc.c:		s = bprm->buf + e->offset;
+./fs/loader:./binfmt_misc.c:	if (bprm->interp_flags & BINPRM_FLAGS_PATH_INACCESSIBLE)
+./fs/loader:./binfmt_misc.c:		fd_install(fd_binary, bprm->file);
+./fs/loader:./binfmt_misc.c:		would_dump(bprm, bprm->file);
+./fs/loader:./binfmt_misc.c:		allow_write_access(bprm->file);
+./fs/loader:./binfmt_misc.c:		bprm->file = NULL;
+./fs/loader:./binfmt_misc.c:		bprm->interp_flags |= BINPRM_FLAGS_EXECFD;
+./fs/loader:./binfmt_misc.c:		bprm->interp_data = fd_binary;
+./fs/loader:./binfmt_misc.c:		allow_write_access(bprm->file);
+./fs/loader:./binfmt_misc.c:		fput(bprm->file);
+./fs/loader:./binfmt_misc.c:		bprm->file = NULL;
+./fs/loader:./binfmt_misc.c:	retval = copy_strings_kernel(1, &bprm->interp, bprm);
+./fs/loader:./binfmt_misc.c:	bprm->argc++;
+./fs/loader:./binfmt_misc.c:	bprm->argc++;
+./fs/loader:./binfmt_misc.c:	bprm->file = interp_file;
+./fs/loader:./binfmt_misc.c:		 * done.  bprm->buf is stale, update from interp_file.
+./fs/loader:./binfmt_misc.c:		memset(bprm->buf, 0, BINPRM_BUF_SIZE);
+./fs/loader:./binfmt_misc.c:		retval = kernel_read(bprm->file, bprm->buf, BINPRM_BUF_SIZE,
+./fs/loader:./binfmt_misc.c:	bprm->interp_flags = 0;
+./fs/loader:./binfmt_misc.c:	bprm->interp_data = 0;
+./fs/loader:./binfmt_flat.c:	sp -= bprm->envc + 1;
+./fs/loader:./binfmt_flat.c:	sp -= bprm->argc + 1;
+./fs/loader:./binfmt_flat.c:	__put_user(bprm->argc, sp++);
+./fs/loader:./binfmt_flat.c:		envp = (unsigned long)(sp + 2 + bprm->argc + 1);
+./fs/loader:./binfmt_flat.c:	for (i = bprm->argc; i > 0; i--) {
+./fs/loader:./binfmt_flat.c:	for (i = bprm->envc; i > 0; i--) {
+./fs/loader:./binfmt_flat.c:	ret = kernel_read(bprm->file, buf, LBUFSIZE, &fpos);
+./fs/loader:./binfmt_flat.c:		ret = kernel_read(bprm->file, buf, LBUFSIZE, &fpos);
+./fs/loader:./binfmt_flat.c:	hdr = ((struct flat_hdr *) bprm->buf);		/* exec-header */
+./fs/loader:./binfmt_flat.c:		pr_info("Loading file: %s\n", bprm->filename);
+./fs/loader:./binfmt_flat.c:		textpos = vm_mmap(bprm->file, 0, text_len, PROT_READ|PROT_EXEC,
+./fs/loader:./binfmt_flat.c:			result = read_code(bprm->file, datapos, fpos,
+./fs/loader:./binfmt_flat.c:			result = read_code(bprm->file, textpos, 0, text_len);
+./fs/loader:./binfmt_flat.c:			result = read_code(bprm->file, textpos, 0, text_len);
+./fs/loader:./binfmt_flat.c:				result = read_code(bprm->file, datapos,
+./fs/loader:./binfmt_flat.c:			id ? "Lib" : "Load", bprm->filename,
+./fs/loader:./binfmt_flat.c:	stack_len += PAGE_SIZE * MAX_ARG_PAGES - bprm->p; /* the strings */
+./fs/loader:./binfmt_flat.c:	stack_len += (bprm->argc + 1) * sizeof(char *);   /* the argv array */
+./fs/loader:./binfmt_flat.c:	stack_len += (bprm->envc + 1) * sizeof(char *);   /* the envp array */
+./fs/loader:./binfmt_flat.c:		res = create_flat_tables(bprm, bprm->p);
+./fs/loader:./binfmt_elf_fdpic.c:	exec_params.hdr = *(struct elfhdr *) bprm->buf;
+./fs/loader:./binfmt_elf_fdpic.c:	if (!is_elf(&exec_params.hdr, bprm->file))
+./fs/loader:./binfmt_elf_fdpic.c:	retval = elf_fdpic_fetch_phdrs(&exec_params, bprm->file);
+./fs/loader:./binfmt_elf_fdpic.c:			retval = kernel_read(bprm->file, interpreter_name,
+./fs/loader:./binfmt_elf_fdpic.c:			retval = kernel_read(interpreter, bprm->buf,
+./fs/loader:./binfmt_elf_fdpic.c:			interp_params.hdr = *((struct elfhdr *) bprm->buf);
+./fs/loader:./binfmt_elf_fdpic.c:	retval = elf_fdpic_map_file(&exec_params, bprm->file, current->mm,
+./fs/loader:./binfmt_elf_fdpic.c:	sp = arch_align_stack(bprm->p);
+./fs/loader:./binfmt_elf_fdpic.c:	if (bprm->interp_flags & BINPRM_FLAGS_EXECFD)
+./fs/loader:./binfmt_elf_fdpic.c:	sp -= (bprm->envc + 1) * sizeof(char *);	/* envv[] */
+./fs/loader:./binfmt_elf_fdpic.c:	sp -= (bprm->argc + 1) * sizeof(char *);	/* argv[] */
+./fs/loader:./binfmt_elf_fdpic.c:	if (bprm->interp_flags & BINPRM_FLAGS_EXECFD) {
+./fs/loader:./binfmt_elf_fdpic.c:		NEW_AUX_ENT(AT_EXECFD, bprm->interp_data);
+./fs/loader:./binfmt_elf_fdpic.c:	NEW_AUX_ENT(AT_SECURE,	bprm->secureexec);
+./fs/loader:./binfmt_elf_fdpic.c:	NEW_AUX_ENT(AT_EXECFN,	bprm->exec);
+./fs/loader:./binfmt_elf_fdpic.c:	csp -= (bprm->envc + 1) * sizeof(elf_caddr_t);
+./fs/loader:./binfmt_elf_fdpic.c:	csp -= (bprm->argc + 1) * sizeof(elf_caddr_t);
+./fs/loader:./binfmt_elf_fdpic.c:	__put_user(bprm->argc, (unsigned long __user *) csp);
+./fs/loader:./binfmt_elf_fdpic.c:	current->mm->arg_start = bprm->p;
+./fs/loader:./binfmt_elf_fdpic.c:		(MAX_ARG_PAGES * PAGE_SIZE - bprm->p);
+./fs/loader:./binfmt_elf_fdpic.c:	for (loop = bprm->argc; loop > 0; loop--) {
+./fs/loader:./binfmt_elf_fdpic.c:	for (loop = bprm->envc; loop > 0; loop--) {
+./fs/loader:./exec.c: * The nascent bprm->mm is not visible until exec_mmap() but it can
+./fs/loader:./exec.c:	long diff = (long)(pages - bprm->vma_pages);
+./fs/loader:./exec.c:	bprm->vma_pages = pages;
+./fs/loader:./exec.c:		ret = expand_downwards(bprm->vma, pos);
+./fs/loader:./exec.c:	 * doing the exec and bprm->mm is the new process's mm.
+./fs/loader:./exec.c:	ret = get_user_pages_remote(current, bprm->mm, pos, 1, gup_flags,
+./fs/loader:./exec.c:		acct_arg_size(bprm, vma_pages(bprm->vma));
+./fs/loader:./exec.c:	flush_cache_page(bprm->vma, pos, page_to_pfn(page));
+./fs/loader:./exec.c:	struct mm_struct *mm = bprm->mm;
+./fs/loader:./exec.c:	bprm->vma = vma = vm_area_alloc(mm);
+./fs/loader:./exec.c:	bprm->p = vma->vm_end - sizeof(void *);
+./fs/loader:./exec.c:	bprm->vma = NULL;
+./fs/loader:./exec.c:	page = bprm->page[pos / PAGE_SIZE];
+./fs/loader:./exec.c:		bprm->page[pos / PAGE_SIZE] = page;
+./fs/loader:./exec.c:	if (bprm->page[i]) {
+./fs/loader:./exec.c:		__free_page(bprm->page[i]);
+./fs/loader:./exec.c:		bprm->page[i] = NULL;
+./fs/loader:./exec.c:	bprm->p = PAGE_SIZE * MAX_ARG_PAGES - sizeof(void *);
+./fs/loader:./exec.c:	return len <= bprm->p;
+./fs/loader:./exec.c:	bprm->mm = mm = mm_alloc();
+./fs/loader:./exec.c:	bprm->rlim_stack = current->signal->rlim[RLIMIT_STACK];
+./fs/loader:./exec.c:		bprm->mm = NULL;
+./fs/loader:./exec.c:	bprm->argc = count(argv, MAX_ARG_STRINGS);
+./fs/loader:./exec.c:	if (bprm->argc < 0)
+./fs/loader:./exec.c:		return bprm->argc;
+./fs/loader:./exec.c:	bprm->envc = count(envp, MAX_ARG_STRINGS);
+./fs/loader:./exec.c:	if (bprm->envc < 0)
+./fs/loader:./exec.c:		return bprm->envc;
+./fs/loader:./exec.c:	limit = min(limit, bprm->rlim_stack.rlim_cur / 4);
+./fs/loader:./exec.c:	ptr_size = (bprm->argc + bprm->envc) * sizeof(void *);
+./fs/loader:./exec.c:	bprm->argmin = bprm->p - limit;
+./fs/loader:./exec.c:		pos = bprm->p;
+./fs/loader:./exec.c:		bprm->p -= len;
+./fs/loader:./exec.c:		if (bprm->p < bprm->argmin)
+./fs/loader:./exec.c:	struct vm_area_struct *vma = bprm->vma;
+./fs/loader:./exec.c:	stack_base = bprm->rlim_stack.rlim_max;
+./fs/loader:./exec.c:	mm->arg_start = bprm->p - stack_shift;
+./fs/loader:./exec.c:	bprm->p = vma->vm_end - stack_shift;
+./fs/loader:./exec.c:	bprm->p -= stack_shift;
+./fs/loader:./exec.c:	mm->arg_start = bprm->p;
+./fs/loader:./exec.c:	if (bprm->loader)
+./fs/loader:./exec.c:		bprm->loader -= stack_shift;
+./fs/loader:./exec.c:	bprm->exec -= stack_shift;
+./fs/loader:./exec.c:	rlim_stack = bprm->rlim_stack.rlim_cur & PAGE_MASK;
+./fs/loader:./exec.c:	current->mm->start_stack = bprm->p;
+./fs/loader:./exec.c:	stop = bprm->p >> PAGE_SHIFT;
+./fs/loader:./exec.c:		unsigned int offset = index == stop ? bprm->p & ~PAGE_MASK : 0;
+./fs/loader:./exec.c:		char *src = kmap(bprm->page[index]) + offset;
+./fs/loader:./exec.c:		kunmap(bprm->page[index]);
+./fs/loader:./exec.c:	 * Must be called _before_ exec_mmap() as bprm->mm is
+./fs/loader:./exec.c:	set_mm_exe_file(bprm->mm, bprm->file);
+./fs/loader:./exec.c:	retval = exec_mmap(bprm->mm);
+./fs/loader:./exec.c:	 * After clearing bprm->mm (to mark that current is using the
+./fs/loader:./exec.c:	bprm->mm = NULL;
+./fs/loader:./exec.c:	current->personality &= ~bprm->per_clear;
+./fs/loader:./exec.c:		bprm->interp_flags |= BINPRM_FLAGS_ENFORCE_NONDUMP;
+./fs/loader:./exec.c:		user_ns = old = bprm->mm->user_ns;
+./fs/loader:./exec.c:			bprm->mm->user_ns = get_user_ns(user_ns);
+./fs/loader:./exec.c:	bprm->secureexec |= bprm->cap_elevated;//elevated(提升) 0x0
+./fs/loader:./exec.c:	if (bprm->secureexec) {
+./fs/loader:./exec.c:		if (bprm->rlim_stack.rlim_cur > _STK_LIM)
+./fs/loader:./exec.c:			bprm->rlim_stack.rlim_cur = _STK_LIM;
+./fs/loader:./exec.c:	arch_pick_mmap_layout(current->mm, &bprm->rlim_stack);
+./fs/loader:./exec.c:	 * bprm->secureexec instead.
+./fs/loader:./exec.c:	if (bprm->interp_flags & BINPRM_FLAGS_ENFORCE_NONDUMP ||
+./fs/loader:./exec.c:	__set_task_comm(current, kbasename(bprm->filename), true);
+./fs/loader:./exec.c:	current->signal->rlim[RLIMIT_STACK] = bprm->rlim_stack;
+./fs/loader:./exec.c:	bprm->cred = prepare_exec_creds();
+./fs/loader:./exec.c:	if (likely(bprm->cred))
+./fs/loader:./exec.c:	if (bprm->cred) {
+./fs/loader:./exec.c:		abort_creds(bprm->cred);
+./fs/loader:./exec.c:	if (bprm->file) {
+./fs/loader:./exec.c:		allow_write_access(bprm->file);
+./fs/loader:./exec.c:		fput(bprm->file);
+./fs/loader:./exec.c:	if (bprm->interp != bprm->filename)
+./fs/loader:./exec.c:		kfree(bprm->interp);
+./fs/loader:./exec.c:	if (bprm->interp != bprm->filename)
+./fs/loader:./exec.c:		kfree(bprm->interp);
+./fs/loader:./exec.c:	bprm->interp = kstrdup(interp, GFP_KERNEL);
+./fs/loader:./exec.c:	if (!bprm->interp)
+./fs/loader:./exec.c:	commit_creds(bprm->cred);
+./fs/loader:./exec.c:	bprm->cred = NULL;
+./fs/loader:./exec.c:		bprm->unsafe |= LSM_UNSAFE_PTRACE;
+./fs/loader:./exec.c:		bprm->unsafe |= LSM_UNSAFE_NO_NEW_PRIVS;
+./fs/loader:./exec.c:		bprm->unsafe |= LSM_UNSAFE_SHARE;
+./fs/loader:./exec.c:	 * bits from any earlier bprm->file uses (for example when run
+./fs/loader:./exec.c:	bprm->cred->euid = current_euid();
+./fs/loader:./exec.c:	bprm->cred->egid = current_egid();
+./fs/loader:./exec.c:	if (!mnt_may_suid(bprm->file->f_path.mnt))
+./fs/loader:./exec.c:	inode = bprm->file->f_path.dentry->d_inode;
+./fs/loader:./exec.c:	if (!kuid_has_mapping(bprm->cred->user_ns, uid) ||
+./fs/loader:./exec.c:		 !kgid_has_mapping(bprm->cred->user_ns, gid))
+./fs/loader:./exec.c:		bprm->per_clear |= PER_CLEAR_ON_SETID;
+./fs/loader:./exec.c:		bprm->cred->euid = uid;
+./fs/loader:./exec.c:		bprm->per_clear |= PER_CLEAR_ON_SETID;
+./fs/loader:./exec.c:		bprm->cred->egid = gid;
+./fs/loader:./exec.c:	bprm->called_set_creds = 1;
+./fs/loader:./exec.c:	memset(bprm->buf, 0, BINPRM_BUF_SIZE);
+./fs/loader:./exec.c:	return kernel_read(bprm->file, bprm->buf, BINPRM_BUF_SIZE, &pos);
+./fs/loader:./exec.c: * Arguments are '\0' separated strings found at the location bprm->p
+./fs/loader:./exec.c:	if (!bprm->argc)
+./fs/loader:./exec.c:		offset = bprm->p & ~PAGE_MASK;
+./fs/loader:./exec.c:		page = get_arg_page(bprm, bprm->p, 0);
+./fs/loader:./exec.c:				offset++, bprm->p++)
+./fs/loader:./exec.c:	bprm->p++;
+./fs/loader:./exec.c:	bprm->argc--;
+./fs/loader:./exec.c:	if (bprm->recursion_depth > 5)
+./fs/loader:./exec.c:		bprm->recursion_depth++;
+./fs/loader:./exec.c:		bprm->recursion_depth--;
+./fs/loader:./exec.c:		if (retval < 0 && !bprm->mm) {
+./fs/loader:./exec.c:		if (retval != -ENOEXEC || !bprm->file) {
+./fs/loader:./exec.c:		if (printable(bprm->buf[0]) && printable(bprm->buf[1]) &&
+./fs/loader:./exec.c:		    printable(bprm->buf[2]) && printable(bprm->buf[3]))
+./fs/loader:./exec.c:		if (request_module("binfmt-%04x", *(ushort *)(bprm->buf + 2)) < 0)
+./fs/loader:./exec.c:	bprm->file = file;
+./fs/loader:./exec.c:		bprm->filename = "none";
+./fs/loader:./exec.c:		bprm->filename = filename->name;
+./fs/loader:./exec.c:			bprm->interp_flags |= BINPRM_FLAGS_PATH_INACCESSIBLE;
+./fs/loader:./exec.c:		bprm->filename = pathbuf;
+./fs/loader:./exec.c:	bprm->interp = bprm->filename;
+./fs/loader:./exec.c:	retval = copy_strings_kernel(1, &bprm->filename, bprm);
+./fs/loader:./exec.c:	bprm->exec = bprm->p;
+./fs/loader:./exec.c:	retval = copy_strings(bprm->envc, envp, bprm);
+./fs/loader:./exec.c:	retval = copy_strings(bprm->argc, argv, bprm);
+./fs/loader:./exec.c:	would_dump(bprm, bprm->file);
+./fs/loader:./exec.c:	if (bprm->mm) {
+./fs/loader:./exec.c:		mmput(bprm->mm);
+./fs/loader:./binfmt_em86.c:	elf_ex = *((struct elfhdr *)bprm->buf);
+./fs/loader:./binfmt_em86.c:		!bprm->file->f_op->mmap) {
+./fs/loader:./binfmt_em86.c:	if (bprm->interp_flags & BINPRM_FLAGS_PATH_INACCESSIBLE)
+./fs/loader:./binfmt_em86.c:	allow_write_access(bprm->file);
+./fs/loader:./binfmt_em86.c:	fput(bprm->file);
+./fs/loader:./binfmt_em86.c:	bprm->file = NULL;
+./fs/loader:./binfmt_em86.c:	retval = copy_strings_kernel(1, &bprm->filename, bprm);
+./fs/loader:./binfmt_em86.c:	bprm->argc++;
+./fs/loader:./binfmt_em86.c:		bprm->argc++;
+./fs/loader:./binfmt_em86.c:	bprm->argc++;
+./fs/loader:./binfmt_em86.c:	bprm->file = file;
+./fs/binfmt_elf.c:	unsigned long p = bprm->p;
+./fs/binfmt_elf.c:	int argc = bprm->argc;
+./fs/binfmt_elf.c:	int envc = bprm->envc;
+./fs/binfmt_elf.c:	NEW_AUX_ENT(AT_SECURE, bprm->secureexec);
+./fs/binfmt_elf.c:	NEW_AUX_ENT(AT_EXECFN, bprm->exec);
+./fs/binfmt_elf.c:	if (bprm->interp_flags & BINPRM_FLAGS_EXECFD) {
+./fs/binfmt_elf.c:		NEW_AUX_ENT(AT_EXECFD, bprm->interp_data);
+./fs/binfmt_elf.c:	bprm->p = STACK_ROUND(sp, items);
+./fs/binfmt_elf.c:	sp = (elf_addr_t __user *)bprm->p - items - ei_index;
+./fs/binfmt_elf.c:	bprm->exec = (unsigned long)sp; /* XXX: PARISC HACK */
+./fs/binfmt_elf.c:	sp = (elf_addr_t __user *)bprm->p;
+./fs/binfmt_elf.c:	vma = find_extend_vma(current->mm, bprm->p);
+./fs/binfmt_elf.c:	loc->elf_ex = *((struct elfhdr *)bprm->buf);
+./fs/binfmt_elf.c:	if (!bprm->file->f_op->mmap)
+./fs/binfmt_elf.c:	elf_phdata = load_elf_phdrs(&loc->elf_ex, bprm->file);
+./fs/binfmt_elf.c:		retval = kernel_read(bprm->file, elf_interpreter,
+./fs/binfmt_elf.c:						  bprm->file, false,
+./fs/binfmt_elf.c:		error = elf_map(bprm->file, load_bias + vaddr, elf_ppnt,
+./fs/binfmt_elf.c:	current->mm->start_stack = bprm->p;
+./fs/binfmt_elf.c:	start_thread(regs, elf_entry, bprm->p);
+./fs/binfmt_misc.c:	char *p = strrchr(bprm->interp, '.');
+./fs/binfmt_misc.c:		s = bprm->buf + e->offset;
+./fs/binfmt_misc.c:	if (bprm->interp_flags & BINPRM_FLAGS_PATH_INACCESSIBLE)
+./fs/binfmt_misc.c:		fd_install(fd_binary, bprm->file);
+./fs/binfmt_misc.c:		would_dump(bprm, bprm->file);
+./fs/binfmt_misc.c:		allow_write_access(bprm->file);
+./fs/binfmt_misc.c:		bprm->file = NULL;
+./fs/binfmt_misc.c:		bprm->interp_flags |= BINPRM_FLAGS_EXECFD;
+./fs/binfmt_misc.c:		bprm->interp_data = fd_binary;
+./fs/binfmt_misc.c:		allow_write_access(bprm->file);
+./fs/binfmt_misc.c:		fput(bprm->file);
+./fs/binfmt_misc.c:		bprm->file = NULL;
+./fs/binfmt_misc.c:	retval = copy_strings_kernel(1, &bprm->interp, bprm);
+./fs/binfmt_misc.c:	bprm->argc++;
+./fs/binfmt_misc.c:	bprm->argc++;
+./fs/binfmt_misc.c:	bprm->file = interp_file;
+./fs/binfmt_misc.c:		 * done.  bprm->buf is stale, update from interp_file.
+./fs/binfmt_misc.c:		memset(bprm->buf, 0, BINPRM_BUF_SIZE);
+./fs/binfmt_misc.c:		retval = kernel_read(bprm->file, bprm->buf, BINPRM_BUF_SIZE,
+./fs/binfmt_misc.c:	bprm->interp_flags = 0;
+./fs/binfmt_misc.c:	bprm->interp_data = 0;
+./fs/binfmt_flat.c:	sp -= bprm->envc + 1;
+./fs/binfmt_flat.c:	sp -= bprm->argc + 1;
+./fs/binfmt_flat.c:	__put_user(bprm->argc, sp++);
+./fs/binfmt_flat.c:		envp = (unsigned long)(sp + 2 + bprm->argc + 1);
+./fs/binfmt_flat.c:	for (i = bprm->argc; i > 0; i--) {
+./fs/binfmt_flat.c:	for (i = bprm->envc; i > 0; i--) {
+./fs/binfmt_flat.c:	ret = kernel_read(bprm->file, buf, LBUFSIZE, &fpos);
+./fs/binfmt_flat.c:		ret = kernel_read(bprm->file, buf, LBUFSIZE, &fpos);
+./fs/binfmt_flat.c:	hdr = ((struct flat_hdr *) bprm->buf);		/* exec-header */
+./fs/binfmt_flat.c:		pr_info("Loading file: %s\n", bprm->filename);
+./fs/binfmt_flat.c:		textpos = vm_mmap(bprm->file, 0, text_len, PROT_READ|PROT_EXEC,
+./fs/binfmt_flat.c:			result = read_code(bprm->file, datapos, fpos,
+./fs/binfmt_flat.c:			result = read_code(bprm->file, textpos, 0, text_len);
+./fs/binfmt_flat.c:			result = read_code(bprm->file, textpos, 0, text_len);
+./fs/binfmt_flat.c:				result = read_code(bprm->file, datapos,
+./fs/binfmt_flat.c:			id ? "Lib" : "Load", bprm->filename,
+./fs/binfmt_flat.c:	stack_len += PAGE_SIZE * MAX_ARG_PAGES - bprm->p; /* the strings */
+./fs/binfmt_flat.c:	stack_len += (bprm->argc + 1) * sizeof(char *);   /* the argv array */
+./fs/binfmt_flat.c:	stack_len += (bprm->envc + 1) * sizeof(char *);   /* the envp array */
+./fs/binfmt_flat.c:		res = create_flat_tables(bprm, bprm->p);
+./fs/binfmt_elf_fdpic.c:	exec_params.hdr = *(struct elfhdr *) bprm->buf;
+./fs/binfmt_elf_fdpic.c:	if (!is_elf(&exec_params.hdr, bprm->file))
+./fs/binfmt_elf_fdpic.c:	retval = elf_fdpic_fetch_phdrs(&exec_params, bprm->file);
+./fs/binfmt_elf_fdpic.c:			retval = kernel_read(bprm->file, interpreter_name,
+./fs/binfmt_elf_fdpic.c:			retval = kernel_read(interpreter, bprm->buf,
+./fs/binfmt_elf_fdpic.c:			interp_params.hdr = *((struct elfhdr *) bprm->buf);
+./fs/binfmt_elf_fdpic.c:	retval = elf_fdpic_map_file(&exec_params, bprm->file, current->mm,
+./fs/binfmt_elf_fdpic.c:	sp = arch_align_stack(bprm->p);
+./fs/binfmt_elf_fdpic.c:	if (bprm->interp_flags & BINPRM_FLAGS_EXECFD)
+./fs/binfmt_elf_fdpic.c:	sp -= (bprm->envc + 1) * sizeof(char *);	/* envv[] */
+./fs/binfmt_elf_fdpic.c:	sp -= (bprm->argc + 1) * sizeof(char *);	/* argv[] */
+./fs/binfmt_elf_fdpic.c:	if (bprm->interp_flags & BINPRM_FLAGS_EXECFD) {
+./fs/binfmt_elf_fdpic.c:		NEW_AUX_ENT(AT_EXECFD, bprm->interp_data);
+./fs/binfmt_elf_fdpic.c:	NEW_AUX_ENT(AT_SECURE,	bprm->secureexec);
+./fs/binfmt_elf_fdpic.c:	NEW_AUX_ENT(AT_EXECFN,	bprm->exec);
+./fs/binfmt_elf_fdpic.c:	csp -= (bprm->envc + 1) * sizeof(elf_caddr_t);
+./fs/binfmt_elf_fdpic.c:	csp -= (bprm->argc + 1) * sizeof(elf_caddr_t);
+./fs/binfmt_elf_fdpic.c:	__put_user(bprm->argc, (unsigned long __user *) csp);
+./fs/binfmt_elf_fdpic.c:	current->mm->arg_start = bprm->p;
+./fs/binfmt_elf_fdpic.c:		(MAX_ARG_PAGES * PAGE_SIZE - bprm->p);
+./fs/binfmt_elf_fdpic.c:	for (loop = bprm->argc; loop > 0; loop--) {
+./fs/binfmt_elf_fdpic.c:	for (loop = bprm->envc; loop > 0; loop--) {
+./fs/exec.c: * The nascent bprm->mm is not visible until exec_mmap() but it can
+./fs/exec.c:	long diff = (long)(pages - bprm->vma_pages);
+./fs/exec.c:	bprm->vma_pages = pages;
+./fs/exec.c:		ret = expand_downwards(bprm->vma, pos);
+./fs/exec.c:	 * doing the exec and bprm->mm is the new process's mm.
+./fs/exec.c:	ret = get_user_pages_remote(current, bprm->mm, pos, 1, gup_flags,
+./fs/exec.c:		acct_arg_size(bprm, vma_pages(bprm->vma));
+./fs/exec.c:	flush_cache_page(bprm->vma, pos, page_to_pfn(page));
+./fs/exec.c:	struct mm_struct *mm = bprm->mm;
+./fs/exec.c:	bprm->vma = vma = vm_area_alloc(mm);
+./fs/exec.c:	bprm->p = vma->vm_end - sizeof(void *);
+./fs/exec.c:	bprm->vma = NULL;
+./fs/exec.c:	page = bprm->page[pos / PAGE_SIZE];
+./fs/exec.c:		bprm->page[pos / PAGE_SIZE] = page;
+./fs/exec.c:	if (bprm->page[i]) {
+./fs/exec.c:		__free_page(bprm->page[i]);
+./fs/exec.c:		bprm->page[i] = NULL;
+./fs/exec.c:	bprm->p = PAGE_SIZE * MAX_ARG_PAGES - sizeof(void *);
+./fs/exec.c:	return len <= bprm->p;
+./fs/exec.c:	bprm->mm = mm = mm_alloc();
+./fs/exec.c:	bprm->rlim_stack = current->signal->rlim[RLIMIT_STACK];
+./fs/exec.c:		bprm->mm = NULL;
+./fs/exec.c:	bprm->argc = count(argv, MAX_ARG_STRINGS);
+./fs/exec.c:	if (bprm->argc < 0)
+./fs/exec.c:		return bprm->argc;
+./fs/exec.c:	bprm->envc = count(envp, MAX_ARG_STRINGS);
+./fs/exec.c:	if (bprm->envc < 0)
+./fs/exec.c:		return bprm->envc;
+./fs/exec.c:	limit = min(limit, bprm->rlim_stack.rlim_cur / 4);
+./fs/exec.c:	ptr_size = (bprm->argc + bprm->envc) * sizeof(void *);
+./fs/exec.c:	bprm->argmin = bprm->p - limit;
+./fs/exec.c:		pos = bprm->p;
+./fs/exec.c:		bprm->p -= len;
+./fs/exec.c:		if (bprm->p < bprm->argmin)
+./fs/exec.c:	struct vm_area_struct *vma = bprm->vma;
+./fs/exec.c:	stack_base = bprm->rlim_stack.rlim_max;
+./fs/exec.c:	mm->arg_start = bprm->p - stack_shift;
+./fs/exec.c:	bprm->p = vma->vm_end - stack_shift;
+./fs/exec.c:	bprm->p -= stack_shift;
+./fs/exec.c:	mm->arg_start = bprm->p;
+./fs/exec.c:	if (bprm->loader)
+./fs/exec.c:		bprm->loader -= stack_shift;
+./fs/exec.c:	bprm->exec -= stack_shift;
+./fs/exec.c:	rlim_stack = bprm->rlim_stack.rlim_cur & PAGE_MASK;
+./fs/exec.c:	current->mm->start_stack = bprm->p;
+./fs/exec.c:	stop = bprm->p >> PAGE_SHIFT;
+./fs/exec.c:		unsigned int offset = index == stop ? bprm->p & ~PAGE_MASK : 0;
+./fs/exec.c:		char *src = kmap(bprm->page[index]) + offset;
+./fs/exec.c:		kunmap(bprm->page[index]);
+./fs/exec.c:	 * Must be called _before_ exec_mmap() as bprm->mm is
+./fs/exec.c:	set_mm_exe_file(bprm->mm, bprm->file);
+./fs/exec.c:	retval = exec_mmap(bprm->mm);
+./fs/exec.c:	 * After clearing bprm->mm (to mark that current is using the
+./fs/exec.c:	bprm->mm = NULL;
+./fs/exec.c:	current->personality &= ~bprm->per_clear;
+./fs/exec.c:		bprm->interp_flags |= BINPRM_FLAGS_ENFORCE_NONDUMP;
+./fs/exec.c:		user_ns = old = bprm->mm->user_ns;
+./fs/exec.c:			bprm->mm->user_ns = get_user_ns(user_ns);
+./fs/exec.c:	bprm->secureexec |= bprm->cap_elevated;//elevated(提升) 0x0
+./fs/exec.c:	if (bprm->secureexec) {
+./fs/exec.c:		if (bprm->rlim_stack.rlim_cur > _STK_LIM)
+./fs/exec.c:			bprm->rlim_stack.rlim_cur = _STK_LIM;
+./fs/exec.c:	arch_pick_mmap_layout(current->mm, &bprm->rlim_stack);
+./fs/exec.c:	 * bprm->secureexec instead.
+./fs/exec.c:	if (bprm->interp_flags & BINPRM_FLAGS_ENFORCE_NONDUMP ||
+./fs/exec.c:	__set_task_comm(current, kbasename(bprm->filename), true);
+./fs/exec.c:	current->signal->rlim[RLIMIT_STACK] = bprm->rlim_stack;
+./fs/exec.c:	bprm->cred = prepare_exec_creds();
+./fs/exec.c:	if (likely(bprm->cred))
+./fs/exec.c:	if (bprm->cred) {
+./fs/exec.c:		abort_creds(bprm->cred);
+./fs/exec.c:	if (bprm->file) {
+./fs/exec.c:		allow_write_access(bprm->file);
+./fs/exec.c:		fput(bprm->file);
+./fs/exec.c:	if (bprm->interp != bprm->filename)
+./fs/exec.c:		kfree(bprm->interp);
+./fs/exec.c:	if (bprm->interp != bprm->filename)
+./fs/exec.c:		kfree(bprm->interp);
+./fs/exec.c:	bprm->interp = kstrdup(interp, GFP_KERNEL);
+./fs/exec.c:	if (!bprm->interp)
+./fs/exec.c:	commit_creds(bprm->cred);
+./fs/exec.c:	bprm->cred = NULL;
+./fs/exec.c:		bprm->unsafe |= LSM_UNSAFE_PTRACE;
+./fs/exec.c:		bprm->unsafe |= LSM_UNSAFE_NO_NEW_PRIVS;
+./fs/exec.c:		bprm->unsafe |= LSM_UNSAFE_SHARE;
+./fs/exec.c:	 * bits from any earlier bprm->file uses (for example when run
+./fs/exec.c:	bprm->cred->euid = current_euid();
+./fs/exec.c:	bprm->cred->egid = current_egid();
+./fs/exec.c:	if (!mnt_may_suid(bprm->file->f_path.mnt))
+./fs/exec.c:	inode = bprm->file->f_path.dentry->d_inode;
+./fs/exec.c:	if (!kuid_has_mapping(bprm->cred->user_ns, uid) ||
+./fs/exec.c:		 !kgid_has_mapping(bprm->cred->user_ns, gid))
+./fs/exec.c:		bprm->per_clear |= PER_CLEAR_ON_SETID;
+./fs/exec.c:		bprm->cred->euid = uid;
+./fs/exec.c:		bprm->per_clear |= PER_CLEAR_ON_SETID;
+./fs/exec.c:		bprm->cred->egid = gid;
+./fs/exec.c:	bprm->called_set_creds = 1;
+./fs/exec.c:	memset(bprm->buf, 0, BINPRM_BUF_SIZE);
+./fs/exec.c:	return kernel_read(bprm->file, bprm->buf, BINPRM_BUF_SIZE, &pos);
+./fs/exec.c: * Arguments are '\0' separated strings found at the location bprm->p
+./fs/exec.c:	if (!bprm->argc)
+./fs/exec.c:		offset = bprm->p & ~PAGE_MASK;
+./fs/exec.c:		page = get_arg_page(bprm, bprm->p, 0);
+./fs/exec.c:				offset++, bprm->p++)
+./fs/exec.c:	bprm->p++;
+./fs/exec.c:	bprm->argc--;
+./fs/exec.c:	if (bprm->recursion_dept

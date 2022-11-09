@@ -156,7 +156,7 @@ do {									\
 		NEW_AUX_ENT(AT_IGNORE, 0);				\
 } while (0)
 
-#define ARCH_HAS_SETUP_ADDITIONAL_PAGES
+#define ARCH_HAS_SETUP_ADDITIONAL_PAGES //1
 struct linux_binprm;
 extern int arch_setup_additional_pages(struct linux_binprm *bprm,
 				       int uses_interp);

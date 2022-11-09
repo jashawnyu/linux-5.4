@@ -2364,7 +2364,7 @@ void split_huge_pmd_address(struct vm_area_struct *vma, unsigned long address,
 
 	__split_huge_pmd(vma, pmd, address, freeze, page);
 }
-
+// called from __vma_adjust() @start=0xffffd92bf000
 void vma_adjust_trans_huge(struct vm_area_struct *vma,
 			     unsigned long start,
 			     unsigned long end,
@@ -2373,11 +2373,11 @@ void vma_adjust_trans_huge(struct vm_area_struct *vma,
 	/*
 	 * If the new start address isn't hpage aligned and it could
 	 * previously contain an hugepage: check if we need to split
-	 * an huge pmd.
+	 * an huge pmd. 如果新的起始地址不是hpage对齐的，并且它之前可能包含一个巨大的页面:检查我们是否需要分割一个巨大的pmd
 	 */
 	if (start & ~HPAGE_PMD_MASK &&
-	    (start & HPAGE_PMD_MASK) >= vma->vm_start &&
-	    (start & HPAGE_PMD_MASK) + HPAGE_PMD_SIZE <= vma->vm_end)
+	    (start & HPAGE_PMD_MASK) >= vma->vm_start && //0xbf000
+	    (start & HPAGE_PMD_MASK) + HPAGE_PMD_SIZE <= vma->vm_end) //0
 		split_huge_pmd_address(vma, start, false, NULL);
 
 	/*

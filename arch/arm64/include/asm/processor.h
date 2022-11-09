@@ -42,7 +42,7 @@
  */
 
 #define DEFAULT_MAP_WINDOW_64	(UL(1) << VA_BITS_MIN)
-#define TASK_SIZE_64		(UL(1) << vabits_actual)
+#define TASK_SIZE_64		(UL(1) << vabits_actual) //内核运行时在head.S中被设置为VA_BITS_MIN，48bit
 
 #ifdef CONFIG_COMPAT
 #if defined(CONFIG_ARM64_64K_PAGES) && defined(CONFIG_KUSER_HELPERS)
@@ -186,7 +186,7 @@ static inline void start_thread_common(struct pt_regs *regs, unsigned long pc)
 {
 	memset(regs, 0, sizeof(*regs));
 	forget_syscall(regs);
-	regs->pc = pc;
+	regs->pc = pc;  /* 把程序计数器设置为程序的入口 */
 
 	if (system_uses_irq_prio_masking())
 		regs->pmr_save = GIC_PRIO_IRQON;
@@ -201,17 +201,17 @@ static inline void set_compat_ssbs_bit(struct pt_regs *regs)
 {
 	regs->pstate |= PSR_AA32_SSBS_BIT;
 }
-
+//当进程从用户模式切换到内核模式时， 内核把用户模式的各种寄存器保存在内核栈底部的结构体pt_regs中。 因为不同处理器架构的寄存器不同， 所以各种处理器架构必须自定义结构体pt_regs和函数start_thread，
 static inline void start_thread(struct pt_regs *regs, unsigned long pc,
 				unsigned long sp)
 {
 	start_thread_common(regs, pc);
-	regs->pstate = PSR_MODE_EL0t;
+	regs->pstate = PSR_MODE_EL0t; /* 把处理器状态设置为0， 其中异常级别是0 */
 
 	if (arm64_get_ssbd_state() != ARM64_SSBD_FORCE_ENABLE)
 		set_ssbs_bit(regs);
 
-	regs->sp = sp;
+	regs->sp = sp; /*设置用户栈指针 */
 }
 
 #ifdef CONFIG_COMPAT

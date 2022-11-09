@@ -500,7 +500,7 @@ static __always_inline void vma_rb_erase(struct vm_area_struct *vma,
 }
 
 /*
- * vma has some anon_vma assigned, and is already inserted on that
+ * vma has some anon_vma assigned(Vma分配了一些匿名的Vma), and is already inserted on that
  * anon_vma's interval trees.
  *
  * Before updating the vma's vm_start / vm_end / vm_pgoff fields, the
@@ -722,10 +722,10 @@ static inline void __vma_unlink_prev(struct mm_struct *mm,
  * are necessary.  The "insert" vma (if any) is to be inserted
  * before we drop the necessary locks.
  */
-int __vma_adjust(struct vm_area_struct *vma, unsigned long start,
+int __attribute__((optimize("O0"))) __vma_adjust(struct vm_area_struct *vma, unsigned long start,
 	unsigned long end, pgoff_t pgoff, struct vm_area_struct *insert,
 	struct vm_area_struct *expand)
-{
+{//vma_merge call __vma_adjust
 	struct mm_struct *mm = vma->vm_mm;
 	struct vm_area_struct *next = vma->vm_next, *orig_vma = vma;
 	struct address_space *mapping = NULL;
@@ -736,7 +736,7 @@ int __vma_adjust(struct vm_area_struct *vma, unsigned long start,
 	long adjust_next = 0;
 	int remove_next = 0;
 
-	if (next && !insert) {
+	if (next && !insert) { //insert=0 called from shift_arg_pages() 这种情况下，next=0x0
 		struct vm_area_struct *exporter = NULL, *importer = NULL;
 
 		if (end >= next->vm_end) {
@@ -823,7 +823,7 @@ int __vma_adjust(struct vm_area_struct *vma, unsigned long start,
 again:
 	vma_adjust_trans_huge(orig_vma, start, end, adjust_next);
 
-	if (file) {
+	if (file) { //0
 		mapping = file->f_mapping;
 		root = &mapping->i_mmap;
 		uprobe_munmap(vma, vma->vm_start, vma->vm_end);
@@ -843,47 +843,47 @@ again:
 		}
 	}
 
-	anon_vma = vma->anon_vma;
-	if (!anon_vma && adjust_next)
+	anon_vma = vma->anon_vma; //anonymous
+	if (!anon_vma && adjust_next) //0
 		anon_vma = next->anon_vma;
-	if (anon_vma) {
+	if (anon_vma) { //1
 		VM_WARN_ON(adjust_next && next->anon_vma &&
-			   anon_vma != next->anon_vma);
-		anon_vma_lock_write(anon_vma);
-		anon_vma_interval_tree_pre_update_vma(vma);
-		if (adjust_next)
+			   anon_vma != next->anon_vma);//编译时检查
+		anon_vma_lock_write(anon_vma);//上锁
+		anon_vma_interval_tree_pre_update_vma(vma); //更新vma成员要先把vma从anon_vma's interval trees删除
+		if (adjust_next)//0
 			anon_vma_interval_tree_pre_update_vma(next);
 	}
 
-	if (root) {
+	if (root) {//0
 		flush_dcache_mmap_lock(mapping);
 		vma_interval_tree_remove(vma, root);
 		if (adjust_next)
 			vma_interval_tree_remove(next, root);
 	}
 
-	if (start != vma->vm_start) {
+	if (start != vma->vm_start) {//start=0xffffd92bf000;vm_start=0xfffffffff000
 		vma->vm_start = start;
 		start_changed = true;
 	}
-	if (end != vma->vm_end) {
+	if (end != vma->vm_end) {//0
 		vma->vm_end = end;
 		end_changed = true;
 	}
 	vma->vm_pgoff = pgoff;
-	if (adjust_next) {
+	if (adjust_next) {//0
 		next->vm_start += adjust_next << PAGE_SHIFT;
 		next->vm_pgoff += adjust_next;
 	}
 
-	if (root) {
+	if (root) {//0
 		if (adjust_next)
 			vma_interval_tree_insert(next, root);
 		vma_interval_tree_insert(vma, root);
 		flush_dcache_mmap_unlock(mapping);
 	}
 
-	if (remove_next) {
+	if (remove_next) {//0
 		/*
 		 * vma_merge has merged next into vma, and needs
 		 * us to remove next before dropping the locks.
@@ -903,7 +903,7 @@ again:
 			__vma_unlink_common(mm, next, NULL, false, vma);
 		if (file)
 			__remove_shared_vm_struct(next, file, mapping);
-	} else if (insert) {
+	} else if (insert) {//0
 		/*
 		 * split_vma has split insert from vma, and needs
 		 * us to insert it before dropping the locks
@@ -911,9 +911,9 @@ again:
 		 */
 		__insert_vm_struct(mm, insert);
 	} else {
-		if (start_changed)
-			vma_gap_update(vma);
-		if (end_changed) {
+		if (start_changed)//1
+			vma_gap_update(vma);//vma_area_struct中rb_subtree_gap 字段，用于记录当前vma 的前面有多少空闲空间,称为gap
+		if (end_changed) {//0
 			if (!next)
 				mm->highest_vm_end = vm_end_gap(vma);
 			else if (!adjust_next)
@@ -921,23 +921,23 @@ again:
 		}
 	}
 
-	if (anon_vma) {
-		anon_vma_interval_tree_post_update_vma(vma);
-		if (adjust_next)
+	if (anon_vma) {//1
+		anon_vma_interval_tree_post_update_vma(vma); //重新插入vma到anon_vma's interval tree
+		if (adjust_next)//0
 			anon_vma_interval_tree_post_update_vma(next);
-		anon_vma_unlock_write(anon_vma);
+		anon_vma_unlock_write(anon_vma);//操作完解锁
 	}
-	if (mapping)
+	if (mapping)//0
 		i_mmap_unlock_write(mapping);
 
-	if (root) {
+	if (root) {//0
 		uprobe_mmap(vma);
 
 		if (adjust_next)
 			uprobe_mmap(next);
 	}
 
-	if (remove_next) {
+	if (remove_next) {//0
 		if (file) {
 			uprobe_munmap(next, next->vm_start, next->vm_end);
 			fput(file);
@@ -1003,10 +1003,10 @@ again:
 			VM_WARN_ON(mm->highest_vm_end != vm_end_gap(vma));
 		}
 	}
-	if (insert && file)
+	if (insert && file)//0
 		uprobe_mmap(insert);
 
-	validate_mm(mm);
+	validate_mm(mm);//0
 
 	return 0;
 }
@@ -2276,6 +2276,7 @@ get_unmapped_area(struct file *file, unsigned long addr, unsigned long len,
 EXPORT_SYMBOL(get_unmapped_area);
 
 /* Look up the first VMA which satisfies  addr < vm_end,  NULL if none. */
+//find_vma( )函数根据一个属于某个进程的虚拟地址，找到其所属的进程虚拟区间
 struct vm_area_struct *find_vma(struct mm_struct *mm, unsigned long addr)
 {
 	struct rb_node *rb_node;

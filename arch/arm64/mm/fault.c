@@ -501,7 +501,7 @@ mm_flags 设置标志位FAULT_FLAG_WRITE*/
 	if (is_ttbr0_addr(addr) && is_el1_permission_fault(addr, esr, regs)) {
 		/* regs->orig_addr_limit may be 0 if we entered from EL0 */
     //如果进程在内核模式下把地址上界设置为内核虚拟地址空间上界以后访问用户虚拟地址，那么内核打印错误信息，然后死掉
-    /regs->orig_addr_limit等于当前进程的进程描述符的成员thread_info.addr_limit，KERNEL_DS是内核虚拟地址空间的上界
+    //regs->orig_addr_limit等于当前进程的进程描述符的成员thread_info.addr_limit，KERNEL_DS是内核虚拟地址空间的上界
 		if (regs->orig_addr_limit == KERNEL_DS)
 			die_kernel_fault("access to user memory with fs=KERNEL_DS",
 					 addr, esr, regs);

@@ -1526,22 +1526,24 @@ int down_read_trylock(struct rw_semaphore *sem)
 EXPORT_SYMBOL(down_read_trylock);
 
 /*
- * lock for writing
+ * lock for writing,down_write()操作之前读写信号量rwsem没有被读者获取,写者可以成功获得信号量
  */
 void __sched down_write(struct rw_semaphore *sem)
 {
-	might_sleep();
-	rwsem_acquire(&sem->dep_map, 0, 0, _RET_IP_);
-	LOCK_CONTENDED(sem, __down_write_trylock, __down_write);
+	might_sleep();//0
+	rwsem_acquire(&sem->dep_map, 0, 0, _RET_IP_); //0
+	LOCK_CONTENDED(sem, __down_write_trylock, __down_write);//LOCK_CONTENDED是一个宏定义，如果使能死锁检测，CONFIG_LOCK_STAT，先调用__down_write_trylock()尝试获得锁，不等待，如果失败在调用__down_write() 忙等待unlock, 否则直接调用__down_write(sem)
 }
 EXPORT_SYMBOL(down_write);
 
 /*
  * lock for writing
  */
+//申请写锁，如果写者占有写锁或者读者占有读锁，那么进程中度睡眠
+//中度睡眠： 进程描述符的字段state是TASK_KILLABLE， 只能被致命的信号打断
 int __sched down_write_killable(struct rw_semaphore *sem)
 {
-	might_sleep();
+	might_sleep(); //0
 	rwsem_acquire(&sem->dep_map, 0, 0, _RET_IP_);
 
 	if (LOCK_CONTENDED_RETURN(sem, __down_write_trylock,

@@ -509,7 +509,7 @@ enum xhlock_context_t {
 static inline void lockdep_invariant_state(bool force) {}
 static inline void lockdep_free_task(struct task_struct *task) {}
 
-#ifdef CONFIG_LOCK_STAT
+#ifdef CONFIG_LOCK_STAT //0
 
 extern void lock_contended(struct lockdep_map *lock, unsigned long ip);
 extern void lock_acquired(struct lockdep_map *lock, unsigned long ip);

@@ -316,7 +316,7 @@ static void flush_tagged_addr_state(void)
 	if (IS_ENABLED(CONFIG_ARM64_TAGGED_ADDR_ABI))
 		clear_thread_flag(TIF_TAGGED_ADDR);
 }
-
+//主要用来初始化thread_struct中的TLS元数据信息
 void flush_thread(void)
 {
 	fpsimd_flush_thread();
@@ -377,7 +377,7 @@ int copy_thread(unsigned long clone_flags, unsigned long stack_start,
 	fpsimd_flush_task_state(p);
 
 	if (likely(!(p->flags & PF_KTHREAD))) {
-		*childregs = *current_pt_regs();
+		*childregs = *current_pt_regs(); 
 		childregs->regs[0] = 0;
 
 		/*
@@ -552,7 +552,7 @@ out:
 
 unsigned long arch_align_stack(unsigned long sp)
 {
-	if (!(current->personality & ADDR_NO_RANDOMIZE) && randomize_va_space)
+	if (!(current->personality & ADDR_NO_RANDOMIZE) && randomize_va_space) //1
 		sp -= get_random_int() & ~PAGE_MASK;
 	return sp & ~0xf;
 }

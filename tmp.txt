@@ -1,0 +1,14 @@
+INTERVAL_TREE_DEFINE(struct anon_vma_chain, rb, unsigned long, rb_subtree_last,
+		     avc_start_pgoff, avc_last_pgoff,
+		     static inline, __anon_vma_interval_tree)
+
+void anon_vma_interval_tree_remove(struct anon_vma_chain *node,
+				   struct rb_root_cached *root)
+{//
+	__anon_vma_interval_tree_remove(node, root);//INTERVAL_TREE_DEFINE宏中定义里这个函数
+}
+
+ static inline void __anon_vma_interval_tree_remove(struct anon_vma_chain *node,struct rb_root_cached *root) 
+{
+  	rb_erase_augmented_cached(&node->rb, root, &__anon_vma_interval_tree_augment);  
+} 

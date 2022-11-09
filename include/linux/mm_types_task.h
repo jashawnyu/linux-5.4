@@ -28,8 +28,8 @@
  * The per task VMA cache array:
  */
 #define VMACACHE_BITS 2
-#define VMACACHE_SIZE (1U << VMACACHE_BITS)
-#define VMACACHE_MASK (VMACACHE_SIZE - 1)
+#define VMACACHE_SIZE (1U << VMACACHE_BITS) // 4
+#define VMACACHE_MASK (VMACACHE_SIZE - 1) //3
 
 struct vmacache {
 	u64 seqnum;

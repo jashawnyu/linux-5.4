@@ -861,7 +861,7 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
 	struct vm_struct *stack_vm_area __maybe_unused;
 	int err;
 
-	if (node == NUMA_NO_NODE)
+	if (node == NUMA_NO_NODE) // 1
 		node = tsk_fork_get_node(orig);
 	tsk = alloc_task_struct_node(node);
 	if (!tsk)
@@ -875,6 +875,7 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
 		goto free_stack;
 
   //alloc_thread_stack_node  alloc it before
+  //这个变量没有任何code用到，编译器也不会报错
 	stack_vm_area = task_stack_vm_area(tsk);
 
 	err = arch_dup_task_struct(tsk, orig);
@@ -1393,7 +1394,7 @@ static int copy_mm(unsigned long clone_flags, struct task_struct *tsk)
 
 	tsk->min_flt = tsk->maj_flt = 0;
 	tsk->nvcsw = tsk->nivcsw = 0;
-#ifdef CONFIG_DETECT_HUNG_TASK
+#ifdef CONFIG_DETECT_HUNG_TASK //0
 	tsk->last_switch_count = tsk->nvcsw + tsk->nivcsw;
 	tsk->last_switch_time = 0;
 #endif
@@ -1957,7 +1958,7 @@ static __latent_entropy struct task_struct *copy_process(
 	p->cpuset_slab_spread_rotor = NUMA_NO_NODE;
 	seqcount_init(&p->mems_allowed_seq);
 #endif
-#ifdef CONFIG_TRACE_IRQFLAGS
+#ifdef CONFIG_TRACE_IRQFLAGS //0
 	p->irq_events = 0;
 	p->hardirqs_enabled = 0;
 	p->hardirq_enable_ip = 0;
@@ -1975,14 +1976,14 @@ static __latent_entropy struct task_struct *copy_process(
 
 	p->pagefault_disabled = 0;
 
-#ifdef CONFIG_LOCKDEP
+#ifdef CONFIG_LOCKDEP //0
 	lockdep_init_task(p);
 #endif
 
-#ifdef CONFIG_DEBUG_MUTEXES
+#ifdef CONFIG_DEBUG_MUTEXES //0
 	p->blocked_on = NULL; /* not blocked yet */
 #endif
-#ifdef CONFIG_BCACHE
+#ifdef CONFIG_BCACHE //0
 	p->sequential_io	= 0;
 	p->sequential_io_avg	= 0;
 #endif
@@ -2233,7 +2234,7 @@ static __latent_entropy struct task_struct *copy_process(
 	syscall_tracepoint_update(p);
 	write_unlock_irq(&tasklist_lock);
 
-	proc_fork_connector(p);
+	proc_fork_connector(p); //0
 	cgroup_post_fork(p);
 	cgroup_threadgroup_change_end(current);
 	perf_event_fork(p);
@@ -2389,8 +2390,10 @@ long _do_fork(struct kernel_clone_args *args)
 	trace_sched_process_fork(current, p);
 
 	pid = get_task_pid(p, PIDTYPE_PID);
+  //局部进程号
 	nr = pid_vnr(pid);
 
+  /*CLONE_PARENT_SETTID 主要目的是因为ptid的值必须在clone()函数调用完成后才赋值，如果此时创建的线程销毁，那ptid还没有赋值，处理器程序就无法正确处理销毁的线程。设置了该参数后，可以保证在clone()返回之前就给ptid赋值，从而是线程库避免了这种竞争条件*/
 	if (clone_flags & CLONE_PARENT_SETTID)
 		put_user(nr, args->parent_tid);
 

@@ -30,7 +30,7 @@ static inline char *next_terminator(char *first, const char *last)
 			return first;
 	return NULL;
 }
-
+//负责装载脚本程序
 static int load_script(struct linux_binprm *bprm)
 {
 	const char *i_arg, *i_name;
@@ -136,17 +136,17 @@ static int load_script(struct linux_binprm *bprm)
 		return retval;
 
 	/*
-	 * OK, now restart the process with the interpreter's dentry.
+	 * OK, now restart the process with the interpreter's dentry.打开解释程序文件
 	 */
 	file = open_exec(i_name);
 	if (IS_ERR(file))
 		return PTR_ERR(file);
 
 	bprm->file = file;
-	retval = prepare_binprm(bprm);
+	retval = prepare_binprm(bprm);//设置进程证书， 然后读取解释程序文件的前128字节到缓冲区
 	if (retval < 0)
 		return retval;
-	return search_binary_handler(bprm);
+	return search_binary_handler(bprm);//尝试注册过的每种二进制格式的处理程序， 直到某个处理程序识别解释程序为止
 }
 
 static struct linux_binfmt script_format = {

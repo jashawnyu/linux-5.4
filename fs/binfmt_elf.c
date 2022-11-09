@@ -75,10 +75,10 @@ static int elf_core_dump(struct coredump_params *cprm);
 #define elf_core_dump	NULL
 #endif
 
-#if ELF_EXEC_PAGESIZE > PAGE_SIZE
+#if ELF_EXEC_PAGESIZE > PAGE_SIZE //0
 #define ELF_MIN_ALIGN	ELF_EXEC_PAGESIZE
 #else
-#define ELF_MIN_ALIGN	PAGE_SIZE
+#define ELF_MIN_ALIGN	PAGE_SIZE //0x1000
 #endif
 
 #ifndef ELF_CORE_EFLAGS
@@ -86,7 +86,7 @@ static int elf_core_dump(struct coredump_params *cprm);
 #endif
 
 #define ELF_PAGESTART(_v) ((_v) & ~(unsigned long)(ELF_MIN_ALIGN-1))
-#define ELF_PAGEOFFSET(_v) ((_v) & (ELF_MIN_ALIGN-1))
+#define ELF_PAGEOFFSET(_v) ((_v) & (ELF_MIN_ALIGN-1)) //(_v)&0xfff
 #define ELF_PAGEALIGN(_v) (((_v) + ELF_MIN_ALIGN - 1) & ~(ELF_MIN_ALIGN - 1))
 
 static struct linux_binfmt elf_format = {
@@ -97,7 +97,7 @@ static struct linux_binfmt elf_format = {
 	.min_coredump	= ELF_EXEC_PAGESIZE,
 };
 
-#define BAD_ADDR(x) ((unsigned long)(x) >= TASK_SIZE)
+#define BAD_ADDR(x) ((unsigned long)(x) >= TASK_SIZE) //1<<48
 
 static int set_brk(unsigned long start, unsigned long end, int prot)
 {
@@ -182,8 +182,8 @@ create_elf_tables(struct linux_binprm *bprm, struct elfhdr *exec,
 
 	/*
 	 * In some cases (e.g. Hyper-Threading), we want to avoid L1
-	 * evictions by the processes running on the same package. One
-	 * thing we can do is to shuffle the initial stack for them.
+	 * evictions(L1缓存回收) by the processes running on the same package. One
+	 * thing we can do is to shuffle(洗牌) the initial stack for them.
 	 */
 
 	p = arch_align_stack(p);
@@ -350,7 +350,7 @@ static unsigned long elf_map(struct file *filep, unsigned long addr,
 		unsigned long total_size)
 {
 	unsigned long map_addr;
-	unsigned long size = eppnt->p_filesz + ELF_PAGEOFFSET(eppnt->p_vaddr);
+	unsigned long size = eppnt->p_filesz + ELF_PAGEOFFSET(eppnt->p_vaddr);//0x1eda07 + 0
 	unsigned long off = eppnt->p_offset - ELF_PAGEOFFSET(eppnt->p_vaddr);
 	addr = ELF_PAGESTART(addr);
 	size = ELF_PAGEALIGN(size);
@@ -365,10 +365,10 @@ static unsigned long elf_map(struct file *filep, unsigned long addr,
 	* The _first_ mmap needs to know the full size, otherwise
 	* randomization might put this image into an overlapping
 	* position with the ELF binary image. (since size < total_size)
-	* So we first map the 'big' image - and unmap the remainder at
+	* So we first map the 'big' image - and unmap the remainder(剩余) at
 	* the end. (which unmap is needed for ELF images with holes.)
 	*/
-	if (total_size) {
+	if (total_size) {//0
 		total_size = ELF_PAGEALIGN(total_size);
 		map_addr = vm_mmap(filep, addr, total_size, prot, type, off);
 		if (!BAD_ADDR(map_addr))
@@ -376,7 +376,7 @@ static unsigned long elf_map(struct file *filep, unsigned long addr,
 	} else
 		map_addr = vm_mmap(filep, addr, size, prot, type, off);
 
-	if ((type & MAP_FIXED_NOREPLACE) &&
+	if ((type & MAP_FIXED_NOREPLACE) && //0
 	    PTR_ERR((void *)map_addr) == -EEXIST)
 		pr_info("%d (%s): Uhuuh, elf segment at %px requested but the memory is mapped already\n",
 			task_pid_nr(current), current->comm, (void *)addr);
@@ -711,7 +711,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
 		goto out;
 	if (!elf_check_arch(&loc->elf_ex))
 		goto out;
-	if (elf_check_fdpic(&loc->elf_ex))
+	if (elf_check_fdpic(&loc->elf_ex)) //0
 		goto out;
 	if (!bprm->file->f_op->mmap)
 		goto out;
@@ -783,7 +783,7 @@ out_free_interp:
 		kfree(elf_interpreter);
 		goto out_free_ph;
 	}
-
+  //重新赋值
 	elf_ppnt = elf_phdata;
 	for (i = 0; i < loc->elf_ex.e_phnum; i++, elf_ppnt++)
 		switch (elf_ppnt->p_type) {
@@ -846,6 +846,7 @@ out_free_interp:
 		goto out_free_dentry;
 
 	/* Flush all traces of the currently running executable */
+  /*(刷新当前运行的可执行文件的所有跟踪)*/
 	retval = flush_old_exec(bprm);
 	if (retval)
 		goto out_free_dentry;
@@ -882,11 +883,11 @@ out_free_interp:
 	/* Now we do a little grungy(蹩脚的) work by mmapping the ELF image into
 	   the correct location in memory. */
 	for(i = 0, elf_ppnt = elf_phdata;
-	    i < loc->elf_ex.e_phnum; i++, elf_ppnt++) {
+	    i < loc->elf_ex.e_phnum; i++, elf_ppnt++) {//遍历所有的segment
 		int elf_prot, elf_flags;
 		unsigned long k, vaddr;
 		unsigned long total_size = 0;
-
+//PT_LOAD表示一个需要从二进制文件映射到虚拟地址空间的段， 例如程序的代码和数据,文件映射,文件映射的物理页叫做文件页
 		if (elf_ppnt->p_type != PT_LOAD)
 			continue;
 
@@ -918,18 +919,18 @@ out_free_interp:
 			}
 		}
 
-		elf_prot = make_prot(elf_ppnt->p_flags);
+		elf_prot = make_prot(elf_ppnt->p_flags);//提取permissions 给局部变量;5
 
 		elf_flags = MAP_PRIVATE | MAP_DENYWRITE | MAP_EXECUTABLE;
 
-		vaddr = elf_ppnt->p_vaddr;
+		vaddr = elf_ppnt->p_vaddr;//0x400000
 		/*
 		 * If we are loading ET_EXEC or we have already performed
 		 * the ET_DYN load_addr calculations, proceed normally.
 		 */
-		if (loc->elf_ex.e_type == ET_EXEC || load_addr_set) {
+		if (loc->elf_ex.e_type == ET_EXEC || load_addr_set) { //表示可执行文件
 			elf_flags |= MAP_FIXED;
-		} else if (loc->elf_ex.e_type == ET_DYN) {
+		} else if (loc->elf_ex.e_type == ET_DYN) { //表示动态库
 			/*
 			 * This logic is run once for the first LOAD Program
 			 * Header for ET_DYN binaries to calculate the
@@ -984,19 +985,19 @@ out_free_interp:
 				goto out_free_dentry;
 			}
 		}
-
+//把所有可加载段映射到进程的虚拟地址空间; @elf_flags=0x1812;bias(趋势)
 		error = elf_map(bprm->file, load_bias + vaddr, elf_ppnt,
 				elf_prot, elf_flags, total_size);
-		if (BAD_ADDR(error)) {
+		if (BAD_ADDR(error)) { //0
 			retval = IS_ERR((void *)error) ?
 				PTR_ERR((void*)error) : -EINVAL;
 			goto out_free_dentry;
 		}
 
-		if (!load_addr_set) {
+		if (!load_addr_set) {//0
 			load_addr_set = 1;
-			load_addr = (elf_ppnt->p_vaddr - elf_ppnt->p_offset);
-			if (loc->elf_ex.e_type == ET_DYN) {
+			load_addr = (elf_ppnt->p_vaddr - elf_ppnt->p_offset);//0x400000
+			if (loc->elf_ex.e_type == ET_DYN) { //0
 				load_bias += error -
 				             ELF_PAGESTART(load_bias + vaddr);
 				load_addr += load_bias;
@@ -1021,10 +1022,10 @@ out_free_interp:
 			retval = -EINVAL;
 			goto out_free_dentry;
 		}
-
+    //注意我们正在for循环里
 		k = elf_ppnt->p_vaddr + elf_ppnt->p_filesz;
 
-		if (k > elf_bss)
+		if (k > elf_bss) //1
 			elf_bss = k;
 		if ((elf_ppnt->p_flags & PF_X) && end_code < k)
 			end_code = k;
@@ -1050,9 +1051,9 @@ out_free_interp:
 	 * mapping in the interpreter, to make sure it doesn't wind
 	 * up getting placed where the bss needs to go.
 	 */
-	retval = set_brk(elf_bss, elf_brk, bss_prot);
+	retval = set_brk(elf_bss, elf_brk, bss_prot);//把未初始化数据段映射到进程的用户虚拟地址空间，并且设置堆的起始虚拟地址
 	if (retval)
-		goto out_free_dentry;
+		goto out_free_dentry;//padzero用零填充未初始化数据段
 	if (likely(elf_bss != elf_brk) && unlikely(padzero(elf_bss))) {
 		retval = -EFAULT; /* Nobody gets to see this, but.. */
 		goto out_free_dentry;
@@ -1060,7 +1061,7 @@ out_free_interp:
 
 	if (interpreter) {
 		unsigned long interp_map_addr = 0;
-
+    //得到程序的入口。 如果程序有解释器段， 那么把解释器程序中的所有可加载段映射到进程的用户虚拟地址空间， 程序入口是解释器程序的入口， 否则就是目标程序自身的入口
 		elf_entry = load_elf_interp(&loc->interp_elf_ex,
 					    interpreter,
 					    &interp_map_addr,
@@ -1100,7 +1101,7 @@ out_free_interp:
 	if (retval < 0)
 		goto out;
 #endif /* ARCH_HAS_SETUP_ADDITIONAL_PAGES */
-
+//依次把传递ELF解释器信息的辅助向量、 环境指针数组envp、 参数指针数组argv和参数个数argc压到进程的用户栈
 	retval = create_elf_tables(bprm, &loc->elf_ex,
 			  load_addr, interp_load_addr);
 	if (retval < 0)
@@ -1156,7 +1157,7 @@ out_free_interp:
 #endif
 
 	finalize_exec(bprm);
-	start_thread(regs, elf_entry, bprm->p);
+	start_thread(regs, elf_entry, bprm->p);//设置结构体pt_regs中的程序计数器和栈指针寄存器
 	retval = 0;
 out:
 	kfree(loc);
@@ -1198,7 +1199,7 @@ static int load_elf_library(struct file *file)
 	if (elf_ex.e_type != ET_EXEC || elf_ex.e_phnum > 2 ||
 	    !elf_check_arch(&elf_ex) || !file->f_op->mmap)
 		goto out;
-	if (elf_check_fdpic(&elf_ex))
+	if (elf_check_fdpic(&elf_ex)) //0
 		goto out;
 
 	/* Now read in all of the header information */

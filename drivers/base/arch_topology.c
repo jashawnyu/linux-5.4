@@ -428,7 +428,7 @@ out:
 /*
  * cpu topology table
  */
-struct cpu_topology cpu_topology[NR_CPUS];
+struct cpu_topology cpu_topology[NR_CPUS];//256
 EXPORT_SYMBOL_GPL(cpu_topology);
 
 const struct cpumask *cpu_coregroup_mask(int cpu)
@@ -533,7 +533,7 @@ void __init init_cpu_topology(void)
 	 * Discard anything that was parsed if we hit an error so we
 	 * don't use partial information.
 	 */
-	if (parse_acpi_topology())
+	if (parse_acpi_topology())//高级配置与电源接口（Advanced Configuration and Power Interface）
 		reset_cpu_topology();
 	else if (of_have_populated_dt() && parse_dt_topology())
 		reset_cpu_topology();

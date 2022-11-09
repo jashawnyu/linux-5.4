@@ -22,8 +22,13 @@ extern struct static_key_false arm64_const_caps_ready;
 static inline bool system_uses_lse_atomics(void)
 {
 	return (static_branch_likely(&arm64_const_caps_ready)) &&
-		static_branch_likely(&cpu_hwcap_keys[ARM64_HAS_LSE_ATOMICS]);
+		static_branch_likely(&cpu_hwcap_keys[ARM64_HAS_LSE_ATOMICS]); // 1 && 1
 }
+
+//lse : Large System Extensions
+//ll_sc : Load-Link（LL）和Store-Conditional（SC）
+//__VA_ARGS__:用于在宏替换部分中，表示可变参数列表
+//__lse_##op() 定义在atomic_lse.h
 
 #define __lse_ll_sc_body(op, ...)					\
 ({									\

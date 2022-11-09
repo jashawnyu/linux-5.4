@@ -73,31 +73,31 @@ typedef struct qspinlock {
  * 11-31: tail cpu (+1)
  */
 #define	_Q_SET_MASK(type)	(((1U << _Q_ ## type ## _BITS) - 1)\
-				      << _Q_ ## type ## _OFFSET)
+				      << _Q_ ## type ## _OFFSET)  //((1 << 8 )-1) <<  0 
 #define _Q_LOCKED_OFFSET	0
 #define _Q_LOCKED_BITS		8
-#define _Q_LOCKED_MASK		_Q_SET_MASK(LOCKED)
+#define _Q_LOCKED_MASK		_Q_SET_MASK(LOCKED) //0xff
 
-#define _Q_PENDING_OFFSET	(_Q_LOCKED_OFFSET + _Q_LOCKED_BITS)
-#if CONFIG_NR_CPUS < (1U << 14)
+#define _Q_PENDING_OFFSET	(_Q_LOCKED_OFFSET + _Q_LOCKED_BITS) //8 = (0+8)
+#if CONFIG_NR_CPUS < (1U << 14) //256 < 16K
 #define _Q_PENDING_BITS		8
 #else
 #define _Q_PENDING_BITS		1
 #endif
 #define _Q_PENDING_MASK		_Q_SET_MASK(PENDING)
 
-#define _Q_TAIL_IDX_OFFSET	(_Q_PENDING_OFFSET + _Q_PENDING_BITS)
+#define _Q_TAIL_IDX_OFFSET	(_Q_PENDING_OFFSET + _Q_PENDING_BITS) //16=(8+8)
 #define _Q_TAIL_IDX_BITS	2
 #define _Q_TAIL_IDX_MASK	_Q_SET_MASK(TAIL_IDX)
 
-#define _Q_TAIL_CPU_OFFSET	(_Q_TAIL_IDX_OFFSET + _Q_TAIL_IDX_BITS)
-#define _Q_TAIL_CPU_BITS	(32 - _Q_TAIL_CPU_OFFSET)
+#define _Q_TAIL_CPU_OFFSET	(_Q_TAIL_IDX_OFFSET + _Q_TAIL_IDX_BITS)// 18=(16+2)
+#define _Q_TAIL_CPU_BITS	(32 - _Q_TAIL_CPU_OFFSET) //14 = (32-18)
 #define _Q_TAIL_CPU_MASK	_Q_SET_MASK(TAIL_CPU)
 
 #define _Q_TAIL_OFFSET		_Q_TAIL_IDX_OFFSET
 #define _Q_TAIL_MASK		(_Q_TAIL_IDX_MASK | _Q_TAIL_CPU_MASK)
 
-#define _Q_LOCKED_VAL		(1U << _Q_LOCKED_OFFSET)
-#define _Q_PENDING_VAL		(1U << _Q_PENDING_OFFSET)
+#define _Q_LOCKED_VAL		(1U << _Q_LOCKED_OFFSET) //1
+#define _Q_PENDING_VAL		(1U << _Q_PENDING_OFFSET) //1 << 8 = 256
 
 #endif /* __ASM_GENERIC_QSPINLOCK_TYPES_H */

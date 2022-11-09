@@ -62,7 +62,7 @@ static inline unsigned long __range_ok(const void __user *addr, unsigned long si
 {
 	unsigned long ret, limit = current_thread_info()->addr_limit;
 
-	if (IS_ENABLED(CONFIG_ARM64_TAGGED_ADDR_ABI) &&
+	if (IS_ENABLED(CONFIG_ARM64_TAGGED_ADDR_ABI) && //1
 	    test_thread_flag(TIF_TAGGED_ADDR))
 		addr = untagged_addr(addr);
 

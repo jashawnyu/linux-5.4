@@ -229,6 +229,20 @@ __CMPXCHG_GEN(_mb)
 	__ret;									\
 })
 
+// sevl instruction means (send event local)
+// It can prime a wait-loop which starts with a WFE instruction
+// "=&r" : 'r means any register
+// '+Q" : 'Q' means A memory address which uses a single base register with no offset
+//"	ldxr" #sfx "\t%" #w "[tmp], %[v]\n"		means tmp = v
+// "eor " : Bitwise Exclusive OR 
+// 操作数中加上w（比如%w0，而不是%0）表示是要操作32位的数，使用wn寄存器，否则在64位下，默认使用xn寄存器
+// "cbnz" : Compare and Branch on Nonzero
+// 第一次的wfe不会导致PE lowpower state , 原因如下:
+// To enter the low-power state, the PE executes a WFE or WFET instruction, and if the Event Register is clear, the PE can enter the low-power state
+// sevl会置位 Event Register
+// If the Event Register is set, the instruction WFE clears the register and completes immediately
+/*当全局监视器标记的对某段内存的独占访问被清空后，将向所有标记了对该段内存独占访问的CPU核都发送事件。也就是说，当系统在多个CPU核上，通过LDREX或者LDXR指令读取某段内存后，系统全局监视器会将该段内存标记为独占（Exclusive），这之后又调用了WFE指令进入低功耗模式了。当系统中又有一个CPU，通过STREX或者STXR指令对该段内存进行了写入，这将清空全局监视器对该段内存的独占标记为，那么系统会自动给前面那些CPU核发送事件，将它们唤醒*/
+
 #define __CMPWAIT_CASE(w, sfx, sz)					\
 static inline void __cmpwait_case_##sz(volatile void *ptr,		\
 				       unsigned long val)		\
@@ -247,8 +261,8 @@ static inline void __cmpwait_case_##sz(volatile void *ptr,		\
 	: [val] "r" (val));						\
 }
 
-__CMPWAIT_CASE(w, b, 8);
-__CMPWAIT_CASE(w, h, 16);
+__CMPWAIT_CASE(w, b, 8); //'b' means Byte
+__CMPWAIT_CASE(w, h, 16);//'h' means halfword
 __CMPWAIT_CASE(w,  , 32);
 __CMPWAIT_CASE( ,  , 64);
 

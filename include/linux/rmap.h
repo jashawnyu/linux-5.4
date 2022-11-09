@@ -65,7 +65,7 @@ struct anon_vma {
  * The copy-on-write semantics of fork mean that an anon_vma
  * can become associated with multiple processes. Furthermore,
  * each child process will have its own anon_vma, where new
- * pages for that process are instantiated.
+ * pages for that process are instantiated(实例化).
  *
  * This structure allows us to find the anon_vmas associated
  * with a VMA, or the VMAs associated with an anon_vma.

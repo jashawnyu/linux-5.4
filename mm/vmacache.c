@@ -13,16 +13,16 @@
  * hit rate for workloads with spatial locality.  Otherwise, use pages.
  */
 #ifdef CONFIG_MMU
-#define VMACACHE_SHIFT	PMD_SHIFT
+#define VMACACHE_SHIFT	PMD_SHIFT //21
 #else
 #define VMACACHE_SHIFT	PAGE_SHIFT
 #endif
-#define VMACACHE_HASH(addr) ((addr >> VMACACHE_SHIFT) & VMACACHE_MASK)
+#define VMACACHE_HASH(addr) ((addr >> VMACACHE_SHIFT) & VMACACHE_MASK) //((addr >> 21) & 0x3)
 
 /*
  * This task may be accessing a foreign mm via (for example)
  * get_user_pages()->find_vma().  The vmacache is task-local and this
- * task's vmacache pertains to a different mm (ie, its own).  There is
+ * task's vmacache pertains(适用) to a different mm (ie, its own).  There is
  * nothing we can do here.
  *
  * Also handle the case where a kernel thread has adopted this mm via use_mm().
@@ -43,17 +43,17 @@ static bool vmacache_valid(struct mm_struct *mm)
 {
 	struct task_struct *curr;
 
-	if (!vmacache_valid_mm(mm))
+	if (!vmacache_valid_mm(mm)) // mm == current->mm且不为内核线程
 		return false;
 
 	curr = current;
 	if (mm->vmacache_seqnum != curr->vmacache.seqnum) {
 		/*
-		 * First attempt will always be invalid, initialize
+		 * First attempt(尝试) will always be invalid, initialize
 		 * the new cache for this task here.
 		 */
-		curr->vmacache.seqnum = mm->vmacache_seqnum;
-		vmacache_flush(curr);
+		curr->vmacache.seqnum = mm->vmacache_seqnum; //init
+		vmacache_flush(curr); //把vmacache结构体中的vmas数组清0
 		return false;
 	}
 	return true;
@@ -61,15 +61,15 @@ static bool vmacache_valid(struct mm_struct *mm)
 
 struct vm_area_struct *vmacache_find(struct mm_struct *mm, unsigned long addr)
 {
-	int idx = VMACACHE_HASH(addr);
+	int idx = VMACACHE_HASH(addr);//((addr >> 21) & 0x3)
 	int i;
 
-	count_vm_vmacache_event(VMACACHE_FIND_CALLS);
+	count_vm_vmacache_event(VMACACHE_FIND_CALLS); //0
 
-	if (!vmacache_valid(mm))
+	if (!vmacache_valid(mm)) 
 		return NULL;
 
-	for (i = 0; i < VMACACHE_SIZE; i++) {
+	for (i = 0; i < VMACACHE_SIZE; i++) { //4
 		struct vm_area_struct *vma = current->vmacache.vmas[idx];
 
 		if (vma) {

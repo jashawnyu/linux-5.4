@@ -1004,7 +1004,7 @@ void fpsimd_thread_switch(struct task_struct *next)
 
 	__put_cpu_fpsimd_context();
 }
-
+//主要用来初始化thread_struct中的TLS元数据信息
 void fpsimd_flush_thread(void)
 {
 	int vl, supported_vl;

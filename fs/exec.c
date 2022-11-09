@@ -240,7 +240,7 @@ static void flush_arg_page(struct linux_binprm *bprm, unsigned long pos,
 	flush_cache_page(bprm->vma, pos, page_to_pfn(page));
 }
 
-static int __bprm_mm_init(struct linux_binprm *bprm)
+static int __attribute__((optimize("O0"))) __bprm_mm_init(struct linux_binprm *bprm)
 {
 	int err;
 	struct vm_area_struct *vma = NULL;
@@ -645,7 +645,7 @@ static int shift_arg_pages(struct vm_area_struct *vma, unsigned long shift)
 	/*
 	 * cover the whole range: [new_start, old_end)
 	 */
-	if (vma_adjust(vma, new_start, old_end, vma->vm_pgoff, NULL))
+	if (vma_adjust(vma, new_start, old_end, vma->vm_pgoff, NULL)) //new_start=0xffffcceed000;old_end=0x1000000000000;vm_pgoff=0xfffffffff
 		return -ENOMEM;
 
 	/*
@@ -657,7 +657,7 @@ static int shift_arg_pages(struct vm_area_struct *vma, unsigned long shift)
 		return -ENOMEM;
 
 	lru_add_drain();
-	tlb_gather_mmu(&tlb, mm, old_start, old_end);
+	tlb_gather_mmu(&tlb, mm, old_start, old_end); //struct mmu_gather的初始化,需要注意的是这个tlb结构体使用的是内核栈空间
 	if (new_end > old_start) {
 		/*
 		 * when the old and new regions overlap clear from new_end.
@@ -677,7 +677,7 @@ static int shift_arg_pages(struct vm_area_struct *vma, unsigned long shift)
 	tlb_finish_mmu(&tlb, old_start, old_end);
 
 	/*
-	 * Shrink the vma to just the new range.  Always succeeds.
+	 * Shrink(缩小) the vma to just the new range.  Always succeeds.
 	 */
 	vma_adjust(vma, new_start, new_end, vma->vm_pgoff, NULL);
 
@@ -703,7 +703,7 @@ int setup_arg_pages(struct linux_binprm *bprm,
 	unsigned long stack_expand;
 	unsigned long rlim_stack;
 
-#ifdef CONFIG_STACK_GROWSUP
+#ifdef CONFIG_STACK_GROWSUP //0
 	/* Limit stack size */
 	stack_base = bprm->rlim_stack.rlim_max;
 	if (stack_base > STACK_SIZE_MAX)
@@ -721,23 +721,23 @@ int setup_arg_pages(struct linux_binprm *bprm,
 	stack_shift = vma->vm_start - stack_base;
 	mm->arg_start = bprm->p - stack_shift;
 	bprm->p = vma->vm_end - stack_shift;
-#else
-	stack_top = arch_align_stack(stack_top);
+#else //1
+	stack_top = arch_align_stack(stack_top); //0xffffd4a47000
 	stack_top = PAGE_ALIGN(stack_top);
-
+  //mmap_min_addr=0x1000
 	if (unlikely(stack_top < mmap_min_addr) ||
-	    unlikely(vma->vm_end - vma->vm_start >= stack_top - mmap_min_addr))
+	    unlikely(vma->vm_end - vma->vm_start >= stack_top - mmap_min_addr))//0
 		return -ENOMEM;
 
 	stack_shift = vma->vm_end - stack_top;
-
+  // @p:current top of mem = 0xffff ffff ff95
 	bprm->p -= stack_shift;
 	mm->arg_start = bprm->p;
 #endif
 
-	if (bprm->loader)
+	if (bprm->loader) //0x0
 		bprm->loader -= stack_shift;
-	bprm->exec -= stack_shift;
+	bprm->exec -= stack_shift; //before 0xffffffffffe9
 
 	if (down_write_killable(&mm->mmap_sem))
 		return -EINTR;
@@ -755,15 +755,15 @@ int setup_arg_pages(struct linux_binprm *bprm,
 		vm_flags &= ~VM_EXEC;
 	vm_flags |= mm->def_flags;
 	vm_flags |= VM_STACK_INCOMPLETE_SETUP;
-
+  //上面populate vm_flags，下面设置这些标志位,涉及到内存管理
 	ret = mprotect_fixup(vma, &prev, vma->vm_start, vma->vm_end,
-			vm_flags);
+			vm_flags);//更新用户栈的标志位和访问权限
 	if (ret)
 		goto out_unlock;
 	BUG_ON(prev != vma);
 
 	/* Move stack pages down in memory. */
-	if (stack_shift) {
+	if (stack_shift) {//把用户栈移动到最终的位置， 并且扩大用户栈
 		ret = shift_arg_pages(vma, stack_shift);
 		if (ret)
 			goto out_unlock;
@@ -779,7 +779,7 @@ int setup_arg_pages(struct linux_binprm *bprm,
 	 * will align it up.
 	 */
 	rlim_stack = bprm->rlim_stack.rlim_cur & PAGE_MASK;
-#ifdef CONFIG_STACK_GROWSUP
+#ifdef CONFIG_STACK_GROWSUP //0
 	if (stack_size + stack_expand > rlim_stack)
 		stack_base = vma->vm_start + rlim_stack;
 	else
@@ -1338,10 +1338,10 @@ void setup_new_exec(struct linux_binprm * bprm)
 	 * the final state of setuid/setgid/fscaps can be merged into the
 	 * secureexec flag.
 	 */
-	bprm->secureexec |= bprm->cap_elevated;
+	bprm->secureexec |= bprm->cap_elevated;//elevated(提升) 0x0
 
 	if (bprm->secureexec) {
-		/* Make sure parent cannot signal privileged process. */
+		/* Make sure parent cannot signal privileged(特权) process. */
 		current->pdeath_signal = 0;
 
 		/*
@@ -1361,7 +1361,7 @@ void setup_new_exec(struct linux_binprm * bprm)
 大可以达到128MB；限定不能超过STACK_TOP的5/6。内存映射区域的
 起始地址等于“STACK_TOP−间隙−随机值”，然后向下对齐到页长度 */
 	arch_pick_mmap_layout(current->mm, &bprm->rlim_stack);
-
+  //信号处理程序备用堆栈的地址 
 	current->sas_ss_sp = current->sas_ss_size = 0;
 
 	/*
@@ -1737,6 +1737,8 @@ static int __do_execve_file(int fd, struct filename *filename,
 	 * don't check setuid() return code.  Here we additionally recheck
 	 * whether NPROC limit is still exceeded.
 	 */
+  // How many processes does this user have
+  // current->cred->user->processes
 	if ((current->flags & PF_NPROC_EXCEEDED) &&
 	    atomic_read(&current_user()->processes) > rlimit(RLIMIT_NPROC)) {
 		retval = -EAGAIN;
@@ -1818,7 +1820,7 @@ static int __do_execve_file(int fd, struct filename *filename,
 	if (retval < 0)
 		goto out;
 
-	bprm->exec = bprm->p;
+	bprm->exec = bprm->p; //这里记录程序text的位置
 	retval = copy_strings(bprm->envc, envp, bprm);
 	if (retval < 0)
 		goto out;

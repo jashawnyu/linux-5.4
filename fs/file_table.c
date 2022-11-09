@@ -343,7 +343,7 @@ void fput_many(struct file *file, unsigned int refs)
 			/*
 			 * After this task has run exit_task_work(),
 			 * task_work_add() will fail.  Fall through to delayed
-			 * fput to avoid leaking *file.
+			 * fput to avoid leaking(泄露) *file.
 			 */
 		}
 

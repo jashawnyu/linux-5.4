@@ -70,7 +70,7 @@ EXPORT_SYMBOL_GPL(sched_clock);
 
 static DEFINE_STATIC_KEY_FALSE(sched_clock_running);
 
-#ifdef CONFIG_HAVE_UNSTABLE_SCHED_CLOCK
+#ifdef CONFIG_HAVE_UNSTABLE_SCHED_CLOCK //cpu的调度时钟是percpu的，因此若该时钟的稳定性不足，可能会导致时钟跳变
 /*
  * We must start with !__sched_clock_stable because the unstable -> stable
  * transition is accurate, while the stable -> unstable transition is not.

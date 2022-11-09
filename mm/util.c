@@ -346,10 +346,10 @@ unsigned long arch_mmap_rnd(void)
 
 static int mmap_is_legacy(struct rlimit *rlim_stack)
 {
-	if (current->personality & ADDR_COMPAT_LAYOUT)
+	if (current->personality & ADDR_COMPAT_LAYOUT) //0
 		return 1;
 
-	if (rlim_stack->rlim_cur == RLIM_INFINITY)
+	if (rlim_stack->rlim_cur == RLIM_INFINITY) //0
 		return 1;
 
 	return sysctl_legacy_va_layout;
@@ -392,7 +392,7 @@ void arch_pick_mmap_layout(struct mm_struct *mm, struct rlimit *rlim_stack)
 		random_factor = arch_mmap_rnd();
 
   /*如果给进程描述符的成员personality设置标志位ADDR_COMPAT_LAYOUT表示使用传统的虚拟地址空间布局*/
-	if (mmap_is_legacy(rlim_stack)) {
+	if (mmap_is_legacy(rlim_stack)) { //0
 		mm->mmap_base = TASK_UNMAPPED_BASE + random_factor;
 		mm->get_unmapped_area = arch_get_unmapped_area;
 	} else {
@@ -518,7 +518,7 @@ unsigned long vm_mmap(struct file *file, unsigned long addr,
 		return -EINVAL;
 	if (unlikely(offset_in_page(offset)))
 		return -EINVAL;
-
+  //sys_mmap系统调用也会调用这个函数,属于内存管理的内存映射
 	return vm_mmap_pgoff(file, addr, len, prot, flag, offset >> PAGE_SHIFT);
 }
 EXPORT_SYMBOL(vm_mmap);

@@ -176,6 +176,7 @@ struct pid *alloc_pid(struct pid_namespace *ns)
 	for (i = ns->level; i >= 0; i--) {
 		int pid_min = 1;
 
+    //call idr_preload() before taking the lock, and then idr_preload_end() after the allocation.
 		idr_preload(GFP_KERNEL);
 		spin_lock_irq(&pidmap_lock);
 

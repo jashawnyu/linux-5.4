@@ -2640,7 +2640,7 @@ void init_numa_balancing(unsigned long clone_flags, struct task_struct *p)
 	int mm_users = 0;
 	struct mm_struct *mm = p->mm;
 
-	if (mm) {
+	if (mm) { //0
 		mm_users = atomic_read(&mm->mm_users);
 		if (mm_users == 1) {
 			mm->numa_next_scan = jiffies + msecs_to_jiffies(sysctl_numa_balancing_scan_delay);

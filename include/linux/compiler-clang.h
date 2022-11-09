@@ -41,4 +41,6 @@
  * and may be redefined here because they should not be shared with other
  * compilers, like ICC.
  */
+/* 破坏列表（clobber list） “memory”告诉编译器： 内存中变量的值可能变化，
+不要继续使用加载到寄存器中的值， 应该重新从内存中加载变量的值 */
 #define barrier() __asm__ __volatile__("" : : : "memory")

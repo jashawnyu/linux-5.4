@@ -508,7 +508,7 @@ static inline struct tracepoint *tracepoint_ptr_deref(tracepoint_ptr_t *p)
  * This macro construct is thus used for the regular printk format
  * tracing setup, it is used to construct a function pointer based
  * tracepoint callback (this is used by programmatic plugins and
- * can also by used by generic instrumentation like SystemTap), and
+ * can also by used by generic instrumentation(通用设备) like SystemTap), and
  * it is also used to expose a structured trace record in
  * /sys/kernel/debug/tracing/events/.
  *

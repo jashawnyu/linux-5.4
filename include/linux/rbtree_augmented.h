@@ -24,10 +24,10 @@
  * See Documentation/rbtree.txt for documentation and samples.
  */
 
-struct rb_augment_callbacks {
-	void (*propagate)(struct rb_node *node, struct rb_node *stop);
-	void (*copy)(struct rb_node *old, struct rb_node *new);
-	void (*rotate)(struct rb_node *old, struct rb_node *new);
+struct rb_augment_callbacks { //propagate(传播)
+	void (*propagate)(struct rb_node *node, struct rb_node *stop);//更新node到它的祖先stop结点之间的每一个结点的附加信息
+	void (*copy)(struct rb_node *old, struct rb_node *new); //将new结点的附加信息设置成old的附加信息
+	void (*rotate)(struct rb_node *old, struct rb_node *new);//将new结点的附加信息设置成old的附加信息，并重新计算old的附加信息
 };
 
 extern void __rb_insert_augmented(struct rb_node *node, struct rb_root *root,
@@ -307,7 +307,7 @@ rb_erase_augmented(struct rb_node *node, struct rb_root *root,
 		__rb_erase_color(rebalance, root, augment->rotate);
 }
 
-static __always_inline void
+static __always_inline void //augmented(增大)
 rb_erase_augmented_cached(struct rb_node *node, struct rb_root_cached *root,
 			  const struct rb_augment_callbacks *augment)
 {

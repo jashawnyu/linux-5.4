@@ -84,8 +84,8 @@ void anon_vma_interval_tree_insert(struct anon_vma_chain *node,
 
 void anon_vma_interval_tree_remove(struct anon_vma_chain *node,
 				   struct rb_root_cached *root)
-{
-	__anon_vma_interval_tree_remove(node, root);
+{//
+	__anon_vma_interval_tree_remove(node, root);//INTERVAL_TREE_DEFINE宏中定义里这个函数
 }
 
 struct anon_vma_chain *

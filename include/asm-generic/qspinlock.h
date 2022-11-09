@@ -79,7 +79,7 @@ static __always_inline void queued_spin_lock(struct qspinlock *lock)
 	if (likely(atomic_try_cmpxchg_acquire(&lock->val, &val, _Q_LOCKED_VAL)))
 		return;
 
-	queued_spin_lock_slowpath(lock, val);
+	queued_spin_lock_slowpath(lock, val); //val = 1
 }
 
 #ifndef queued_spin_unlock

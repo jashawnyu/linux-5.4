@@ -91,6 +91,7 @@ struct qnode {
  * transition out of the "== _Q_PENDING_VAL" state. We don't spin
  * indefinitely because there's no guarantee that we'll make forward
  * progress.
+ * (挂起的位旋转循环计数。 这种启发式方法用于限制atomic_cond_read_relaxed在等待锁从“== _Q_PENDING_VAL”状态转换出来时访问锁字的次数。 我们不会无限期地拖延，因为没有人能保证我们会取得进展 )
  */
 #ifndef _Q_PENDING_LOOPS
 #define _Q_PENDING_LOOPS	1
@@ -284,7 +285,7 @@ static __always_inline u32  __pv_wait_head_or_lock(struct qspinlock *lock,
 #define pv_kick_node		__pv_kick_node
 #define pv_wait_head_or_lock	__pv_wait_head_or_lock
 
-#ifdef CONFIG_PARAVIRT_SPINLOCKS
+#ifdef CONFIG_PARAVIRT_SPINLOCKS //0
 #define queued_spin_lock_slowpath	native_queued_spin_lock_slowpath
 #endif
 
@@ -311,18 +312,19 @@ static __always_inline u32  __pv_wait_head_or_lock(struct qspinlock *lock,
  * contended             :    (*,x,y) +--> (*,0,0) ---> (*,0,1) -'  :
  *   queue               :         ^--'                             :
  */
+// 把一个qspinlock结构体对应的tail、pending和locked字段作为一个三元向量，使用(tail, pending, locked)的形式来表示，而且pending和locked字段取值只能是0或者1
 void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
 {
 	struct mcs_spinlock *prev, *next, *node;
 	u32 old, tail;
 	int idx;
 
-	BUILD_BUG_ON(CONFIG_NR_CPUS >= (1U << _Q_TAIL_CPU_BITS));
+	BUILD_BUG_ON(CONFIG_NR_CPUS >= (1U << _Q_TAIL_CPU_BITS)); //1<<14
 
-	if (pv_enabled())
+	if (pv_enabled()) //0
 		goto pv_queue;
 
-	if (virt_spin_lock(lock))
+	if (virt_spin_lock(lock)) //0
 		return;
 
 	/*
@@ -331,16 +333,18 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
 	 *
 	 * 0,1,0 -> 0,0,1
 	 */
-	if (val == _Q_PENDING_VAL) {
-		int cnt = _Q_PENDING_LOOPS;
+  /* 开始先判断锁的状态是不是(0, 1, 0)，处于这个状态说明只有一个CPU在等待这个自旋锁，并且持有这个自旋锁的CPU已经将其释放了，后面会提到过不了多久那个等待这个自旋锁的CPU就会将锁的状态改成(0, 0, 1)。这时候，当前CPU就可以自旋等待一会，如果锁的状态真的变成了(0, 0, 1)，那就可以“抢”到pending位，就不用再走队列模式了 */
+	if (val == _Q_PENDING_VAL) { //1<<8=256
+		int cnt = _Q_PENDING_LOOPS; //1
 		val = atomic_cond_read_relaxed(&lock->val,
 					       (VAL != _Q_PENDING_VAL) || !cnt--);
 	}
 
 	/*
-	 * If we observe any contention; queue.
+	 * If we observe any contention(竞争); queue.
 	 */
-	if (val & ~_Q_LOCKED_MASK)
+  //当前CPU atomic_cond_read_relaxed()就可以自旋等待一会，如果锁的状态真的变成了(0, 0, 1)，那就可以“抢”到pending位，就不用再走队列模式了
+	if (val & ~_Q_LOCKED_MASK) //~0xff = 0x ff00
 		goto queue;
 
 	/*
@@ -348,6 +352,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
 	 *
 	 * 0,0,* -> 0,1,* -> 0,0,1 pending, trylock
 	 */
+  //这个函数会原子的将锁的pending位设置成1，并且返回没设置之前锁的值
 	val = queued_fetch_set_pending_acquire(lock);
 
 	/*

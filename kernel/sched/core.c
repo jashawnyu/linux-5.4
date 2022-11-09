@@ -2395,7 +2395,7 @@ static void ttwu_queue(struct task_struct *p, int cpu, int wake_flags)
 {
 	struct rq *rq = cpu_rq(cpu);
 	struct rq_flags rf;
-
+  //@cpu是前面负载均衡选出的cpu id
 #if defined(CONFIG_SMP)
 	if (sched_feat(TTWU_QUEUE) && !cpus_share_cache(smp_processor_id(), cpu)) {
 		sched_clock_cpu(cpu); /* Sync clocks across CPUs */
@@ -2519,6 +2519,7 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
 	int cpu, success = 0;
 
 	preempt_disable();
+  //具体不知道这个优化的场景在哪
 	if (p == current) {
 		/*
 		 * We're waking current, this means 'p->on_rq' and 'task_cpu(p)
@@ -2557,7 +2558,7 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
 
 	/* We're going to change ->state: */
 	success = 1;
-	cpu = task_cpu(p);
+	cpu = task_cpu(p); //p->cpu
 
 	/*
 	 * Ensure we load p->on_rq _after_ p->state, otherwise it would
@@ -2691,11 +2692,11 @@ static void __sched_fork(unsigned long clone_flags, struct task_struct *p)
 	p->se.vruntime			= 0;
 	INIT_LIST_HEAD(&p->se.group_node);
 
-#ifdef CONFIG_FAIR_GROUP_SCHED
+#ifdef CONFIG_FAIR_GROUP_SCHED //1
 	p->se.cfs_rq			= NULL;
 #endif
 
-#ifdef CONFIG_SCHEDSTATS //Collect scheduler statistics
+#ifdef CONFIG_SCHEDSTATS //Collect scheduler statistics //0
 	/* Even if schedstat is disabled, there should not be garbage */
 	memset(&p->se.statistics, 0, sizeof(p->se.statistics));
 #endif
@@ -2711,7 +2712,7 @@ static void __sched_fork(unsigned long clone_flags, struct task_struct *p)
 	p->rt.on_rq		= 0;
 	p->rt.on_list		= 0;
 
-#ifdef CONFIG_PREEMPT_NOTIFIERS
+#ifdef CONFIG_PREEMPT_NOTIFIERS //1
 	INIT_HLIST_HEAD(&p->preempt_notifiers);
 #endif
 
@@ -2909,7 +2910,7 @@ SCHED_RESET_ON_FORK，要求创建新进程时把新进程的调度策略和优�
 		p->sched_class->task_fork(p);
 	raw_spin_unlock_irqrestore(&p->pi_lock, flags);
 
-#ifdef CONFIG_SCHED_INFO
+#ifdef CONFIG_SCHED_INFO //1
 	if (likely(sched_info_on()))
 		memset(&p->sched_info, 0, sizeof(p->sched_info));
 #endif

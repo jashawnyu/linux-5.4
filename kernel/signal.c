@@ -336,6 +336,7 @@ void task_clear_jobctl_trapping(struct task_struct *task)
  */
 void task_clear_jobctl_pending(struct task_struct *task, unsigned long mask)
 {
+  //判断除这三个位之外的位是否被置位
 	BUG_ON(mask & ~JOBCTL_PENDING_MASK);
 
 	if (mask & JOBCTL_STOP_PENDING)
@@ -747,6 +748,7 @@ still_pending:
  * lock interrupts for us! We can only be called with
  * "siglock" held, and the local interrupt must
  * have been disabled when that got acquired!
+ * (本地中断在获取时必须被禁用)
  *
  * No need to set need_resched since signal event passing
  * goes through ->blocked
@@ -1340,9 +1342,9 @@ int force_sig_info(struct kernel_siginfo *info)
 }
 
 /*
- * Nuke all other threads in the group.
+ * Nuke all other threads in the group.zap(消除)
  */
-int zap_other_threads(struct task_struct *p)
+int zap_other_threads(struct task_struct *p)// called by de_thread()
 {
 	struct task_struct *t = p;
 	int count = 0;
@@ -1350,7 +1352,7 @@ int zap_other_threads(struct task_struct *p)
 	p->signal->group_stop_count = 0;
 
 	while_each_thread(p, t) {
-		task_clear_jobctl_pending(t, JOBCTL_PENDING_MASK);
+		task_clear_jobctl_pending(t, JOBCTL_PENDING_MASK); //向信号集加入SIGKILL信号
 		count++;
 
 		/* Don't bother with already dead threads */

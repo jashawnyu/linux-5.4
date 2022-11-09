@@ -41,7 +41,7 @@ struct linux_binprm {
 		cap_elevated:1,
 		/*
 		 * Set by bprm_set_creds hook to indicate a privilege-gaining
-		 * exec has happened. Used to sanitize execution environment
+		 * exec has happened. Used to sanitize(清洁) execution environment
 		 * and to set AT_SECURE auxv for glibc.
 		 */
 		secureexec:1;

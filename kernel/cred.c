@@ -332,7 +332,7 @@ int copy_creds(struct task_struct *p, unsigned long clone_flags)
 	struct cred *new;
 	int ret;
 
-#ifdef CONFIG_KEYS_REQUEST_CACHE
+#ifdef CONFIG_KEYS_REQUEST_CACHE //0
 	p->cached_requested_key = NULL;
 #endif
 

@@ -201,7 +201,7 @@ struct completion;
 struct pt_regs;
 struct user;
 
-#ifdef CONFIG_PREEMPT_VOLUNTARY
+#ifdef CONFIG_PREEMPT_VOLUNTARY //0
 extern int _cond_resched(void);
 # define might_resched() _cond_resched()
 #else
