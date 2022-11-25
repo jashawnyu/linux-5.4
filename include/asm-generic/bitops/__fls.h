@@ -11,11 +11,11 @@
  * Undefined if no set bit exists, so code should check against 0 first.
  */
 static __always_inline unsigned long __fls(unsigned long word)
-{
+{//利用二分法
 	int num = BITS_PER_LONG - 1;
 
-#if BITS_PER_LONG == 64
-	if (!(word & (~0ul << 32))) {
+#if BITS_PER_LONG == 64 //1
+	if (!(word & (~0ul << 32))) { //这一步判断高32位是不存在1的,所以1在低32位
 		num -= 32;
 		word <<= 32;
 	}

@@ -3254,7 +3254,7 @@ static struct rq *finish_task_switch(struct task_struct *prev)
 	}
 	if (unlikely(prev_state == TASK_DEAD)) {
 		if (prev->sched_class->task_dead)
-			prev->sched_class->task_dead(prev);
+			prev->sched_class->task_dead(prev); //执行调度类的task_dead方法
 
 		/*
 		 * Remove function-return probe instances associated with this
@@ -3263,9 +3263,9 @@ static struct rq *finish_task_switch(struct task_struct *prev)
 		kprobe_flush_task(prev);
 
 		/* Task is done with its stack. */
-		put_task_stack(prev);
+		put_task_stack(prev); //如果结构体thread_info放在进程描述符里面， 而不是放在内核栈的顶部， 那么释放进程的内核栈
 
-		put_task_struct_rcu_user(prev);
+		put_task_struct_rcu_user(prev); //把进程描述符的引用计数减1， 如果引用计数变为0， 那么释放进程描述符
 	}
 
 	tick_nohz_task_switch();
@@ -4104,7 +4104,7 @@ static void __sched notrace __schedule(bool preempt)
 void __noreturn do_task_dead(void)
 {
 	/* Causes final put_task_struct in finish_task_switch(): */
-	set_special_state(TASK_DEAD);
+	set_special_state(TASK_DEAD);//把进程状态设置为死亡
 
 	/* Tell freezer to ignore us: */
 	current->flags |= PF_NOFREEZE;

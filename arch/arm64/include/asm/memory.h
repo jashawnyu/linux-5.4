@@ -34,8 +34,8 @@
  * of the VMEMMAP where 52-bit support is not available in hardware.
  */
 #define VMEMMAP_SIZE ((_PAGE_END(VA_BITS_MIN) - PAGE_OFFSET) \
-			>> (PAGE_SHIFT - STRUCT_PAGE_MAX_SHIFT))
-
+			>> (PAGE_SHIFT - STRUCT_PAGE_MAX_SHIFT)) //(0xffff800000000000-0xffff000000000000)>>(12-6)= 0x0200 0000 0000
+//(_PAGE_END(VA_BITS_MIN) - PAGE_OFFSET是线性映射区域 的 size, 而这么大的size需要多少个页，这么多的页需要多少的struct page结构体去描述，VMEMMAP_SIZE就是存放page结构体大小
 /*
  * PAGE_OFFSET - the virtual address of the start of the linear map, at the
  *               start of the TTBR1 address space.
@@ -54,7 +54,7 @@
 #define MODULES_END		(MODULES_VADDR + MODULES_VSIZE)
 #define MODULES_VADDR		(BPF_JIT_REGION_END)
 #define MODULES_VSIZE		(SZ_128M)
-#define VMEMMAP_START		(-VMEMMAP_SIZE - SZ_2M)
+#define VMEMMAP_START		(-VMEMMAP_SIZE - SZ_2M) //(-0x020000000000-0x200000)=(0xffff fe00 0000 0000 - 0x20 0000)=0xFFFF FDFF FFE0 0000
 #define PCI_IO_END		(VMEMMAP_START - SZ_2M)
 #define PCI_IO_START		(PCI_IO_END - PCI_IO_SIZE)
 #define FIXADDR_TOP		(PCI_IO_START - SZ_2M)
@@ -65,7 +65,7 @@
 #define VA_BITS_MIN		(VA_BITS)
 #endif
 
-#define _PAGE_END(va)		(-(UL(1) << ((va) - 1)))
+#define _PAGE_END(va)		(-(UL(1) << ((va) - 1))) //-(1<<(48-1)) = 0xffff800000000000  = 0xffff 0000 0000 0000 / 2
 
 #define KERNEL_START		_text
 #define KERNEL_END		_end

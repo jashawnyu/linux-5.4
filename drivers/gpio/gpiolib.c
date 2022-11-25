@@ -1255,7 +1255,7 @@ static void gpiochip_setup_devs(void)
 			       dev_name(&gdev->dev), ret);
 	}
 }
-
+//从pl061_probe被调用
 int gpiochip_add_data_with_key(struct gpio_chip *chip, void *data,
 			       struct lock_class_key *lock_key,
 			       struct lock_class_key *request_key)
@@ -1621,7 +1621,7 @@ static struct gpio_chip *find_chip_by_name(const char *name)
 	return gpiochip_find((void *)name, gpiochip_match_name);
 }
 
-#ifdef CONFIG_GPIOLIB_IRQCHIP
+#ifdef CONFIG_GPIOLIB_IRQCHIP //1
 
 /*
  * The following is irqchip helper code for gpiochips.

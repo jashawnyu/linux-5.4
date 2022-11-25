@@ -137,7 +137,7 @@ int __ref profile_init(void)
 static BLOCKING_NOTIFIER_HEAD(task_exit_notifier);
 static ATOMIC_NOTIFIER_HEAD(task_free_notifier);
 static BLOCKING_NOTIFIER_HEAD(munmap_notifier);
-
+//Linux内核提供了通知链的机制
 void profile_task_exit(struct task_struct *task)
 {
 	blocking_notifier_call_chain(&task_exit_notifier, 0, task);

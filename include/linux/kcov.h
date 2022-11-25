@@ -6,7 +6,7 @@
 
 struct task_struct;
 
-#ifdef CONFIG_KCOV
+#ifdef CONFIG_KCOV //代码覆盖率（Code Coverage）是反映测试用例对被测软件覆盖程序的重要指标，kcov是用于随机测试中合适表达代码覆盖率的一种工具
 
 enum kcov_mode {
 	/* Coverage collection is not enabled yet. */

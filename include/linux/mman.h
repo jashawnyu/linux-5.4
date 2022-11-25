@@ -119,7 +119,7 @@ calc_vm_prot_bits(unsigned long prot, unsigned long pkey)
 	return _calc_vm_trans(prot, PROT_READ,  VM_READ ) |
 	       _calc_vm_trans(prot, PROT_WRITE, VM_WRITE) |
 	       _calc_vm_trans(prot, PROT_EXEC,  VM_EXEC) |
-	       arch_calc_vm_prot_bits(prot, pkey);
+	       arch_calc_vm_prot_bits(prot, pkey); //0
 }
 
 /*

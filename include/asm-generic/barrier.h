@@ -62,7 +62,7 @@
 #define __smp_wmb()	wmb()
 #endif
 
-#ifndef __smp_read_barrier_depends
+#ifndef __smp_read_barrier_depends //大部分的CPU在有依赖关系的上下文中load操作不允许乱序,Alpha一枝独秀
 #define __smp_read_barrier_depends()	read_barrier_depends()
 #endif
 
@@ -81,7 +81,7 @@
 #endif
 
 #ifndef smp_read_barrier_depends
-#define smp_read_barrier_depends()	__smp_read_barrier_depends()
+#define smp_read_barrier_depends()	__smp_read_barrier_depends() //0
 #endif
 
 #else	/* !CONFIG_SMP */

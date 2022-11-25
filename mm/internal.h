@@ -285,7 +285,7 @@ static inline bool is_stack_mapping(vm_flags_t flags)
  */
 static inline bool is_data_mapping(vm_flags_t flags)
 {
-	return (flags & (VM_WRITE | VM_SHARED | VM_STACK)) == VM_WRITE;
+	return (flags & (VM_WRITE | VM_SHARED | VM_STACK)) == VM_WRITE; //VM_STACK就是VM_GROWSDOWN
 }
 
 /* mm/util.c */

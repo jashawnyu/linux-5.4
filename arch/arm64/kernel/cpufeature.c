@@ -433,13 +433,13 @@ static const struct __ftr_reg_entry {
 
 static int search_cmp_ftr_reg(const void *id, const void *regp)
 {
-	return (int)(unsigned long)id - (int)((const struct __ftr_reg_entry *)regp)->sys_id;
+	return (int)(unsigned long)id - (int)((const struct __ftr_reg_entry *)regp)->sys_id;//注意这里(int)强转的优先级比->小
 }
 
 /*
  * get_arm64_ftr_reg - Lookup a feature register entry using its
  * sys_reg() encoding. With the array arm64_ftr_regs sorted in the
- * ascending order of sys_id , we use binary search to find a matching
+ * ascending(升序) order of sys_id , we use binary search to find a matching
  * entry.
  *
  * returns - Upon success,  matching ftr_reg entry for id.

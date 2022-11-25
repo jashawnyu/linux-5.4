@@ -322,8 +322,8 @@ static inline void *offset_to_ptr(const int *off)
 #ifndef __compiletime_error
 # define __compiletime_error(message)
 #endif
-
-#ifdef __OPTIMIZE__
+//注意这个__conpiletime_assert_ ## __LINE__函数使没有定义的，这样就达到终止编译的目的
+#ifdef __OPTIMIZE__ //gcc的内建宏，is defined in all optimizing compilations, 如果gcc有-O2优化，可能就会使能会这个宏
 # define __compiletime_assert(condition, msg, prefix, suffix)		\
 	do {								\
 		extern void prefix ## suffix(void) __compiletime_error(msg); \

@@ -41,7 +41,7 @@
  * TASK_UNMAPPED_BASE - the lower boundary of the mmap VM area.
  */
 
-#define DEFAULT_MAP_WINDOW_64	(UL(1) << VA_BITS_MIN)
+#define DEFAULT_MAP_WINDOW_64	(UL(1) << VA_BITS_MIN) // UL(1)<<48
 #define TASK_SIZE_64		(UL(1) << vabits_actual) //内核运行时在head.S中被设置为VA_BITS_MIN，48bit
 
 #ifdef CONFIG_COMPAT
@@ -52,7 +52,7 @@
  */
 #define TASK_SIZE_32		UL(0x100000000)
 #else
-#define TASK_SIZE_32		(UL(0x100000000) - PAGE_SIZE)
+#define TASK_SIZE_32		(UL(0x100000000) - PAGE_SIZE)//4G-4K
 #endif /* CONFIG_ARM64_64K_PAGES */
 #define TASK_SIZE		(test_thread_flag(TIF_32BIT) ? \
 				TASK_SIZE_32 : TASK_SIZE_64)
@@ -60,7 +60,7 @@
 				TASK_SIZE_32 : TASK_SIZE_64)
 #define DEFAULT_MAP_WINDOW	(test_thread_flag(TIF_32BIT) ? \
 				TASK_SIZE_32 : DEFAULT_MAP_WINDOW_64)
-#else
+#else //如果不支持32位程序
 #define TASK_SIZE		TASK_SIZE_64
 #define DEFAULT_MAP_WINDOW	DEFAULT_MAP_WINDOW_64
 #endif /* CONFIG_COMPAT */

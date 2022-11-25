@@ -31,7 +31,7 @@
 
 /**
  * BUILD_BUG_ON_MSG - break compile if a condition is true & emit supplied
- *		      error message.
+ *		      error message(发出提供的错误消息).
  * @condition: the condition which the compiler should know is false.
  *
  * See BUILD_BUG_ON for description.

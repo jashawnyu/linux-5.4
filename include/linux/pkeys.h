@@ -4,7 +4,7 @@
 
 #include <linux/mm.h>
 
-#ifdef CONFIG_ARCH_HAS_PKEYS
+#ifdef CONFIG_ARCH_HAS_PKEYS //0
 #include <asm/pkeys.h>
 #else /* ! CONFIG_ARCH_HAS_PKEYS */
 #define arch_max_pkey() (1)

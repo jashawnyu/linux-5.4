@@ -44,9 +44,9 @@
 #define RCU_FANOUT_LEAF 16
 #endif /* #else #ifdef CONFIG_RCU_FANOUT_LEAF */
 
-#define RCU_FANOUT_1	      (RCU_FANOUT_LEAF)
-#define RCU_FANOUT_2	      (RCU_FANOUT_1 * RCU_FANOUT)
-#define RCU_FANOUT_3	      (RCU_FANOUT_2 * RCU_FANOUT)
+#define RCU_FANOUT_1	      (RCU_FANOUT_LEAF) //16
+#define RCU_FANOUT_2	      (RCU_FANOUT_1 * RCU_FANOUT) //16*64
+#define RCU_FANOUT_3	      (RCU_FANOUT_2 * RCU_FANOUT) //16*64*64
 #define RCU_FANOUT_4	      (RCU_FANOUT_3 * RCU_FANOUT)
 
 #if NR_CPUS <= RCU_FANOUT_1
@@ -56,11 +56,11 @@
 #  define NUM_RCU_LVL_INIT    { NUM_RCU_LVL_0 }
 #  define RCU_NODE_NAME_INIT  { "rcu_node_0" }
 #  define RCU_FQS_NAME_INIT   { "rcu_node_fqs_0" }
-#elif NR_CPUS <= RCU_FANOUT_2
+#elif NR_CPUS <= RCU_FANOUT_2  //1024
 #  define RCU_NUM_LVLS	      2
 #  define NUM_RCU_LVL_0	      1
-#  define NUM_RCU_LVL_1	      DIV_ROUND_UP(NR_CPUS, RCU_FANOUT_1)
-#  define NUM_RCU_NODES	      (NUM_RCU_LVL_0 + NUM_RCU_LVL_1)
+#  define NUM_RCU_LVL_1	      DIV_ROUND_UP(NR_CPUS, RCU_FANOUT_1) //18
+#  define NUM_RCU_NODES	      (NUM_RCU_LVL_0 + NUM_RCU_LVL_1) //19
 #  define NUM_RCU_LVL_INIT    { NUM_RCU_LVL_0, NUM_RCU_LVL_1 }
 #  define RCU_NODE_NAME_INIT  { "rcu_node_0", "rcu_node_1" }
 #  define RCU_FQS_NAME_INIT   { "rcu_node_fqs_0", "rcu_node_fqs_1" }

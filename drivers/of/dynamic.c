@@ -38,7 +38,7 @@ struct device_node *of_node_get(struct device_node *node)
 EXPORT_SYMBOL(of_node_get);
 
 /**
- * of_node_put() - Decrement refcount of a node
+ * of_node_put() - Decrement(减少) refcount of a node
  * @node:	Node to dec refcount, NULL is supported to simplify writing of
  *		callers
  */

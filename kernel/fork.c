@@ -937,7 +937,7 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
 	account_kernel_stack(tsk, 1);
 
   //do nothing
-	kcov_task_init(tsk);
+	kcov_task_init(tsk); //代码覆盖率（Code Coverage）是反映测试用例对被测软件覆盖程序的重要指标，kcov是用于随机测试中合适表达代码覆盖率的一种工具
 
 #ifdef CONFIG_FAULT_INJECTION //0
 	tsk->fail_nth = 0;

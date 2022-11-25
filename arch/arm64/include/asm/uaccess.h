@@ -31,7 +31,7 @@ static inline void set_fs(mm_segment_t fs)
 
 	/*
 	 * Prevent a mispredicted conditional call to set_fs from forwarding
-	 * the wrong address limit to access_ok under speculation.
+	 * the wrong address limit to access_ok under speculation(推测).
 	 */
 	spec_bar();
 

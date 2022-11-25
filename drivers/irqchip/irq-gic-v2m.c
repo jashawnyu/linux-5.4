@@ -81,7 +81,7 @@ static void gicv2m_unmask_msi_irq(struct irq_data *d)
 	pci_msi_unmask_irq(d);
 	irq_chip_unmask_parent(d);
 }
-
+//Message Signaled Interrupts (MSIs)
 static struct irq_chip gicv2m_msi_irq_chip = {
 	.name			= "MSI",
 	.irq_mask		= gicv2m_mask_msi_irq,

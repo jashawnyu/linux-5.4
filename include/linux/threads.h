@@ -18,7 +18,7 @@
 #endif
 
 /* Places which use this should consider cpumask_var_t. */
-#define NR_CPUS		CONFIG_NR_CPUS
+#define NR_CPUS		CONFIG_NR_CPUS //256
 
 #define MIN_THREADS_LEFT_FOR_ROOT 4
 

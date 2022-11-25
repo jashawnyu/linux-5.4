@@ -2612,7 +2612,7 @@ __call_rcu(struct rcu_head *head, rcu_callback_t func, bool lazy)
 }
 
 /**
- * call_rcu() - Queue an RCU callback for invocation after a grace period.
+ * call_rcu() - Queue an RCU callback for invocation after a grace period(宽限期).
  * @head: structure to be used for queueing the RCU updates.
  * @func: actual callback function to be invoked after the grace period
  *

@@ -28,7 +28,7 @@ static inline bool __kasan_check_write(const volatile void *p, unsigned int size
  * instrumentation enabled. May be used in header files.
  */
 #ifdef __SANITIZE_ADDRESS__
-#define kasan_check_read __kasan_check_read
+#define kasan_check_read __kasan_check_read //内核地址消毒剂（Kernel Address SANitizer， KASAN） 是一个动态的内存错误检查工具
 #define kasan_check_write __kasan_check_write
 #else
 static inline bool kasan_check_read(const volatile void *p, unsigned int size)

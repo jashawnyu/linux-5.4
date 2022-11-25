@@ -340,7 +340,7 @@ extern unsigned int kobjsize(const void *objp);
 # define VM_MPX		VM_NONE
 #endif
 
-#ifndef VM_GROWSUP
+#ifndef VM_GROWSUP //0
 # define VM_GROWSUP	VM_NONE
 #endif
 
@@ -2385,7 +2385,7 @@ extern unsigned long unmapped_area_topdown(struct vm_unmapped_area_info *info);
  * Search for an unmapped address range.
  *
  * We are looking for a range that:
- * - does not intersect with any VMA;
+ * - does not intersect(交叉) with any VMA;
  * - is contained within the [low_limit, high_limit) interval;
  * - is at least the desired size.
  * - satisfies (begin_addr & align_mask) == (align_offset & align_mask)
@@ -2467,7 +2467,7 @@ static inline unsigned long vm_start_gap(struct vm_area_struct *vma)
 {
 	unsigned long vm_start = vma->vm_start;
 
-	if (vma->vm_flags & VM_GROWSDOWN) {
+	if (vma->vm_flags & VM_GROWSDOWN) { //1
 		vm_start -= stack_guard_gap;
 		if (vm_start > vma->vm_start)
 			vm_start = 0;
@@ -2479,7 +2479,7 @@ static inline unsigned long vm_end_gap(struct vm_area_struct *vma)
 {
 	unsigned long vm_end = vma->vm_end;
 
-	if (vma->vm_flags & VM_GROWSUP) {
+	if (vma->vm_flags & VM_GROWSUP) {//0
 		vm_end += stack_guard_gap;
 		if (vm_end < vma->vm_end)
 			vm_end = -PAGE_SIZE;

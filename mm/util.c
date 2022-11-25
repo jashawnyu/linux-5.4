@@ -335,13 +335,13 @@ unsigned long arch_mmap_rnd(void)
 	unsigned long rnd;
 
 #ifdef CONFIG_HAVE_ARCH_MMAP_RND_COMPAT_BITS
-	if (is_compat_task())
-		rnd = get_random_long() & ((1UL << mmap_rnd_compat_bits) - 1);
+	if (is_compat_task()) //这里是为了控制随机数范围,
+		rnd = get_random_long() & ((1UL << mmap_rnd_compat_bits) - 1); //(1<<11)-1 = 0x7FF
 	else
 #endif /* CONFIG_HAVE_ARCH_MMAP_RND_COMPAT_BITS */
-		rnd = get_random_long() & ((1UL << mmap_rnd_bits) - 1);
+		rnd = get_random_long() & ((1UL << mmap_rnd_bits) - 1);//1<<18
 
-	return rnd << PAGE_SHIFT;
+	return rnd << PAGE_SHIFT; //相当于在一个8MB的范围内取一个4kB对齐的随机值
 }
 
 static int mmap_is_legacy(struct rlimit *rlim_stack)
@@ -362,23 +362,23 @@ static int mmap_is_legacy(struct rlimit *rlim_stack)
 #define MIN_GAP		(SZ_128M) //0x08000000
 #define MAX_GAP		(STACK_TOP / 6 * 5) //0x10000 0000 0000 / 6*5
 
-static unsigned long mmap_base(unsigned long rnd, struct rlimit *rlim_stack)
+static unsigned long __attribute__((optimize("O0"))) mmap_base(unsigned long rnd, struct rlimit *rlim_stack)
 {
-	unsigned long gap = rlim_stack->rlim_cur;
-	unsigned long pad = stack_guard_gap; //0x100 << 12
+	unsigned long gap = rlim_stack->rlim_cur;// 初始值取用户栈的最大长度,gap=0x800000 
+	unsigned long pad = stack_guard_gap; //0x100 << 12 = 0x100000 ,1M
 
 	/* Account for stack randomization if necessary */
 	if (current->flags & PF_RANDOMIZE)
-		pad += (STACK_RND_MASK << PAGE_SHIFT); //0x3ffff << 12=0x3ffff000
+		pad += (STACK_RND_MASK << PAGE_SHIFT); //0x3ffff << 12=0x3ffff000, 1G
 
   //pad = 0x3ffff000 + 0x100000 = 0x400ff000
 	/* Values close to RLIM_INFINITY can overflow. */
-	if (gap + pad > gap)
+	if (gap + pad > gap) 
 		gap += pad;
-
-	if (gap < MIN_GAP)
+//gap=0x408ff000
+	if (gap < MIN_GAP) //确保用户栈不小于128MB
 		gap = MIN_GAP;
-	else if (gap > MAX_GAP)
+	else if (gap > MAX_GAP)//限定不能超过STACK_TOP的5/6
 		gap = MAX_GAP;
 
 	return PAGE_ALIGN(STACK_TOP - gap - rnd);

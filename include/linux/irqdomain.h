@@ -215,7 +215,7 @@ enum {
 
 static inline struct device_node *irq_domain_get_of_node(struct irq_domain *d)
 {
-	return to_of_node(d->fwnode);
+	return to_of_node(d->fwnode);//fwnode也是struct device_node的成员，这个函数就是通过fwnode的地址返回device_node的首地址
 }
 
 #ifdef CONFIG_IRQ_DOMAIN

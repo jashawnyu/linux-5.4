@@ -59,7 +59,7 @@ struct device_node {
 	struct	device_node *parent;
 	struct	device_node *child;
 	struct	device_node *sibling;
-#if defined(CONFIG_OF_KOBJ)
+#if defined(CONFIG_OF_KOBJ) //1
 	struct	kobject kobj;
 #endif
 	unsigned long _flags;
@@ -151,7 +151,7 @@ extern raw_spinlock_t devtree_lock;
 
 #ifdef CONFIG_OF
 void of_core_init(void);
-
+//判断ops成员指针是否正确
 static inline bool is_of_node(const struct fwnode_handle *fwnode)
 {
 	return !IS_ERR_OR_NULL(fwnode) && fwnode->ops == &of_fwnode_ops;

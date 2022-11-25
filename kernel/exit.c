@@ -718,7 +718,7 @@ void __noreturn do_exit(long code)
 	int group_dead;
 
 	profile_task_exit(tsk);
-	kcov_task_exit(tsk);
+	kcov_task_exit(tsk);//0
 
 	WARN_ON(blk_needs_flush_plug(tsk));
 
@@ -835,7 +835,7 @@ void __noreturn do_exit(long code)
 	flush_ptrace_hw_breakpoint(tsk);
 
 	exit_tasks_rcu_start();
-	exit_notify(tsk, group_dead);
+	exit_notify(tsk, group_dead); //先为成为“孤儿”的子进程选择“领养者”， 然后把自己的死讯通知父进程
 	proc_exit_connector(tsk);
 	mpol_put_task_policy(tsk);
 #ifdef CONFIG_FUTEX

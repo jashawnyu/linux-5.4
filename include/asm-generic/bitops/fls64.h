@@ -24,11 +24,11 @@ static __always_inline int fls64(__u64 x)
 	return fls(x);
 }
 #elif BITS_PER_LONG == 64
-static __always_inline int fls64(__u64 x)
+static __always_inline int fls64(__u64 x) //1
 {
 	if (x == 0)
 		return 0;
-	return __fls(x) + 1;
+	return __fls(x) + 1; //__fls位于include/asm-generic/bitops/__fls.h
 }
 #else
 #error BITS_PER_LONG not 32 or 64

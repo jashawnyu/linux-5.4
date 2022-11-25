@@ -32,7 +32,7 @@ struct rb_root {
 	struct rb_node *rb_node;
 };
 
-#define rb_parent(r)   ((struct rb_node *)((r)->__rb_parent_color & ~3))
+#define rb_parent(r)   ((struct rb_node *)((r)->__rb_parent_color & ~3))//获得其双亲结点的首地址
 
 #define RB_ROOT	(struct rb_root) { NULL, }
 #define	rb_entry(ptr, type, member) container_of(ptr, type, member)
@@ -69,7 +69,7 @@ extern void rb_replace_node_rcu(struct rb_node *victim, struct rb_node *new,
 static inline void rb_link_node(struct rb_node *node, struct rb_node *parent,
 				struct rb_node **rb_link)
 {
-	node->__rb_parent_color = (unsigned long)parent;
+	node->__rb_parent_color = (unsigned long)parent; //设置其双亲结点的首地址(根结点的双亲结点为NULL),且颜色属性设为黑色
 	node->rb_left = node->rb_right = NULL;
 
 	*rb_link = node;

@@ -279,7 +279,7 @@ do {									\
 
 /*
  * RCU global state, including node hierarchy.  This hierarchy is
- * represented in "heap" form in a dense array.  The root (first level)
+ * represented in "heap" form in a dense array(这个层次结构以密集数组中的“堆”形式表示).  The root (first level)
  * of the hierarchy is in ->node[0] (referenced by ->level[0]), the second
  * level in ->node[1] through ->node[m] (->node[1] referenced by ->level[1]),
  * and the third level in ->node[m+1] and following (->node[m+1] referenced
@@ -287,9 +287,9 @@ do {									\
  * CPUs and by CONFIG_RCU_FANOUT.  Small systems will have a "hierarchy"
  * consisting of a single rcu_node.
  */
-struct rcu_state {
-	struct rcu_node node[NUM_RCU_NODES];	/* Hierarchy. */
-	struct rcu_node *level[RCU_NUM_LVLS + 1];
+struct rcu_state { //RCU使用数据类型rcu_state描述RCU的全局状态
+	struct rcu_node node[NUM_RCU_NODES];	/* Hierarchy. [19]*/
+	struct rcu_node *level[RCU_NUM_LVLS + 1]; //数组level保存每个层次的第一个rcu_node实例; [2+1]
 						/* Hierarchy levels (+1 to */
 						/*  shut bogus gcc warning) */
 	int ncpus;				/* # CPUs seen so far. */

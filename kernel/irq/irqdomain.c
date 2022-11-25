@@ -127,7 +127,7 @@ EXPORT_SYMBOL_GPL(irq_domain_free_fwnode);
  * Allocates and initializes an irq_domain structure.
  * Returns pointer to IRQ domain, or NULL on failure.
  */
-struct irq_domain *__irq_domain_add(struct fwnode_handle *fwnode, int size,
+struct irq_domain *__irq_domain_add(struct fwnode_handle *fwnode, int size, //注册gpiochip时候，size=8,因为宏PL061_GPIO_NR=8
 				    irq_hw_number_t hwirq_max, int direct_max,
 				    const struct irq_domain_ops *ops,
 				    void *host_data)
@@ -649,7 +649,7 @@ EXPORT_SYMBOL_GPL(irq_create_direct_mapping);
  */
 unsigned int irq_create_mapping(struct irq_domain *domain,
 				irq_hw_number_t hwirq)
-{
+{//该函数首先分配Linux中断号， 然后把硬件中断号到Linux中断号的映射添加到中断域
 	struct device_node *of_node;
 	int virq;
 
@@ -664,10 +664,10 @@ unsigned int irq_create_mapping(struct irq_domain *domain,
 	}
 	pr_debug("-> using domain @%p\n", domain);
 
-	of_node = irq_domain_get_of_node(domain);
+	of_node = irq_domain_get_of_node(domain);//通过irq_domain中fwnode得到其所处的device_node结构体地址
 
 	/* Check if mapping already exists */
-	virq = irq_find_mapping(domain, hwirq);
+	virq = irq_find_mapping(domain, hwirq); //hwirq为硬件中断号
 	if (virq) {
 		pr_debug("-> existing mapping on virq %d\n", virq);
 		return virq;
@@ -901,15 +901,15 @@ unsigned int irq_find_mapping(struct irq_domain *domain,
 	if (domain == NULL)
 		return 0;
 
-	if (hwirq < domain->revmap_direct_max_irq) {
+	if (hwirq < domain->revmap_direct_max_irq) { //3<0 , reverse map(反向映射)
 		data = irq_domain_get_irq_data(domain, hwirq);
 		if (data && data->hwirq == hwirq)
 			return hwirq;
 	}
 
 	/* Check if the hwirq is in the linear revmap. */
-	if (hwirq < domain->revmap_size)
-		return domain->linear_revmap[hwirq];
+	if (hwirq < domain->revmap_size) //3<8
+		return domain->linear_revmap[hwirq]; //0
 
 	rcu_read_lock();
 	data = radix_tree_lookup(&domain->revmap_tree, hwirq);

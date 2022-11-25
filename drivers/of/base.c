@@ -57,7 +57,7 @@ DEFINE_RAW_SPINLOCK(devtree_lock);
 
 bool of_node_name_eq(const struct device_node *np, const char *name)
 {
-	const char *node_name;
+	static const char *node_name;
 	size_t len;
 
 	if (!np)

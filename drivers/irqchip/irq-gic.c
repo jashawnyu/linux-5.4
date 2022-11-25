@@ -72,7 +72,7 @@ struct gic_chip_data {
 	void __iomem *raw_dist_base;
 	void __iomem *raw_cpu_base;
 	u32 percpu_offset;
-#if defined(CONFIG_CPU_PM) || defined(CONFIG_ARM_GIC_PM)
+#if defined(CONFIG_CPU_PM) || defined(CONFIG_ARM_GIC_PM) //1
 	u32 saved_spi_enable[DIV_ROUND_UP(1020, 32)];
 	u32 saved_spi_active[DIV_ROUND_UP(1020, 32)];
 	u32 saved_spi_conf[DIV_ROUND_UP(1020, 16)];
@@ -120,7 +120,7 @@ static u8 gic_cpu_map[NR_GIC_CPU_IF] __read_mostly;
 
 static DEFINE_STATIC_KEY_TRUE(supports_deactivate_key);
 
-static struct gic_chip_data gic_data[CONFIG_ARM_GIC_MAX_NR] __read_mostly;
+static struct gic_chip_data gic_data[CONFIG_ARM_GIC_MAX_NR] __read_mostly; //[1]
 
 static struct gic_kvm_info gic_v2_kvm_info;
 
@@ -1425,7 +1425,7 @@ static void __init gic_of_setup_kvm_info(struct device_node *node)
 	if (static_branch_likely(&supports_deactivate_key))
 		gic_set_kvm_info(&gic_v2_kvm_info);
 }
-
+//参数node是本中断控制器； 参数parent是父设备,即本中断控制器作为中断源连接到的中断控制器
 int __init
 gic_of_init(struct device_node *node, struct device_node *parent)
 {
@@ -1435,12 +1435,12 @@ gic_of_init(struct device_node *node, struct device_node *parent)
 	if (WARN_ON(!node))
 		return -ENODEV;
 
-	if (WARN_ON(gic_cnt >= CONFIG_ARM_GIC_MAX_NR))
+	if (WARN_ON(gic_cnt >= CONFIG_ARM_GIC_MAX_NR)) //>=1
 		return -EINVAL;
 
-	gic = &gic_data[gic_cnt];
-
-	ret = gic_of_setup(gic, node);
+	gic = &gic_data[gic_cnt];//从全局数组gic_data取一个空闲的元素来保存本中断控制器的信息
+  //从设备树文件读取中断控制器的属性“reg”， 获取分发器和处理器接口的寄存器的物理地址范围， 
+	ret = gic_of_setup(gic, node);//把物理地址映射到内核的虚拟地址空间
 	if (ret)
 		return ret;
 
@@ -1451,7 +1451,7 @@ gic_of_init(struct device_node *node, struct device_node *parent)
 	if (gic_cnt == 0 && !gic_check_eoimode(node, &gic->raw_cpu_base))
 		static_branch_disable(&supports_deactivate_key);
 
-	ret = __gic_init_bases(gic, &node->fwnode);
+	ret = __gic_init_bases(gic, &node->fwnode);//初始化结构体gic_chip_data
 	if (ret) {
 		gic_teardown(gic);
 		return ret;

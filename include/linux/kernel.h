@@ -988,7 +988,7 @@ static inline void ftrace_dump(enum ftrace_dump_mode oops_dump_mode) { }
  * @ptr:	the pointer to the member.
  * @type:	the type of the container struct this is embedded in.
  * @member:	the name of the member within the struct.
- *
+ * ptr指向非void数据类型，且与type中member类型
  */
 #define container_of(ptr, type, member) ({				\
 	void *__mptr = (void *)(ptr);					\

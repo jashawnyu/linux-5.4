@@ -56,7 +56,7 @@
  * PUD_SHIFT determines the size a level 1 page table entry can map.
  * PUD_SHIFT决定了第1级页表条目可以映射的大小
  */
-#if CONFIG_PGTABLE_LEVELS > 3
+#if CONFIG_PGTABLE_LEVELS > 3 //4>3
 #define PUD_SHIFT		ARM64_HW_PGTABLE_LEVEL_SHIFT(1) //30
 #define PUD_SIZE		(_AC(1, UL) << PUD_SHIFT)
 #define PUD_MASK		(~(PUD_SIZE-1))

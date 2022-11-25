@@ -801,7 +801,7 @@ static inline pte_t * fixmap_pte(unsigned long addr)
 }
 
 /*
- * The p*d_populate functions call virt_to_phys implicitly so they can't be used
+ * The p*d_populate functions call virt_to_phys implicitly(含蓄地) so they can't be used
  * directly on kernel symbols (bm_p*d). This function is called too early to use
  * lm_alias so __p*d_populate functions must be used to populate with the
  * physical address from __pa_symbol.

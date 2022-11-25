@@ -62,12 +62,12 @@
 #ifdef CONFIG_HAVE_ARCH_MMAP_RND_BITS
 const int mmap_rnd_bits_min = CONFIG_ARCH_MMAP_RND_BITS_MIN;
 const int mmap_rnd_bits_max = CONFIG_ARCH_MMAP_RND_BITS_MAX;
-int mmap_rnd_bits __read_mostly = CONFIG_ARCH_MMAP_RND_BITS;
+int mmap_rnd_bits __read_mostly = CONFIG_ARCH_MMAP_RND_BITS; //18
 #endif
 #ifdef CONFIG_HAVE_ARCH_MMAP_RND_COMPAT_BITS
 const int mmap_rnd_compat_bits_min = CONFIG_ARCH_MMAP_RND_COMPAT_BITS_MIN;
 const int mmap_rnd_compat_bits_max = CONFIG_ARCH_MMAP_RND_COMPAT_BITS_MAX;
-int mmap_rnd_compat_bits __read_mostly = CONFIG_ARCH_MMAP_RND_COMPAT_BITS;
+int mmap_rnd_compat_bits __read_mostly = CONFIG_ARCH_MMAP_RND_COMPAT_BITS; //11
 #endif
 
 static bool ignore_rlimit_data;
@@ -1414,15 +1414,15 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
 	 * (the exception is when the underlying filesystem is noexec
 	 *  mounted, in which case we dont add PROT_EXEC.)
 	 */
-	if ((prot & PROT_READ) && (current->personality & READ_IMPLIES_EXEC))
+	if ((prot & PROT_READ) && (current->personality & READ_IMPLIES_EXEC)) //0
 		if (!(file && path_noexec(&file->f_path)))
 			prot |= PROT_EXEC;
 
 	/* force arch specific MAP_FIXED handling in get_unmapped_area */
-	if (flags & MAP_FIXED_NOREPLACE)
+	if (flags & MAP_FIXED_NOREPLACE)//0
 		flags |= MAP_FIXED;
 
-	if (!(flags & MAP_FIXED))
+	if (!(flags & MAP_FIXED))//1
 		addr = round_hint_to_min(addr);
 
 	/* Careful about overflows.. */
@@ -1442,7 +1442,7 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
 	 * that it represents a valid section of the address space.
 	 */
   /* 从进程的虚拟地址空间分配一个虚拟地址范围,函数get_unmapped_area根据情况调用特定函数以分配虚拟地址范围 */
-	addr = get_unmapped_area(file, addr, len, pgoff, flags);
+	addr = get_unmapped_area(file, addr, len, pgoff, flags); 
 	if (offset_in_page(addr))
 		return addr;
 
@@ -1454,7 +1454,7 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
 	}
 
 	if (prot == PROT_EXEC) {
-		pkey = execute_only_pkey(mm);
+		pkey = execute_only_pkey(mm); //0
 		if (pkey < 0)
 			pkey = 0;
 	}
@@ -1475,7 +1475,7 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
 		if (!can_do_mlock())
 			return -EPERM;
 
-	if (mlock_future_check(mm, vm_flags, len))
+	if (mlock_future_check(mm, vm_flags, len)) //mlock（memory locking）是内核实现锁定内存的一种机制，用来将进程使用的部分或全部虚拟内存锁定到物理内存
 		return -EAGAIN;
 
 	if (file) {
@@ -1570,7 +1570,7 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
 	 * Set 'VM_NORESERVE' if we should not account for the
 	 * memory use of this mapping.
 	 */
-	if (flags & MAP_NORESERVE) {
+	if (flags & MAP_NORESERVE) { //0
 		/* We honor MAP_NORESERVE if allowed to overcommit */
 		if (sysctl_overcommit_memory != OVERCOMMIT_NEVER)
 			vm_flags |= VM_NORESERVE;
@@ -1595,7 +1595,7 @@ unsigned long ksys_mmap_pgoff(unsigned long addr, unsigned long len,
 	struct file *file = NULL;
 	unsigned long retval;
 
-	addr = untagged_addr(addr);
+	addr = untagged_addr(addr);// 这里清除addr高8bit，正常的用户空间虚拟地址高16bit都是0，可能(LWM)Linear Address Masking有关
 
   //如果是创建文件映射，根据文件描述符在进程的打开文件表中找到file实例
 	if (!(flags & MAP_ANONYMOUS)) {
@@ -1745,7 +1745,7 @@ unsigned long mmap_region(struct file *file, unsigned long addr,
 
 	/* Check against address space limit. */
   /* 调用函数may_expand_vm以检查进程申请的虚拟内存是否超过限制 */
-	if (!may_expand_vm(mm, vm_flags, len >> PAGE_SHIFT)) {
+	if (!may_expand_vm(mm, vm_flags, len >> PAGE_SHIFT)) { //正常返回true
 		unsigned long nr_pages;
 
 		/*
@@ -2018,14 +2018,14 @@ found:
 	return gap_start;
 }
 
-unsigned long unmapped_area_topdown(struct vm_unmapped_area_info *info)
+unsigned long __attribute__((optimize("O0")))  unmapped_area_topdown(struct vm_unmapped_area_info *info)
 {
 	struct mm_struct *mm = current->mm;
 	struct vm_area_struct *vma;
 	unsigned long length, low_limit, high_limit, gap_start, gap_end;
 
 	/* Adjust search length to account for worst case alignment overhead */
-	length = info->length + info->align_mask;
+	length = info->length + info->align_mask;//0x81000
 	if (length < info->length)
 		return -ENOMEM;
 
@@ -2033,31 +2033,31 @@ unsigned long unmapped_area_topdown(struct vm_unmapped_area_info *info)
 	 * Adjust search limits by the desired length.
 	 * See implementation comment at top of unmapped_area().
 	 */
-	gap_end = info->high_limit;
+	gap_end = info->high_limit; //mmap_base=0xffff8ee1e000
 	if (gap_end < length)
 		return -ENOMEM;
-	high_limit = gap_end - length;
+	high_limit = gap_end - length; //0xffff8ed9d000
 
-	if (info->low_limit > high_limit)
+	if (info->low_limit > high_limit) //info->low_limit=0x1000 
 		return -ENOMEM;
-	low_limit = info->low_limit + length;
+	low_limit = info->low_limit + length; //0x82000
 
 	/* Check highest gap, which does not precede any rbtree node */
-	gap_start = mm->highest_vm_end;
-	if (gap_start <= high_limit)
+	gap_start = mm->highest_vm_end; //0xffffe01d3000
+	if (gap_start <= high_limit)//如果比vma最高的结束地址还要高，那直接分配更高的就好了
 		goto found_highest;
 
 	/* Check if rbtree root looks promising */
 	if (RB_EMPTY_ROOT(&mm->mm_rb))
 		return -ENOMEM;
-	vma = rb_entry(mm->mm_rb.rb_node, struct vm_area_struct, vm_rb);
-	if (vma->rb_subtree_gap < length)
-		return -ENOMEM;
+	vma = rb_entry(mm->mm_rb.rb_node, struct vm_area_struct, vm_rb);//因为mm_rb指向的是红黑树的根，所以这是得到根vma实例的指针
+	if (vma->rb_subtree_gap < length)//每个vma的rb_subtree_gap值表示该树最大的空闲内存大小
+		return -ENOMEM;//如果连根节点的rb_subtree_gap都不满足分配需求，则说进程已经OOM
 
 	while (true) {
 		/* Visit right subtree if it looks promising */
 		gap_start = vma->vm_prev ? vm_end_gap(vma->vm_prev) : 0;
-		if (gap_start <= high_limit && vma->vm_rb.rb_right) {
+		if (gap_start <= high_limit && vma->vm_rb.rb_right) {//进程的虚拟地址空间中的内存映射区域的最大地址为mmap_base(由于采用向下增长的布局)
 			struct vm_area_struct *right =
 				rb_entry(vma->vm_rb.rb_right,
 					 struct vm_area_struct, vm_rb);
@@ -2094,7 +2094,7 @@ check_current:
 				return -ENOMEM;
 			vma = rb_entry(rb_parent(prev),
 				       struct vm_area_struct, vm_rb);
-			if (prev == vma->vm_rb.rb_right) {
+			if (prev == vma->vm_rb.rb_right) {//这里是判断prev是右节点
 				gap_start = vma->vm_prev ?
 					vm_end_gap(vma->vm_prev) : 0;
 				goto check_current;
@@ -2103,7 +2103,7 @@ check_current:
 	}
 
 found:
-	/* We found a suitable gap. Clip it with the original high_limit. */
+	/* We found a suitable gap. Clip(夹住) it with the original high_limit. */
 	if (gap_end > info->high_limit)
 		gap_end = info->high_limit;
 
@@ -2113,7 +2113,7 @@ found_highest:
 	gap_end -= (gap_end - info->align_offset) & info->align_mask;
 
 	VM_BUG_ON(gap_end < info->low_limit);
-	VM_BUG_ON(gap_end < gap_start);
+	VM_BUG_ON(gap_end < gap_start);//mm->highest_vm_end
 	return gap_end;
 }
 
@@ -2184,13 +2184,13 @@ arch_get_unmapped_area_topdown(struct file *filp, unsigned long addr,
 	struct vm_area_struct *vma, *prev;
 	struct mm_struct *mm = current->mm;
 	struct vm_unmapped_area_info info;
-	const unsigned long mmap_end = arch_get_mmap_end(addr);
+	const unsigned long mmap_end = arch_get_mmap_end(addr);//这里是为了52bit的虚拟地址内核也能兼容48bit的应用程序
 
 	/* requested length too big for entire address space */
-	if (len > mmap_end - mmap_min_addr)
+	if (len > mmap_end - mmap_min_addr) //len > mmap_end-4090, 由CONFIG_DEFAULT_MMAP_MIN_ADDR配置
 		return -ENOMEM;
 
-	if (flags & MAP_FIXED)
+	if (flags & MAP_FIXED) //如果指定此addr参数，通过上面检查合法性之后直接返回
 		return addr;
 
 	/* requesting a specific address */
@@ -2205,9 +2205,9 @@ arch_get_unmapped_area_topdown(struct file *filp, unsigned long addr,
 
 	info.flags = VM_UNMAPPED_AREA_TOPDOWN;
 	info.length = len;
-	info.low_limit = max(PAGE_SIZE, mmap_min_addr);
-	info.high_limit = arch_get_mmap_base(addr, mm->mmap_base);
-	info.align_mask = 0;
+	info.low_limit = max(PAGE_SIZE, mmap_min_addr); //这里保证low_limit要大于一个页
+	info.high_limit = arch_get_mmap_base(addr, mm->mmap_base); //mm->mmap_base在函数arch_pick_mmap_layout()中设置
+	info.align_mask = 0;//hugetlb可能会用到
 	addr = vm_unmapped_area(&info);
 
 	/*
@@ -2235,7 +2235,7 @@ get_unmapped_area(struct file *file, unsigned long addr, unsigned long len,
 	unsigned long (*get_area)(struct file *, unsigned long,
 				  unsigned long, unsigned long, unsigned long);
 
-	unsigned long error = arch_mmap_check(addr, len, flags);
+	unsigned long error = arch_mmap_check(addr, len, flags);//0
 	if (error)
 		return error;
 
@@ -2245,10 +2245,10 @@ get_unmapped_area(struct file *file, unsigned long addr, unsigned long len,
 
 	get_area = current->mm->get_unmapped_area;
   /* 如果是创建文件映射或匿名巨型页映射，那么调用file->f_op->get_unmapped_area以分配虚拟地址范围 */
-	if (file) {
+	if (file) { //0
 		if (file->f_op->get_unmapped_area)
 			get_area = file->f_op->get_unmapped_area;
-	} else if (flags & MAP_SHARED) {
+	} else if (flags & MAP_SHARED) { //0
 		/*
 		 * mmap_region() will call shmem_zero_setup() to create a file,
 		 * so use shmem's get_unmapped_area in case it can be huge.
@@ -2260,7 +2260,7 @@ get_unmapped_area(struct file *file, unsigned long addr, unsigned long len,
 	}
 
   //如果是创建私有的匿名映射，那么调用mm->get_unmapped_area以分配虚拟地址范围
-	addr = get_area(file, addr, len, pgoff, flags);
+	addr = get_area(file, addr, len, pgoff, flags);//这里得到分配的映射区域的起始地址
 	if (IS_ERR_VALUE(addr))
 		return addr;
 
@@ -3341,12 +3341,12 @@ out:
 bool may_expand_vm(struct mm_struct *mm, vm_flags_t flags, unsigned long npages)
 {
   //首先检查（进程的虚拟内存总数 + 申请的页数）是否超过地址空间限制
-	if (mm->total_vm + npages > rlimit(RLIMIT_AS) >> PAGE_SHIFT)
+	if (mm->total_vm + npages > rlimit(RLIMIT_AS) >> PAGE_SHIFT)// > ~0UL, 通过gdb asm 发现
 		return false;
 
   /* 如果是私有的可写映射，并且不是栈，那么检查（进程数据的虚拟内存总数 + 申请的页数）是否超过最大数据长度 */
 	if (is_data_mapping(flags) &&
-	    mm->data_vm + npages > rlimit(RLIMIT_DATA) >> PAGE_SHIFT) {
+	    mm->data_vm + npages > rlimit(RLIMIT_DATA) >> PAGE_SHIFT) { // >~0UL
 		/* Workaround for Valgrind */
 		if (rlimit(RLIMIT_DATA) == 0 &&
 		    mm->data_vm + npages <= rlimit_max(RLIMIT_DATA) >> PAGE_SHIFT)

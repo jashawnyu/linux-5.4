@@ -476,7 +476,7 @@ struct of_intc_desc {
  * This function scans the device tree for matching interrupt controller nodes,
  * and calls their initialization functions in order with parents first.
  */
-void __init of_irq_init(const struct of_device_id *matches)
+void __init of_irq_init(const struct of_device_id *matches) //传入gic匹配表，匹配成功就会调用对应的gic_of_init函数
 {
 	const struct of_device_id *match;
 	struct device_node *np, *parent = NULL;
@@ -486,8 +486,8 @@ void __init of_irq_init(const struct of_device_id *matches)
 	INIT_LIST_HEAD(&intc_desc_list);
 	INIT_LIST_HEAD(&intc_parent_list);
 
-	for_each_matching_node_and_match(np, matches, &match) {
-		if (!of_property_read_bool(np, "interrupt-controller") ||
+	for_each_matching_node_and_match(np, matches, &match) {  //遍历设备树文件的设备节点
+		if (!of_property_read_bool(np, "interrupt-controller") || //如果节点没有属性“interrupt-controller”， 说明设备不是中断控制器， 那么忽略该设备
 				!of_device_is_available(np))
 			continue;
 
@@ -499,18 +499,18 @@ void __init of_irq_init(const struct of_device_id *matches)
 		 * Here, we allocate and populate an of_intc_desc with the node
 		 * pointer, interrupt-parent device_node etc.
 		 */
-		desc = kzalloc(sizeof(*desc), GFP_KERNEL);
+		desc = kzalloc(sizeof(*desc), GFP_KERNEL); //分配一个of_intc_desc实例
 		if (!desc) {
 			of_node_put(np);
 			goto err;
 		}
-
-		desc->irq_init_cb = match->data;
-		desc->dev = of_node_get(np);
-		desc->interrupt_parent = of_irq_find_parent(np);
-		if (desc->interrupt_parent == np)
+    //多个中断控制器可以级联， 中断控制器1可以作为中断源连接到中断控制器2， 中断控制器2是中断控制器1的父设备
+		desc->irq_init_cb = match->data; //成员irq_init_cb保存初始化函数
+		desc->dev = of_node_get(np);    //成员dev保存本设备的device_node实例
+		desc->interrupt_parent = of_irq_find_parent(np); //成员interrupt_parent保存父设备
+		if (desc->interrupt_parent == np) //表示没有父设备
 			desc->interrupt_parent = NULL;
-		list_add_tail(&desc->list, &intc_desc_list);
+		list_add_tail(&desc->list, &intc_desc_list);//把of_intc_desc实例添加到链表intc_desc_list中
 	}
 
 	/*
@@ -518,7 +518,7 @@ void __init of_irq_init(const struct of_device_id *matches)
 	 * That one goes first, followed by the controllers that reference it,
 	 * followed by the ones that reference the 2nd level controllers, etc.
 	 */
-	while (!list_empty(&intc_desc_list)) {
+	while (!list_empty(&intc_desc_list)) { //非根设备进入
 		/*
 		 * Process all controllers with the current 'parent'.
 		 * First pass will be looking for NULL as the parent.
@@ -526,11 +526,11 @@ void __init of_irq_init(const struct of_device_id *matches)
 		 */
 		list_for_each_entry_safe(desc, temp_desc, &intc_desc_list, list) {
 			int ret;
-
+      //遍历链表intc_desc_list， 从根设备开始， 先执行父设备的初始化函数， 然后执行子设备的初始化函数
 			if (desc->interrupt_parent != parent)
 				continue;
 
-			list_del(&desc->list);
+			list_del(&desc->list);//这里把节点删掉，删完就退出里while循环
 
 			of_node_set_flag(desc->dev, OF_POPULATED);
 
