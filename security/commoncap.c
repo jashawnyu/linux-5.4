@@ -54,7 +54,7 @@ static void warn_setuid_and_fcaps_mixed(const char *fname)
  * @cap: The capability to check for
  * @opts: Bitmask of options defined in include/linux/security.h
  *
- * Determine whether the nominated task has the specified capability amongst
+ * Determine whether the nominated(被提名的) task has the specified capability amongst
  * its effective set, returning 0 if it does, -ve if it does not.
  *
  * NOTE WELL: cap_has_capability() cannot be used like the kernel's capable()

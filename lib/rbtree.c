@@ -81,7 +81,8 @@ __rb_rotate_set_parents(struct rb_node *old, struct rb_node *new,
 	__rb_change_child(old, new, parent, root);
 }
 
-static __always_inline void
+//static __always_inline void
+static __attribute__((optimize("O0"))) void
 __rb_insert(struct rb_node *node, struct rb_root *root,
 	    void (*augment_rotate)(struct rb_node *old, struct rb_node *new))
 {
@@ -175,7 +176,7 @@ __rb_insert(struct rb_node *node, struct rb_root *root,
 			 */
 			WRITE_ONCE(gparent->rb_left, tmp); /* == parent->rb_right */
 			WRITE_ONCE(parent->rb_right, gparent);
-			if (tmp)
+			if (tmp) //上溢的4种情况下会进这个逻辑
 				rb_set_parent_color(tmp, gparent, RB_BLACK);
 			__rb_rotate_set_parents(gparent, parent, root, RB_RED);
 			augment_rotate(gparent, parent);

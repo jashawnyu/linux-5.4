@@ -35,12 +35,12 @@ struct mm_struct;
  *
  * Freeing policy:
  * Mempolicy objects are reference counted.  A mempolicy will be freed when
- * mpol_put() decrements the reference count to zero.
+ * mpol_put() decrements(减) the reference count to zero.
  *
  * Duplicating policy objects:
  * mpol_dup() allocates a new mempolicy and copies the specified mempolicy
  * to the new storage.  The reference count of the new object is initialized
- * to 1, representing the caller of mpol_dup().
+ * to 1, representing the caller of mpol_dup()(表示mpol_dup()的调用者).
  */
 struct mempolicy {
 	atomic_t refcnt;
@@ -103,7 +103,7 @@ static inline void mpol_get(struct mempolicy *pol)
 extern bool __mpol_equal(struct mempolicy *a, struct mempolicy *b);
 static inline bool mpol_equal(struct mempolicy *a, struct mempolicy *b)
 {
-	if (a == b)
+	if (a == b)//NULL
 		return true;
 	return __mpol_equal(a, b);
 }

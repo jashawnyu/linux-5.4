@@ -81,7 +81,8 @@ __rb_rotate_set_parents(struct rb_node *old, struct rb_node *new,
 	__rb_change_child(old, new, parent, root);
 }
 
-static __always_inline void
+//static __always_inline void
+static __attribute__((optimize("O0"))) void
 __rb_insert(struct rb_node *node, struct rb_root *root,
 	    void (*augment_rotate)(struct rb_node *old, struct rb_node *new))
 {
@@ -92,7 +93,7 @@ __rb_insert(struct rb_node *node, struct rb_root *root,
 		 * Loop invariant: node is red.
 		 */
 		if (unlikely(!parent)) {
-			/*
+			/*插入的节点为root,要么这是第一个节点，要么我们在下面的情形1递归，不再违反4
 			 * The inserted node is root. Either this is the
 			 * first node, or we recursed at Case 1 below and
 			 * are no longer violating 4).
@@ -101,21 +102,21 @@ __rb_insert(struct rb_node *node, struct rb_root *root,
 			break;
 		}
 
-		/*
+		/*将节点插入到所有的叶子节点中，总共就会有12种情况，其中四种情况满足红黑树的性质，8种情况不满足红黑树性质
 		 * If there is a black parent, we are done.
 		 * Otherwise, take some corrective action as,
 		 * per 4), we don't want a red root or two
 		 * consecutive red nodes.
 		 */
-		if(rb_is_black(parent))
+		if(rb_is_black(parent)) //parent为黑色节点，有 4 种情况满足红黑树的性质4(红色节点的父节点和子节点都是黑色为性质4),
 			break;
 
 		gparent = rb_red_parent(parent);
 
 		tmp = gparent->rb_right;
 		if (parent != tmp) {	/* parent == gparent->rb_left */
-			if (tmp && rb_is_red(tmp)) {
-				/*
+			if (tmp && rb_is_red(tmp)) {//uncle 是红色节点。满足这个条件的就都是上溢的情况,且父节点是祖父节点的左节点
+				/*上溢的修复只需要染色，不需要旋转
 				 * Case 1 - node's uncle is red (color flips).
 				 *
 				 *       G            g
@@ -125,20 +126,20 @@ __rb_insert(struct rb_node *node, struct rb_root *root,
 				 *   n            n
 				 *
 				 * However, since g's parent might be red, and
-				 * 4) does not allow this, we need to recurse
+				 * 4) does not allow this, we need to recurse(递归)
 				 * at g.
 				 */
-				rb_set_parent_color(tmp, gparent, RB_BLACK);
-				rb_set_parent_color(parent, gparent, RB_BLACK);
-				node = gparent;
+				rb_set_parent_color(tmp, gparent, RB_BLACK);//原叔父节点作为中间节点，染成黑色
+				rb_set_parent_color(parent, gparent, RB_BLACK);//原父节点作为中间节点，染成黑色
+				node = gparent;//相对上一层，就当做是新添加的节点，再次来一遍插入情况的判断，进行处理
 				parent = rb_parent(node);
-				rb_set_parent_color(node, parent, RB_RED);
+				rb_set_parent_color(node, parent, RB_RED);//原祖父节点向上合并后，将其染成红色
 				continue;
 			}
-
+      //这里就说明uncle为黑色节点(注意即使uncle为NULL它也是黑色节点)
 			tmp = parent->rb_right;
-			if (node == tmp) {
-				/*
+			if (node == tmp) { //进一步说明插入节点是父节点的右节点
+				/*这里属于LR插入情况,需要左旋和染色
 				 * Case 2 - node's uncle is black and node is
 				 * the parent's right child (left rotate at parent).
 				 *
@@ -151,22 +152,22 @@ __rb_insert(struct rb_node *node, struct rb_root *root,
 				 * This still leaves us in violation of 4), the
 				 * continuation into Case 3 will fix that.
 				 */
-				tmp = node->rb_left;
-				WRITE_ONCE(parent->rb_right, tmp);
-				WRITE_ONCE(node->rb_left, parent);
+				tmp = node->rb_left;//将parent左旋为其右节点（node节点）的左节点
+				WRITE_ONCE(parent->rb_right, tmp);//先将父节点的右节点设为node的左节点
+				WRITE_ONCE(node->rb_left, parent);//后将node的左节点设置为父节点
 				if (tmp)
 					rb_set_parent_color(tmp, parent,
-							    RB_BLACK);
+							    RB_BLACK); 
 				rb_set_parent_color(parent, node, RB_RED);
 				augment_rotate(parent, node);
 				parent = node;
 				tmp = node->rb_right;
 			}
 
-			/*
+			/*//LL插入情况
 			 * Case 3 - node's uncle is black and node is
 			 * the parent's left child (right rotate at gparent).
-			 *
+			 * 右旋节点gparent步骤，将节点gparent的左节点引用指向parent节点的右节点,将parent节点的右节点引用指向gparent
 			 *        G           P
 			 *       / \         / \
 			 *      p   U  -->  n   g
@@ -177,12 +178,12 @@ __rb_insert(struct rb_node *node, struct rb_root *root,
 			WRITE_ONCE(parent->rb_right, gparent);
 			if (tmp)
 				rb_set_parent_color(tmp, gparent, RB_BLACK);
-			__rb_rotate_set_parents(gparent, parent, root, RB_RED);
+			__rb_rotate_set_parents(gparent, parent, root, RB_RED);//这里就是设置node的颜色,由于node取代的是gparent的位置，所以它的父节点地址就是gparent的父节点地址
 			augment_rotate(gparent, parent);
 			break;
 		} else {
 			tmp = gparent->rb_left;
-			if (tmp && rb_is_red(tmp)) {
+			if (tmp && rb_is_red(tmp)) {//uncle 是红色节点。满足这个条件的就都是上溢的情况,且父节点是祖父节点的右节点
 				/* Case 1 - color flips */
 				rb_set_parent_color(tmp, gparent, RB_BLACK);
 				rb_set_parent_color(parent, gparent, RB_BLACK);

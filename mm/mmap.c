@@ -397,7 +397,7 @@ static void validate_mm(struct mm_struct *mm)
 	int bug = 0;
 	int i = 0;
 	unsigned long highest_address = 0;
-	struct vm_area_struct *vma = mm->mmap;
+	struct vm_area_struct *vma = mm->mmap; //vma链表的首地址
 
 	while (vma) {
 		struct anon_vma *anon_vma = vma->anon_vma;
@@ -458,14 +458,14 @@ static inline void vma_rb_insert(struct vm_area_struct *vma,
 				 struct rb_root *root)
 {
 	/* All rb_subtree_gap values must be consistent prior to insertion */
-	validate_mm_rb(root, NULL);
+	validate_mm_rb(root, NULL);//在插入之前，所有rb_subtree_gap值必须一致
 
 	rb_insert_augmented(&vma->vm_rb, root, &vma_gap_callbacks);
 }
 
 static void __vma_rb_erase(struct vm_area_struct *vma, struct rb_root *root)
 {
-	/*
+	/*注意，rb_erase_augmented是一个相当大的内联函数，因此要确保用我们想要的增强rbtree回调函数只实例化它一次
 	 * Note rb_erase_augmented is a fairly large inline function,
 	 * so make sure we instantiate it only once with our desired
 	 * augmented rbtree callbacks.
@@ -477,12 +477,12 @@ static __always_inline void vma_rb_erase_ignore(struct vm_area_struct *vma,
 						struct rb_root *root,
 						struct vm_area_struct *ignore)
 {
-	/*
+	/*所有rb_subtree_gap的值必须在erase之前保持一致，如果next->vm_start减少，则可能会删除“next”vma
 	 * All rb_subtree_gap values must be consistent prior to erase,
 	 * with the possible exception of the "next" vma being erased if
 	 * next->vm_start was reduced.
 	 */
-	validate_mm_rb(root, ignore);
+	validate_mm_rb(root, ignore); //一般为0,暂不考虑
 
 	__vma_rb_erase(vma, root);
 }
@@ -530,37 +530,37 @@ anon_vma_interval_tree_post_update_vma(struct vm_area_struct *vma)
 	list_for_each_entry(avc, &vma->anon_vma_chain, same_vma)
 		anon_vma_interval_tree_insert(avc, &avc->anon_vma->rb_root);
 }
-
+//用于创建一个新的vma过程中使用，该函数不仅能够返回查询到的vma以及pprev， 还返回rb_link即为新的要插入的vma返回一个合适的位置
 static int find_vma_links(struct mm_struct *mm, unsigned long addr,
 		unsigned long end, struct vm_area_struct **pprev,
 		struct rb_node ***rb_link, struct rb_node **rb_parent)
-{
+{//这里addr可以通过get_unmapped_area得到的，也可以通过__bprm_mm_init直接分配vma指定start和end位置,
 	struct rb_node **__rb_link, *__rb_parent, *rb_prev;
 
-	__rb_link = &mm->mm_rb.rb_node;
-	rb_prev = __rb_parent = NULL;
+	__rb_link = &mm->mm_rb.rb_node;//得到mm红黑树的根节点
+	rb_prev = __rb_parent = NULL;//初始化局部指针变量
 
-	while (*__rb_link) {
+	while (*__rb_link) {//__rb_link存储循环节点，从红黑树的根节点开始,遍历rb tree直到叶子节点没有子节点为止
 		struct vm_area_struct *vma_tmp;
 
 		__rb_parent = *__rb_link;
-		vma_tmp = rb_entry(__rb_parent, struct vm_area_struct, vm_rb);
+		vma_tmp = rb_entry(__rb_parent, struct vm_area_struct, vm_rb);//通过节点得到vma实例
 
-		if (vma_tmp->vm_end > addr) {
+		if (vma_tmp->vm_end > addr) {//判断虚拟区域的起始地址是否小于当前 VMA 的结束地址，如果大于，那么向红黑树的右子树倾斜
 			/* Fail if an existing vma overlaps the area */
 			if (vma_tmp->vm_start < end)
 				return -ENOMEM;
 			__rb_link = &__rb_parent->rb_left;
 		} else {
-			rb_prev = __rb_parent;
-			__rb_link = &__rb_parent->rb_right;
+			rb_prev = __rb_parent;//将 rb_prev 指向了 __rb_parent, 以此记录 VMA 的前一个 VMA
+			__rb_link = &__rb_parent->rb_right;//将 __rb_link 指向了右子树
 		}
 	}
 
 	*pprev = NULL;
-	if (rb_prev)
+	if (rb_prev)//如果在遍历这颗树的时候一直都往左，直到最左边的叶子节点，那么rb_prev为0,从红黑树的图上可以看出，当__rb_link是右节点的时候，它的父节点也是它的前驱节点
 		*pprev = rb_entry(rb_prev, struct vm_area_struct, vm_rb);
-	*rb_link = __rb_link;
+	*rb_link = __rb_link; //函数最后将找到的红黑树节点位置存储在 rb_link 指向的地址上
 	*rb_parent = __rb_parent;
 	return 0;
 }
@@ -724,7 +724,7 @@ static inline void __vma_unlink_prev(struct mm_struct *mm,
  */
 int __attribute__((optimize("O0"))) __vma_adjust(struct vm_area_struct *vma, unsigned long start,
 	unsigned long end, pgoff_t pgoff, struct vm_area_struct *insert,
-	struct vm_area_struct *expand)
+	struct vm_area_struct *expand) //最后传入的参数为要扩展的区域指针
 {//vma_merge call __vma_adjust
 	struct mm_struct *mm = vma->vm_mm;
 	struct vm_area_struct *next = vma->vm_next, *orig_vma = vma;
@@ -739,19 +739,19 @@ int __attribute__((optimize("O0"))) __vma_adjust(struct vm_area_struct *vma, uns
 	if (next && !insert) { //insert=0 called from shift_arg_pages() 这种情况下，next=0x0
 		struct vm_area_struct *exporter = NULL, *importer = NULL;
 
-		if (end >= next->vm_end) {
+		if (end >= next->vm_end) {//case3情况下end = vma->vm_end
 			/*
 			 * vma expands, overlapping all the next, and
 			 * perhaps the one after too (mprotect case 6).
 			 * The only other cases that gets here are
 			 * case 1, case 7 and case 8.
 			 */
-			if (next == expand) {
+			if (next == expand) {//判断为case8情况，case8与case3比较类似，不过它会覆盖已存在的next'
 				/*
 				 * The only case where we don't expand "vma"
 				 * and we expand "next" instead is case 8.
 				 */
-				VM_WARN_ON(end != next->vm_end);
+				VM_WARN_ON(end != next->vm_end); //这里是判断传入的参数end，如果为case8,那么end等于next->vm_end
 				/*
 				 * remove_next == 3 means we're
 				 * removing "vma" and that to do so we
@@ -761,7 +761,7 @@ int __attribute__((optimize("O0"))) __vma_adjust(struct vm_area_struct *vma, uns
 				VM_WARN_ON(file != next->vm_file);
 				swap(vma, next);
 			} else {
-				VM_WARN_ON(expand != vma);
+				VM_WARN_ON(expand != vma); //0
 				/*
 				 * case 1, 6, 7, remove_next == 2 is case 6,
 				 * remove_next == 1 is case 1 or 7.
@@ -785,7 +785,7 @@ int __attribute__((optimize("O0"))) __vma_adjust(struct vm_area_struct *vma, uns
 			if (remove_next == 2 && !next->anon_vma)
 				exporter = next->vm_next;
 
-		} else if (end > next->vm_start) {
+		} else if (end > next->vm_start) { //(0x1734000>0xffffaf191000)
 			/*
 			 * vma expands, overlapping part of the next:
 			 * mprotect case 5 shifting the boundary up.
@@ -794,7 +794,7 @@ int __attribute__((optimize("O0"))) __vma_adjust(struct vm_area_struct *vma, uns
 			exporter = next;
 			importer = vma;
 			VM_WARN_ON(expand != importer);
-		} else if (end < vma->vm_end) {
+		} else if (end < vma->vm_end) {//
 			/*
 			 * vma shrinks, and !insert tells it's not
 			 * split_vma inserting another: so it must be
@@ -811,7 +811,7 @@ int __attribute__((optimize("O0"))) __vma_adjust(struct vm_area_struct *vma, uns
 		 * make sure the expanding vma has anon_vma set if the
 		 * shrinking vma had, to cover any anon pages imported.
 		 */
-		if (exporter && exporter->anon_vma && !importer->anon_vma) {
+		if (exporter && exporter->anon_vma && !importer->anon_vma) { //(NULL,)
 			int error;
 
 			importer->anon_vma = exporter->anon_vma;
@@ -844,7 +844,7 @@ again:
 	}
 
 	anon_vma = vma->anon_vma; //anonymous
-	if (!anon_vma && adjust_next) //0
+	if (!anon_vma && adjust_next) //(&&0)
 		anon_vma = next->anon_vma;
 	if (anon_vma) { //1
 		VM_WARN_ON(adjust_next && next->anon_vma &&
@@ -864,7 +864,7 @@ again:
 
 	if (start != vma->vm_start) {//start=0xffffd92bf000;vm_start=0xfffffffff000
 		vma->vm_start = start;
-		start_changed = true;
+		start_changed = true; //标志位
 	}
 	if (end != vma->vm_end) {//0
 		vma->vm_end = end;
@@ -1027,7 +1027,7 @@ static inline int is_mergeable_vma(struct vm_area_struct *vma,
 	 * the kernel to generate new VMAs when old one could be
 	 * extended instead.
 	 */
-	if ((vma->vm_flags ^ vm_flags) & ~VM_SOFTDIRTY)
+	if ((vma->vm_flags ^ vm_flags) & ~VM_SOFTDIRTY)//0
 		return 0;
 	if (vma->vm_file != file)
 		return 0;
@@ -1102,15 +1102,15 @@ can_vma_merge_after(struct vm_area_struct *vma, unsigned long vm_flags,
 
 /*
  * Given a mapping request (addr,end,vm_flags,file,pgoff), figure out
- * whether that can be merged with its predecessor or its successor.
+ * whether that can be merged with its predecessor('priːdəsesə(r))(前辈) or its successor(继承者).
  * Or both (it neatly fills a hole).
  *
  * In most cases - when called for mmap, brk or mremap - [addr,end) is
  * certain not to be mapped by the time vma_merge is called; but when
- * called for mprotect, it is certain to be already mapped (either at
+ * called for mprotect(可以修改调用进程内存页的保护属性), it is certain to be already mapped (either at
  * an offset within prev, or at the start of next), and the flags of
  * this area are about to be changed to vm_flags - and the no-change
- * case has already been eliminated.
+ * case has already been eliminated(排除).
  *
  * The following mprotect cases have to be considered, where AAAA is
  * the area passed down from mprotect_fixup, never extending beyond one
@@ -1140,14 +1140,14 @@ can_vma_merge_after(struct vm_area_struct *vma, unsigned long vm_flags,
  * parameter) may establish ptes with the wrong permissions of NNNN
  * instead of the right permissions of XXXX.
  */
-struct vm_area_struct *vma_merge(struct mm_struct *mm,
+struct vm_area_struct *vma_merge(struct mm_struct *mm, //prev表示要插入的内存区域(叶子节点)位置的前驱
 			struct vm_area_struct *prev, unsigned long addr,
 			unsigned long end, unsigned long vm_flags,
 			struct anon_vma *anon_vma, struct file *file,
 			pgoff_t pgoff, struct mempolicy *policy,
 			struct vm_userfaultfd_ctx vm_userfaultfd_ctx)
 {
-	pgoff_t pglen = (end - addr) >> PAGE_SHIFT;
+	pgoff_t pglen = (end - addr) >> PAGE_SHIFT;//计算要合并的区域有多少个页
 	struct vm_area_struct *area, *next;
 	int err;
 
@@ -1155,16 +1155,16 @@ struct vm_area_struct *vma_merge(struct mm_struct *mm,
 	 * We later require that vma->vm_flags == vm_flags,
 	 * so this tests vma->vm_flags & VM_SPECIAL, too.
 	 */
-	if (vm_flags & VM_SPECIAL)
+	if (vm_flags & VM_SPECIAL) //这个标志指定了该区域不能和其他区域合并，因此立即返回NULL
 		return NULL;
 
-	if (prev)
+	if (prev) //如果待插入的叶子节点有前继节点，那么next指向prev->vm_next，否则指向mm->mmap的第一个节点
 		next = prev->vm_next;
 	else
-		next = mm->mmap;
+		next = mm->mmap; //prev为NULL说明，这个待插入的叶子节点的父节点是链表节点的首节点(也是红黑树的根节点)，这个节点被__vma_link_list()被保存到mm->mmap
 	area = next;
-	if (area && area->vm_end == end)		/* cases 6, 7, 8 */
-		next = next->vm_next;
+	if (area && area->vm_end == end)		/* cases 6, 7, 8 */ /*如果新区域的终止地址与next区域的终止地址重合，则next再向后移动一个区域*/
+		next = next->vm_next; // case678共同的特点是会覆盖prev和next->vm_next之间的next'区域
 
 	/* verify some invariant that must be enforced by the caller */
 	VM_WARN_ON(prev && addr <= prev->vm_start);
@@ -1172,41 +1172,41 @@ struct vm_area_struct *vma_merge(struct mm_struct *mm,
 	VM_WARN_ON(addr >= end);
 
 	/*
-	 * Can it merge with the predecessor?
+	 * Can it merge with the predecessor(前驱)?
 	 */
-	if (prev && prev->vm_end == addr &&
-			mpol_equal(vma_policy(prev), policy) &&
+	if (prev && prev->vm_end == addr && //合并分为两大类，第一大类为新区域的起始地址和prev区域的终止地址重合
+			mpol_equal(vma_policy(prev), policy) && //当caller是mmap_region(), policy = NULL
 			can_vma_merge_after(prev, vm_flags,
 					    anon_vma, file, pgoff,
-					    vm_userfaultfd_ctx)) {
-		/*
+					    vm_userfaultfd_ctx)) {//在这样的判断条件下，会出现5种不同的合并情况(分别为case1，6，2，5，7)
+		/*每种合并情况最终都会调用vma_adjust, 根据不同的合并情况向vma_adjust()传递不同的参数
 		 * OK, it can.  Can we now merge in the successor as well?
 		 */
-		if (next && end == next->vm_start &&
+		if (next && end == next->vm_start && //它再继续检查end是否恰好与next区域的起始地址重合,说明next‘和next区域事实上是连续的
 				mpol_equal(policy, vma_policy(next)) &&
 				can_vma_merge_before(next, vm_flags,
 						     anon_vma, file,
 						     pgoff+pglen,
 						     vm_userfaultfd_ctx) &&
 				is_mergeable_anon_vma(prev->anon_vma,
-						      next->anon_vma, NULL)) {
+						      next->anon_vma, NULL)) { //case1和case6既满足addr与prev终止地址重合，又满足end与next起始地址重合
 							/* cases 1, 6 */
 			err = __vma_adjust(prev, prev->vm_start,
-					 next->vm_end, prev->vm_pgoff, NULL,
+					 next->vm_end, prev->vm_pgoff, NULL, //注意这里传入的next，在case1和case6情况下不同，(见L1166行)
 					 prev);
-		} else					/* cases 2, 5, 7 */
+		} else					/*即addr与prev终止地址重合而end与next起始地址不重合 cases 2, 5, 7 */
 			err = __vma_adjust(prev, prev->vm_start,
 					 end, prev->vm_pgoff, NULL, prev);
 		if (err)
 			return NULL;
-		khugepaged_enter_vma_merge(prev, vm_flags);
+		khugepaged_enter_vma_merge(prev, vm_flags); //see later
 		return prev;
 	}
 
 	/*
 	 * Can this new request be merged in front of next?
 	 */
-	if (next && end == next->vm_start &&
+	if (next && end == next->vm_start && //合并分为两大类，第二大类为新区域的终止地址end和next区域的起始地址重合
 			mpol_equal(policy, vma_policy(next)) &&
 			can_vma_merge_before(next, vm_flags,
 					     anon_vma, file, pgoff+pglen,
@@ -1214,9 +1214,9 @@ struct vm_area_struct *vma_merge(struct mm_struct *mm,
 		if (prev && addr < prev->vm_end)	/* case 4 */
 			err = __vma_adjust(prev, prev->vm_start,
 					 addr, prev->vm_pgoff, NULL, next);
-		else {					/* cases 3, 8 */
-			err = __vma_adjust(area, addr, next->vm_end,
-					 next->vm_pgoff - pglen, NULL, next);
+		else {					/* 如果addr大于等于prev区域的终止地址，则属于case3。这种情况下prev不做改变，扩充next,cases 3, 8 */
+			err = __vma_adjust(area, addr, next->vm_end, //注意这里传入的是area
+					 next->vm_pgoff - pglen, NULL, next); //如果是case3，那么area=next,case8 area=next->vm_next
 			/*
 			 * In case 3 area is already equal to next and
 			 * this is a noop, but in case 8 "area" has
@@ -1760,10 +1760,10 @@ unsigned long mmap_region(struct file *file, unsigned long addr,
 	}
 
 	/* Clear old maps */
-  /* 如果是固定映射，调用者强制指定虚拟地址范围，可能和旧的虚拟内存区域重叠，那么需要从旧的虚拟内存区域删除重叠的部分 */
+  /*后三个入参都是输出，因为传入的都是指针，如果是固定映射，调用者强制指定虚拟地址范围，可能和旧的虚拟内存区域重叠，那么需要从旧的虚拟内存区域删除重叠的部分 */
 	while (find_vma_links(mm, addr, addr + len, &prev, &rb_link,
 			      &rb_parent)) {
-		if (do_munmap(mm, addr, len, uf))
+		if (do_munmap(mm, addr, len, uf)) //munmap后继续调用find_vma_links找到插入的位置
 			return -ENOMEM;
 	}
 
@@ -1774,7 +1774,7 @@ unsigned long mmap_region(struct file *file, unsigned long addr,
 	if (accountable_mapping(file, vm_flags)) {
 		charged = len >> PAGE_SHIFT;
     /* 根据虚拟内存过量提交的策略，判断物理内存是否足够。*/
-		if (security_vm_enough_memory_mm(mm, charged))
+		if (security_vm_enough_memory_mm(mm, charged)) //call __vm_enough_memory()
 			return -ENOMEM;
 		vm_flags |= VM_ACCOUNT;
 	}
@@ -1809,12 +1809,12 @@ unsigned long mmap_region(struct file *file, unsigned long addr,
 	vma->vm_pgoff = pgoff;
 
 	if (file) {
-		if (vm_flags & VM_DENYWRITE) {
+		if (vm_flags & VM_DENYWRITE) { //不允许写,根据这个vm标志设置减小i_node->i_writecount
 			error = deny_write_access(file);
 			if (error)
 				goto free_vma;
 		}
-		if (vm_flags & VM_SHARED) {
+		if (vm_flags & VM_SHARED) { //也有可能是共享的文件映射，来实现进程间通信--共享内存
 			error = mapping_map_writable(file->f_mapping);
 			if (error)
 				goto allow_write_and_free_vma;
@@ -1825,7 +1825,7 @@ unsigned long mmap_region(struct file *file, unsigned long addr,
 		 * and map writably if VM_SHARED is set. This usually means the
 		 * new file must not have been exposed to user-space, yet.
 		 */
-		vma->vm_file = get_file(file);
+		vma->vm_file = get_file(file); //increase f_count member
     /* 如果是文件映射，那么调用文件的文件操作集合中的mmap方法（file->f_op->mmap）*/
     /* mmap方法的主要功能是设置虚拟内存区域的虚拟内存操作集合（vm_area_struct.vm_ops）*/
     /* 很多文件系统把文件操作集合中的mmap方法设置为公共函数generic_file_mmap*/
@@ -1889,8 +1889,7 @@ out:
 	 */
 	vma->vm_flags |= VM_SOFTDIRTY;
 
-  /* 调用函数 vma_set_page_prot，根据虚拟内存标志（vma->vm_flags）计算页保护位（vma->vm_page_prot），如果共享的可写映射想要把页标记为只读，目的是跟踪写事件，那么从页保护位删除可
-写位 */
+  /* 调用函数 vma_set_page_prot，根据虚拟内存标志（vma->vm_flags）计算页保护位（vma->vm_page_prot），如果共享的可写映射想要把页标记为只读，目的是跟踪写事件，那么从页保护位删除可写位 */
 	vma_set_page_prot(vma);
 
 	return addr;

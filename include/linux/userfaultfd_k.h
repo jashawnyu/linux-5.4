@@ -9,7 +9,7 @@
 #ifndef _LINUX_USERFAULTFD_K_H
 #define _LINUX_USERFAULTFD_K_H
 
-#ifdef CONFIG_USERFAULTFD
+#ifdef CONFIG_USERFAULTFD //用户可以通过自定义的 page fault handler 在用户态处理缺页异常
 
 #include <linux/userfaultfd.h> /* linux/include/uapi/linux/userfaultfd.h */
 

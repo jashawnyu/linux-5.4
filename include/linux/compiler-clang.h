@@ -43,4 +43,4 @@
  */
 /* 破坏列表（clobber list） “memory”告诉编译器： 内存中变量的值可能变化，
 不要继续使用加载到寄存器中的值， 应该重新从内存中加载变量的值 */
-#define barrier() __asm__ __volatile__("" : : : "memory")
+#define barrier() __asm__ __volatile__("" : : : "memory") // barrier() 编译屏障是为了防止编译器对代码优化时,改变代码的先后顺序

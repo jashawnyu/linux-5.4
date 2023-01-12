@@ -18,7 +18,7 @@
  * the vmas on the list will be related by forking, or by splitting.
  *
  * Since vmas come and go as they are split and merged (particularly
- * in mprotect), the mapping field of an anonymous page cannot point
+ * in mprotect(可以修改调用进程内存页的保护属性), the mapping field of an anonymous page cannot point
  * directly to a vma: instead it points to an anon_vma, on whose list
  * the related vmas can be easily linked or unlinked.
  *

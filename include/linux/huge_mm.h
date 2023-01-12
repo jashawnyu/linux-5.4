@@ -81,7 +81,7 @@ extern struct kobj_attribute shmem_enabled_attr;
 #ifdef CONFIG_TRANSPARENT_HUGEPAGE
 #define HPAGE_PMD_SHIFT PMD_SHIFT //21
 #define HPAGE_PMD_SIZE	((1UL) << HPAGE_PMD_SHIFT) //1<<21
-#define HPAGE_PMD_MASK	(~(HPAGE_PMD_SIZE - 1)) //0x001f ffff
+#define HPAGE_PMD_MASK	(~(HPAGE_PMD_SIZE - 1)) //0x001fffff
 
 #define HPAGE_PUD_SHIFT PUD_SHIFT
 #define HPAGE_PUD_SIZE	((1UL) << HPAGE_PUD_SHIFT)

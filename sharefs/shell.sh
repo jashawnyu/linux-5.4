@@ -1,3 +1,4 @@
 #!/bin/bash
 
-echo "hello, world!"
+mkdir /lib
+cp lib* ld* /lib

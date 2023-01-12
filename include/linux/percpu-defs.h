@@ -214,7 +214,7 @@
  *
  * + 0 is required in order to convert the pointer type from a
  * potential array type to a pointer to a single item of the array.
- */
+ *//*如果指针的类型是指向固定对象数组的指针，__verify_pcpu_ptr()将导致编译失败*/
 #define __verify_pcpu_ptr(ptr)						\
 do {									\
 	const void __percpu *__vpp_verify = (typeof((ptr) + 0))NULL;	\

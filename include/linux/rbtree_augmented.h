@@ -69,6 +69,7 @@ rb_insert_augmented_cached(struct rb_node *node,
  * RBFIELD:     name of struct rb_node field within RBSTRUCT
  * RBAUGMENTED: name of field within RBSTRUCT holding data for subtree
  * RBCOMPUTE:   name of function that recomputes the RBAUGMENTED data
+ * propagate(散播)
  */
 
 #define RB_DECLARE_CALLBACKS(RBSTATIC, RBNAME,				\
@@ -162,7 +163,7 @@ static inline void rb_set_parent(struct rb_node *rb, struct rb_node *p)
 static inline void rb_set_parent_color(struct rb_node *rb,
 				       struct rb_node *p, int color)
 {
-	rb->__rb_parent_color = (unsigned long)p | color;
+	rb->__rb_parent_color = (unsigned long)p | color;//由rb节点的父节点p的地址和rb节点的颜色组成
 }
 
 static inline void
@@ -203,31 +204,31 @@ __rb_erase_augmented(struct rb_node *node, struct rb_root *root,
 	struct rb_node *parent, *rebalance;
 	unsigned long pc;
 
-	if (!tmp) {
+	if (!tmp) {//待删除节点无左子树
 		/*
 		 * Case 1: node to erase has no more than 1 child (easy!)
 		 *
 		 * Note that if there is one child it must be red due to 5)
 		 * and node must be black due to 4). We adjust colors locally
-		 * so as to bypass __rb_erase_color() later on.
+		 * so as to bypass(避开) __rb_erase_color() later on.
 		 */
 		pc = node->__rb_parent_color;
 		parent = __rb_parent(pc);
-		__rb_change_child(node, child, parent, root);
-		if (child) {
+		__rb_change_child(node, child, parent, root);//child去取代node节点
+		if (child) {//待删除节点有右子树
 			child->__rb_parent_color = pc;
 			rebalance = NULL;
 		} else
-			rebalance = __rb_is_black(pc) ? parent : NULL;
+			rebalance = __rb_is_black(pc) ? parent : NULL; //1为黑色
 		tmp = parent;
-	} else if (!child) {
+	} else if (!child) {//待删除节点无右子树
 		/* Still case 1, but this time the child is node->rb_left */
 		tmp->__rb_parent_color = pc = node->__rb_parent_color;
 		parent = __rb_parent(pc);
 		__rb_change_child(node, tmp, parent, root);
 		rebalance = NULL;
 		tmp = parent;
-	} else {
+	} else {//待删除节点有左右子树
 		struct rb_node *successor = child, *child2;
 
 		tmp = child->rb_left;

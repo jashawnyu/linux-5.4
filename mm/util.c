@@ -269,26 +269,26 @@ void *memdup_user_nul(const void __user *src, size_t len)
 	return p;
 }
 EXPORT_SYMBOL(memdup_user_nul);
-
+//prev->next可以作为vma的后继节点，通过rb_parent红黑树得到的vm_area_struct也能作为vma后继节点，前者优先级更高
 void __vma_link_list(struct mm_struct *mm, struct vm_area_struct *vma,
-		struct vm_area_struct *prev, struct rb_node *rb_parent)
+		struct vm_area_struct *prev, struct rb_node *rb_parent) //参数来自find_vma_links()的处理结果
 {
 	struct vm_area_struct *next;
 
-	vma->vm_prev = prev;
-	if (prev) {
-		next = prev->vm_next;
-		prev->vm_next = vma;
-	} else {
-		mm->mmap = vma;
-		if (rb_parent)
-			next = rb_entry(rb_parent,
+	vma->vm_prev = prev;//将vma的前驱设为prev
+	if (prev) {//判断prev是否存在
+		next = prev->vm_next; //先保存vm_next到局部指针变量next
+		prev->vm_next = vma; //将vma设置为prev的后继
+	} else {//如果传入的参数prev为NULL，那么链表是空的，vma就是第一个节点
+		mm->mmap = vma; //把链表的首节点的引用保存到mm->mmap,通过这个指针就能找到vma链表
+		if (rb_parent)//如果这个要插入的叶子节点和它的祖先节点都是左节点，那么prev就为NULL，明显没有前继节点，所以vma->vm_prev=NULL,rb_parent=NULL
+			next = rb_entry(rb_parent, //如果插入节点是左节点,但是它的祖先节点存在右边节点，那离它最近的这个祖先节点代表的链表节点就是这个vma的在链表中的前继
 					struct vm_area_struct, vm_rb);
 		else
 			next = NULL;
 	}
-	vma->vm_next = next;
-	if (next)
+	vma->vm_next = next; //可以看到把vma插到prev的后面
+	if (next) //如果next存在，那么设置它的前驱节点为vma
 		next->vm_prev = vma;
 }
 
@@ -748,7 +748,7 @@ unsigned long vm_commit_limit(void)
 {
 	unsigned long allowed;
 
-	if (sysctl_overcommit_kbytes)
+	if (sysctl_overcommit_kbytes) //0
 		allowed = sysctl_overcommit_kbytes >> (PAGE_SHIFT - 10);
 	else
 		allowed = ((totalram_pages() - hugetlb_total_pages())
@@ -792,21 +792,21 @@ EXPORT_SYMBOL_GPL(vm_memory_committed);
  * cap_sys_admin is 1 if the process has admin privileges, 0 otherwise.
  *
  * Note this is a helper function intended to be used by LSMs which
- * wish to use this logic.
+ * wish to use this logic.(注意，这是一个帮助函数，旨在供希望使用此逻辑的lsm使用)
  */
 int __vm_enough_memory(struct mm_struct *mm, long pages, int cap_sys_admin)
 {
 	long allowed;
-
+  //vm_committed_as.count=1009, vm_committed_as_batch=488
 	VM_WARN_ONCE(percpu_counter_read(&vm_committed_as) <
 			-(s64)vm_committed_as_batch * num_online_cpus(),
-			"memory commitment underflow");
+			"memory commitment underflow"); //0
 
 	vm_acct_memory(pages);
 
 	/*
 	 * Sometimes we want to use more memory than we have
-	 */
+	 *//*用户可以通过文件“/proc/sys/vm/overcommit_memory”修改策略*/
   //如果使用总是允许过量提交的策略，那么允许创建新的内存映射
 	if (sysctl_overcommit_memory == OVERCOMMIT_ALWAYS)
 		return 0;
@@ -839,12 +839,12 @@ int __vm_enough_memory(struct mm_struct *mm, long pages, int cap_sys_admin)
 		allowed -= min_t(long, mm->total_vm / 32, reserve);
 	}
 
-  /* vm_committed_as是所有进程提交的虚拟内存的总和，如果它小于allowed，那么
+  /* vm_committed_as是所有进程提交(不等于申请)的虚拟内存的总和，如果它小于allowed，那么
 允许创建新的内存映射*/
 	if (percpu_counter_read_positive(&vm_committed_as) < allowed)
 		return 0;
 error:
-	vm_unacct_memory(pages);
+	vm_unacct_memory(pages); 
 
 	return -ENOMEM;
 }
