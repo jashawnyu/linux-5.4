@@ -295,7 +295,7 @@ unsigned long read_word_at_a_time(const void *addr)
  * Force the compiler to emit 'sym' as a symbol, so that we can reference
  * it from inline assembler. Necessary in case 'sym' could be inlined
  * otherwise, or eliminated entirely due to lack of references that are
- * visible to the compiler.
+ * visible to the compiler.标记为attribute__((used))的函数被标记在目标文件中，以避免链接器删除未使用的节
  */
 #define __ADDRESSABLE(sym) \
 	static void * __section(.discard.addressable) __used \

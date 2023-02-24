@@ -366,7 +366,7 @@ struct module {
 	unsigned int num_syms;
 
 	/* Kernel parameters. */
-#ifdef CONFIG_SYSFS
+#ifdef CONFIG_SYSFS //1
 	struct mutex param_lock;
 #endif
 	struct kernel_param *kp;
@@ -377,7 +377,7 @@ struct module {
 	const struct kernel_symbol *gpl_syms;
 	const s32 *gpl_crcs;
 
-#ifdef CONFIG_UNUSED_SYMBOLS
+#ifdef CONFIG_UNUSED_SYMBOLS //0
 	/* unused exported symbols. */
 	const struct kernel_symbol *unused_syms;
 	const s32 *unused_crcs;
@@ -389,7 +389,7 @@ struct module {
 	const s32 *unused_gpl_crcs;
 #endif
 
-#ifdef CONFIG_MODULE_SIG
+#ifdef CONFIG_MODULE_SIG //0
 	/* Signature was verified. */
 	bool sig_ok;
 #endif
@@ -417,14 +417,14 @@ struct module {
 
 	unsigned long taints;	/* same bits as kernel:taint_flags */
 
-#ifdef CONFIG_GENERIC_BUG
+#ifdef CONFIG_GENERIC_BUG //1
 	/* Support for BUG */
 	unsigned num_bugs;
 	struct list_head bug_list;
 	struct bug_entry *bug_table;
 #endif
 
-#ifdef CONFIG_KALLSYMS
+#ifdef CONFIG_KALLSYMS //1
 	/* Protected by RCU and/or module_mutex: use rcu_dereference() */
 	struct mod_kallsyms *kallsyms;
 	struct mod_kallsyms core_kallsyms;
@@ -440,44 +440,44 @@ struct module {
 	   keeping pointers to this stuff */
 	char *args;
 
-#ifdef CONFIG_SMP
+#ifdef CONFIG_SMP //1
 	/* Per-cpu data. */
 	void __percpu *percpu;
 	unsigned int percpu_size;
 #endif
 
-#ifdef CONFIG_TRACEPOINTS
+#ifdef CONFIG_TRACEPOINTS //1
 	unsigned int num_tracepoints;
 	tracepoint_ptr_t *tracepoints_ptrs;
 #endif
-#ifdef CONFIG_TREE_SRCU
+#ifdef CONFIG_TREE_SRCU //1
 	unsigned int num_srcu_structs;
 	struct srcu_struct **srcu_struct_ptrs;
 #endif
-#ifdef CONFIG_BPF_EVENTS
+#ifdef CONFIG_BPF_EVENTS //0
 	unsigned int num_bpf_raw_events;
 	struct bpf_raw_event_map *bpf_raw_events;
 #endif
-#ifdef CONFIG_JUMP_LABEL
+#ifdef CONFIG_JUMP_LABEL //1
 	struct jump_entry *jump_entries;
 	unsigned int num_jump_entries;
 #endif
-#ifdef CONFIG_TRACING
+#ifdef CONFIG_TRACING //1
 	unsigned int num_trace_bprintk_fmt;
 	const char **trace_bprintk_fmt_start;
 #endif
-#ifdef CONFIG_EVENT_TRACING
+#ifdef CONFIG_EVENT_TRACING //1
 	struct trace_event_call **trace_events;
 	unsigned int num_trace_events;
 	struct trace_eval_map **trace_evals;
 	unsigned int num_trace_evals;
 #endif
-#ifdef CONFIG_FTRACE_MCOUNT_RECORD
+#ifdef CONFIG_FTRACE_MCOUNT_RECORD //1
 	unsigned int num_ftrace_callsites;
 	unsigned long *ftrace_callsites;
 #endif
 
-#ifdef CONFIG_LIVEPATCH
+#ifdef CONFIG_LIVEPATCH //0
 	bool klp; /* Is this a livepatch module? */
 	bool klp_alive;
 
@@ -485,7 +485,7 @@ struct module {
 	struct klp_modinfo *klp_info;
 #endif
 
-#ifdef CONFIG_MODULE_UNLOAD
+#ifdef CONFIG_MODULE_UNLOAD //0
 	/* What modules depend on me? */
 	struct list_head source_list;
 	/* What modules do I depend on? */
@@ -497,13 +497,13 @@ struct module {
 	atomic_t refcnt;
 #endif
 
-#ifdef CONFIG_CONSTRUCTORS
+#ifdef CONFIG_CONSTRUCTORS //0
 	/* Constructor functions. */
 	ctor_fn_t *ctors;
 	unsigned int num_ctors;
 #endif
 
-#ifdef CONFIG_FUNCTION_ERROR_INJECTION
+#ifdef CONFIG_FUNCTION_ERROR_INJECTION //0
 	struct error_injection_entry *ei_funcs;
 	unsigned int num_ei_funcs;
 #endif
