@@ -308,7 +308,7 @@ static void __init fdt_enforce_memory_region(void)
 // 在内核初始化的过程中需要分配内存，内核提供了临时的引导内存分配器, ARM64内核初始化memblock分配器
 void __init arm64_memblock_init(void)
 {
-	const s64 linear_region_size = BIT(vabits_actual - 1);
+	const s64 linear_region_size = BIT(vabits_actual - 1);//UL(1)<<47,Linear area(线性区域)的长度是内核虚拟地址空间的一半(128T)
 
 	/* Handle linux,usable-memory-range property */
   //解析设备树二进制文件中的节点“/memory”，把所有物理内存范围添加到memblock. memory , 涉及到设备树的解析暂不分析

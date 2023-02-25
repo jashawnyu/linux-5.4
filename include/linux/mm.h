@@ -213,7 +213,7 @@ extern int overcommit_kbytes_handler(struct ctl_table *, int, void __user *,
 #define nth_page(page,n) pfn_to_page(page_to_pfn((page)) + (n))
 
 /* to align the pointer to the (next) page boundary */
-#define PAGE_ALIGN(addr) ALIGN(addr, PAGE_SIZE)
+#define PAGE_ALIGN(addr) ALIGN(addr, PAGE_SIZE) /(,4096) =4K
 
 /* test whether an address (unsigned long or pointer) is aligned to PAGE_SIZE */
 #define PAGE_ALIGNED(addr)	IS_ALIGNED((unsigned long)(addr), PAGE_SIZE)

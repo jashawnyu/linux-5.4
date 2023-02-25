@@ -262,7 +262,7 @@
  *   gcc: https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#index-used-function-attribute
  *   gcc: https://gcc.gnu.org/onlinedocs/gcc/Common-Variable-Attributes.html#index-used-variable-attribute
  */
-#define __used                          __attribute__((__used__))
+#define __used                          __attribute__((__used__)) //标记为attribute__((used))的函数被标记在目标文件中，以避免链接器删除未使用的节
 
 /*
  *   gcc: https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#index-weak-function-attribute

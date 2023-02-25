@@ -18,7 +18,7 @@ extern struct module __this_module;
 #define THIS_MODULE ((struct module *)0)
 #endif
 
-#ifdef CONFIG_MODVERSIONS
+#ifdef CONFIG_MODVERSIONS //0
 /* Mark the CRC weak since genksyms apparently decides not to
  * generate a checksums for some symbols */
 #if defined(CONFIG_MODULE_REL_CRCS)
@@ -38,7 +38,7 @@ extern struct module __this_module;
 #define __CRC_SYMBOL(sym, sec)
 #endif
 
-#ifdef CONFIG_HAVE_ARCH_PREL32_RELOCATIONS
+#ifdef CONFIG_HAVE_ARCH_PREL32_RELOCATIONS //1
 #include <linux/compiler.h>
 /*
  * Emit the ksymtab entry as a pair of relative references: this reduces
@@ -71,7 +71,7 @@ struct kernel_symbol {
 	int name_offset;
 	int namespace_offset;
 };
-#else
+#else //0
 #define __KSYMTAB_ENTRY_NS(sym, sec)					\
 	static const struct kernel_symbol __ksymtab_##sym		\
 	__attribute__((section("___ksymtab" sec "+" #sym), used))	\
@@ -91,12 +91,12 @@ struct kernel_symbol {
 };
 #endif
 
-#ifdef __GENKSYMS__
+#ifdef __GENKSYMS__  //0
 
 #define ___EXPORT_SYMBOL(sym,sec)	__GENKSYMS_EXPORT_SYMBOL(sym)
 #define ___EXPORT_SYMBOL_NS(sym,sec,ns)	__GENKSYMS_EXPORT_SYMBOL(sym)
 
-#else
+#else //1
 
 #define ___export_symbol_common(sym, sec)				\
 	extern typeof(sym) sym;						\
@@ -129,7 +129,7 @@ struct kernel_symbol {
 #define __EXPORT_SYMBOL_NS(sym, sec, ns)
 #define __EXPORT_SYMBOL(sym, sec)
 
-#elif defined(CONFIG_TRIM_UNUSED_KSYMS)
+#elif defined(CONFIG_TRIM_UNUSED_KSYMS) //0
 
 #include <generated/autoksyms.h>
 
@@ -163,7 +163,7 @@ struct kernel_symbol {
 #define __cond_export_ns_sym_1(sym, sec, ns) ___EXPORT_SYMBOL_NS(sym, sec, ns)
 #define __cond_export_ns_sym_0(sym, sec, ns) /* nothing */
 
-#else
+#else //1
 
 #define __EXPORT_SYMBOL_NS(sym,sec,ns)	___EXPORT_SYMBOL_NS(sym,sec,ns)
 #define __EXPORT_SYMBOL(sym,sec)	___EXPORT_SYMBOL(sym,sec)

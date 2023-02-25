@@ -39,7 +39,7 @@ extern const u8 kallsyms_names[] __weak;
  * has one (eg: FRV).
  */
 extern const unsigned int kallsyms_num_syms
-__attribute__((weak, section(".rodata")));
+__attribute__((weak, section(".rodata"))); //defined at .tmp_kallsyms1.S
 
 extern const unsigned long kallsyms_relative_base
 __attribute__((weak, section(".rodata")));
@@ -75,6 +75,10 @@ static unsigned int kallsyms_expand_symbol(unsigned int off,
 	 * For every byte on the compressed symbol data, copy the table
 	 * entry for that byte.
 	 */
+//下面这句话乍看有点费解。前面我们介绍过，为了提高查询速度，我们将常用的字符串存储在kallsyms_token_table中，kallsyms_token_index记录每个ascii字符的替代串在kallsyms_token_table中的偏移
+//比如我们需要查找的符号信息是 0x03, 0xbe, 0xbc, 0x71其中3代表了符号的长度，而后面紧跟的三个字节就是符号的内容了。我们需要知道be究竟代表的是什么串。我们首先需要通过
+//kallsyms_token_index[0xbe]查到0xbe所对应的串在kallsyms_token_table中的索引，然后将该串的首地址赋给tptr。从表1中我们查到0xbe（190）所对应的串为 "t.text.lock."其中第一个字母t代表了符号的类型
+//然后data指向下一个要解析的字节0xbc
 	while (len) {
 		tptr = &kallsyms_token_table[kallsyms_token_index[*data]];
 		data++;
@@ -285,7 +289,7 @@ const char *kallsyms_lookup(unsigned long addr,
 {
 	const char *ret;
 
-	namebuf[KSYM_NAME_LEN - 1] = 0;
+	namebuf[KSYM_NAME_LEN - 1] = 0; //[128-1]
 	namebuf[0] = 0;
 
 	if (is_ksym_addr(addr)) {
