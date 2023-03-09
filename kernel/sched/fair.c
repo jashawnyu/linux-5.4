@@ -733,7 +733,7 @@ static int select_idle_sibling(struct task_struct *p, int prev_cpu, int cpu);
 static unsigned long task_h_load(struct task_struct *p);
 static unsigned long capacity_of(int cpu);
 
-/* Give new sched_entity start runnable values to heavy its load in infant time */
+/* Give new sched_entity start runnable values to heavy its load in infant(初始) time */
 void init_entity_runnable_average(struct sched_entity *se)
 {
 	struct sched_avg *sa = &se->avg;
@@ -2867,7 +2867,7 @@ dequeue_runnable_load_avg(struct cfs_rq *cfs_rq, struct sched_entity *se)
 static inline void
 enqueue_load_avg(struct cfs_rq *cfs_rq, struct sched_entity *se)
 {
-	cfs_rq->avg.load_avg += se->avg.load_avg;
+	cfs_rq->avg.load_avg += se->avg.load_avg; //系统第一次调用这个函数,cfs_rq->avg.load_avg = 0,se->avg.load_avg=0x400=1024
 	cfs_rq->avg.load_sum += se_weight(se) * se->avg.load_sum;
 }
 
@@ -2934,11 +2934,11 @@ void reweight_task(struct task_struct *p, int prio)
 #ifdef CONFIG_FAIR_GROUP_SCHED
 #ifdef CONFIG_SMP
 /*
- * All this does is approximate the hierarchical proportion which includes that
- * global sum we all love to hate.
- *
+ * All this does is approximate the hierarchical proportion(等级比例) which includes that
+ * global sum we all love to hate(爱恨).
+ * (也就是说，组实体的权重是基于组运行队列权重的组权重的比例份额)
  * That is, the weight of a group entity, is the proportional share of the
- * group weight based on the group runqueue weights. That is:
+ * group weight based on the group runqueue weights(). That is:
  *
  *                     tg->weight * grq->load.weight
  *   ge->load.weight = -----------------------------               (1)
@@ -2949,7 +2949,7 @@ void reweight_task(struct task_struct *p, int prio)
  * moves slower and therefore the approximation is cheaper and more stable.
  *
  * So instead of the above, we substitute:
- *
+ * grq的权重和平均负载为什么能近似呢
  *   grq->load.weight -> grq->avg.load_avg                         (2)
  *
  * which yields the following:
@@ -2967,7 +2967,7 @@ void reweight_task(struct task_struct *p, int prio)
  * conditions. In specific, the case where the group was idle and we start the
  * one task. It takes time for our CPU's grq->avg.load_avg to build up,
  * yielding bad latency etc..
- *
+ * ge  : task group per-cpu sched_entity ;grp : task group per-cpu cfs_rq
  * Now, in that special case (1) reduces to:
  *
  *                     tg->weight * grq->load.weight
@@ -3012,14 +3012,14 @@ static long calc_group_shares(struct cfs_rq *cfs_rq)
 	struct task_group *tg = cfs_rq->tg;
 
 	tg_shares = READ_ONCE(tg->shares);
-
+  //当空闲group开始运行一个进程的时候。 我们的CPU的grq->avg.load_avg需要花费时间来慢慢变化，产生不良的延迟
 	load = max(scale_load_down(cfs_rq->load.weight), cfs_rq->avg.load_avg);
 
 	tg_weight = atomic_long_read(&tg->load_avg);
 
 	/* Ensure tg_weight >= load */
-	tg_weight -= cfs_rq->tg_load_avg_contrib;
-	tg_weight += load;
+	tg_weight -= cfs_rq->tg_load_avg_contrib;//在update_load_avg()中可以被更新,然后update_cfs_group()->calc_group_shares()
+	tg_weight += load; //cfs_rq->tg_load_avg_contrib = cfs_rq->avg.load_avg;
 
 	shares = (tg_shares * load);
 	if (tg_weight)
@@ -3107,7 +3107,7 @@ static void update_cfs_group(struct sched_entity *se)
 
 	if (likely(se->load.weight == shares))
 		return;
-#else
+#else //1
 	shares   = calc_group_shares(gcfs_rq);
 	runnable = calc_group_runnable(gcfs_rq, shares);
 #endif
@@ -3156,12 +3156,12 @@ static inline void cfs_rq_util_change(struct cfs_rq *cfs_rq, int flags)
  * considerations.
  *
  * In order to avoid having to look at the other cfs_rq's, we use a
- * differential update where we store the last value we propagated. This in
+ * differential update where we store the last value we propagated(传播). This in
  * turn allows skipping updates if the differential is 'small'.
  *
  * Updating tg's load_avg is necessary before update_cfs_share().
  */
-static inline void update_tg_load_avg(struct cfs_rq *cfs_rq, int force)
+static inline void update_tg_load_avg(struct cfs_rq *cfs_rq, int force) //force一般为0
 {
 	long delta = cfs_rq->avg.load_avg - cfs_rq->tg_load_avg_contrib;
 
@@ -3337,7 +3337,7 @@ update_tg_cfs_runnable(struct cfs_rq *cfs_rq, struct sched_entity *se, struct cf
 	if (runnable_sum >= 0) {
 		/*
 		 * Add runnable; clip at LOAD_AVG_MAX. Reflects that until
-		 * the CPU is saturated running == runnable.
+		 * the CPU is saturated(饱和的) running == runnable.
 		 */
 		runnable_sum += se->avg.load_sum;
 		runnable_sum = min(runnable_sum, (long)LOAD_AVG_MAX);
@@ -3600,7 +3600,7 @@ static void detach_entity_load_avg(struct cfs_rq *cfs_rq, struct sched_entity *s
  * Optional action to be done while updating the load average
  */
 #define UPDATE_TG	0x1
-#define SKIP_AGE_LOAD	0x2
+#define SKIP_AGE_LOAD	0x2 //忽略load tracing的flag
 #define DO_ATTACH	0x4
 
 /* Update task and its cfs_rq load average */
@@ -3617,7 +3617,7 @@ static inline void update_load_avg(struct cfs_rq *cfs_rq, struct sched_entity *s
 	 * Track task load average for carrying it to new CPU after migrated, and
 	 * track group sched_entity load average for task_h_load calc in migration
 	 */
-	if (se->avg.last_update_time && !(flags & SKIP_AGE_LOAD))
+	if (se->avg.last_update_time && !(flags & SKIP_AGE_LOAD))//取决于SCHED_FEAT(ATTACH_AGE_LOAD, true)
     //更新调度实体se的负载信息
 		__update_load_avg_se(now, cfs_rq, se);
 
@@ -5273,7 +5273,7 @@ enqueue_task_fair(struct rq *rq, struct task_struct *p, int flags)
     /* on_rq成员代表调度实体是否已经在就绪队列中。值为1代表在就绪队列中，当然就不需要继续添加就绪队列了 */
 		if (se->on_rq)
 			break;
-		cfs_rq = cfs_rq_of(se);
+		cfs_rq = cfs_rq_of(se); //得到调度实体所在的cfs_rq 队列
 		enqueue_entity(cfs_rq, se, flags);
 
 		/*
@@ -10161,7 +10161,7 @@ static void attach_entity_cfs_rq(struct sched_entity *se)
 #endif
 
 	/* Synchronize entity with its cfs_rq */
-	update_load_avg(cfs_rq, se, sched_feat(ATTACH_AGE_LOAD) ? 0 : SKIP_AGE_LOAD);
+	update_load_avg(cfs_rq, se, sched_feat(ATTACH_AGE_LOAD) ? 0 : SKIP_AGE_LOAD); //sched_feat macro在sched/features.h中定义,所以第三个参数为0
 	attach_entity_load_avg(cfs_rq, se, 0);
 	update_tg_load_avg(cfs_rq, false);
 	propagate_entity_cfs_rq(se);

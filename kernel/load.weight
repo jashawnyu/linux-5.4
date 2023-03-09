@@ -1,0 +1,639 @@
+sched/pelt.h:	if (unlikely(cfs_rq->throttle_count))
+sched/pelt.h:		return cfs_rq->throttled_clock_task - cfs_rq->throttled_clock_task_time;
+sched/pelt.h:	return rq_clock_pelt(rq_of(cfs_rq)) - cfs_rq->throttled_clock_task_time;
+sched/debug.c:	SEQ_printf(m, "cfs_rq[%d]:%s\n", cpu, task_group_path(cfs_rq->tg));
+sched/debug.c:			SPLIT_NS(cfs_rq->exec_clock));
+sched/debug.c:	if (rb_first_cached(&cfs_rq->tasks_timeline))
+sched/debug.c:	min_vruntime = cfs_rq->min_vruntime;
+sched/debug.c:			cfs_rq->nr_spread_over);
+sched/debug.c:	SEQ_printf(m, "  .%-30s: %d\n", "nr_running", cfs_rq->nr_running);
+sched/debug.c:	SEQ_printf(m, "  .%-30s: %ld\n", "load", cfs_rq->load.weight);
+sched/debug.c:	SEQ_printf(m, "  .%-30s: %ld\n", "runnable_weight", cfs_rq->runnable_weight);
+sched/debug.c:			cfs_rq->avg.load_avg);
+sched/debug.c:			cfs_rq->avg.runnable_load_avg);
+sched/debug.c:			cfs_rq->avg.util_avg);
+sched/debug.c:			cfs_rq->avg.util_est.enqueued);
+sched/debug.c:			cfs_rq->removed.load_avg);
+sched/debug.c:			cfs_rq->removed.util_avg);
+sched/debug.c:			cfs_rq->removed.runnable_sum);
+sched/debug.c:			cfs_rq->tg_load_avg_contrib);
+sched/debug.c:			atomic_long_read(&cfs_rq->tg->load_avg));
+sched/debug.c:			cfs_rq->throttled);
+sched/debug.c:			cfs_rq->throttle_count);
+sched/debug.c:	print_cfs_group_stats(m, cpu, cfs_rq->tg);
+sched/sched.h:  /*虽然自己是unthrottle状态，但是parent cfs_rq是throttle状态，自己也是没办法运行的。所以throttled_clock_task_time统计的是cfs_rq->throttle_count从非零变成0经历的时间总和*/
+sched/sched.h:	return cfs_rq->rq;
+sched/pelt.c:	if (load) // 这里的load可能为cfs_rq->load.weight, rq 下所有 se 的 weight 之和 , 参考account_entity_enqueue
+sched/pelt.c:	 * se has been already dequeued but cfs_rq->curr still points to it.
+sched/pelt.c:	sa->load_avg = div_u64(load * sa->load_sum, divider); //同样这里的load可能为1，也可能为cfs_rq->load.weight,取决于context
+sched/pelt.c:				cfs_rq->curr == se)) { //return 1(periods>0) if update sucessful
+sched/pelt.c:	if (___update_load_sum(now, &cfs_rq->avg,
+sched/pelt.c:				scale_load_down(cfs_rq->load.weight),
+sched/pelt.c:				scale_load_down(cfs_rq->runnable_weight),
+sched/pelt.c:				cfs_rq->curr != NULL)) {
+sched/pelt.c:		___update_load_avg(&cfs_rq->avg, 1, 1);
+sched/fair.c:	if (cfs_rq && task_group_is_autogroup(cfs_rq->tg))
+sched/fair.c:		autogroup_path(cfs_rq->tg, path, len);
+sched/fair.c:	else if (cfs_rq && cfs_rq->tg->css.cgroup)
+sched/fair.c:		cgroup_path(cfs_rq->tg->css.cgroup, path, len);
+sched/fair.c:	if (cfs_rq->on_list)
+sched/fair.c:	cfs_rq->on_list = 1;
+sched/fair.c:	if (cfs_rq->tg->parent &&
+sched/fair.c:	    cfs_rq->tg->parent->cfs_rq[cpu]->on_list) {
+sched/fair.c:		list_add_tail_rcu(&cfs_rq->leaf_cfs_rq_list,
+sched/fair.c:			&(cfs_rq->tg->parent->cfs_rq[cpu]->leaf_cfs_rq_list));
+sched/fair.c:	if (!cfs_rq->tg->parent) {
+sched/fair.c:		list_add_tail_rcu(&cfs_rq->leaf_cfs_rq_list,
+sched/fair.c:	list_add_rcu(&cfs_rq->leaf_cfs_rq_list, rq->tmp_alone_branch);
+sched/fair.c:	rq->tmp_alone_branch = &cfs_rq->leaf_cfs_rq_list;
+sched/fair.c:	if (cfs_rq->on_list) {
+sched/fair.c:		if (rq->tmp_alone_branch == &cfs_rq->leaf_cfs_rq_list)
+sched/fair.c:			rq->tmp_alone_branch = cfs_rq->leaf_cfs_rq_list.prev;
+sched/fair.c:		list_del_rcu(&cfs_rq->leaf_cfs_rq_list);
+sched/fair.c:		cfs_rq->on_list = 0;
+sched/fair.c:	struct sched_entity *curr = cfs_rq->curr;
+sched/fair.c:	struct rb_node *leftmost = rb_first_cached(&cfs_rq->tasks_timeline);
+sched/fair.c:	u64 vruntime = cfs_rq->min_vruntime;
+sched/fair.c:	cfs_rq->min_vruntime = max_vruntime(cfs_rq->min_vruntime, vruntime);
+sched/fair.c:	cfs_rq->min_vruntime_copy = cfs_rq->min_vruntime;
+sched/fair.c:	struct rb_node **link = &cfs_rq->tasks_timeline.rb_root.rb_node;
+sched/fair.c:			       &cfs_rq->tasks_timeline, leftmost);
+sched/fair.c:	rb_erase_cached(&se->run_node, &cfs_rq->tasks_timeline);
+sched/fair.c:	struct rb_node *left = rb_first_cached(&cfs_rq->tasks_timeline);
+sched/fair.c:	struct rb_node *last = rb_last(&cfs_rq->tasks_timeline.rb_root);
+sched/fair.c:	u64 slice = __sched_period(cfs_rq->nr_running + !se->on_rq);
+sched/fair.c:		load = &cfs_rq->load;
+sched/fair.c:			lw = cfs_rq->load;
+sched/fair.c: *   util_avg = cfs_rq->util_avg / (cfs_rq->load_avg + 1) * se.load.weight
+sched/fair.c: *   util_avg_cap = (cpu_scale - cfs_rq->avg.util_avg) / 2^n
+sched/fair.c:	long cap = (long)(cpu_scale - cfs_rq->avg.util_avg) / 2;
+sched/fair.c:		if (cfs_rq->avg.util_avg != 0) {
+sched/fair.c:			sa->util_avg  = cfs_rq->avg.util_avg * se->load.weight;
+sched/fair.c:			sa->util_avg /= (cfs_rq->avg.load_avg + 1);
+sched/fair.c:	struct sched_entity *curr = cfs_rq->curr;
+sched/fair.c:	schedstat_add(cfs_rq->exec_clock, delta_exec);
+sched/fair.c:   * 1. 就绪队列本身的cfs_rq->min_vruntime成员
+sched/fair.c:	if (se != cfs_rq->curr)
+sched/fair.c:	if (se != cfs_rq->curr)
+sched/fair.c:	update_load_add(&cfs_rq->load, se->load.weight);
+sched/fair.c:	cfs_rq->nr_running++;
+sched/fair.c:	update_load_sub(&cfs_rq->load, se->load.weight);
+sched/fair.c:	cfs_rq->nr_running--;
+sched/fair.c:	cfs_rq->runnable_weight += se->runnable_weight;
+sched/fair.c:	cfs_rq->avg.runnable_load_avg += se->avg.runnable_load_avg;
+sched/fair.c:	cfs_rq->avg.runnable_load_sum += se_runnable(se) * se->avg.runnable_load_sum;
+sched/fair.c:	cfs_rq->runnable_weight -= se->runnable_weight;
+sched/fair.c:	sub_positive(&cfs_rq->avg.runnable_load_avg, se->avg.runnable_load_avg);
+sched/fair.c:	sub_positive(&cfs_rq->avg.runnable_load_sum,
+sched/fair.c:	cfs_rq->avg.load_avg += se->avg.load_avg; //系统第一次调用这个函数,cfs_rq->avg.load_avg = 0,se->avg.load_avg=0x400=1024
+sched/fair.c:	cfs_rq->avg.load_sum += se_weight(se) * se->avg.load_sum;
+sched/fair.c:	sub_positive(&cfs_rq->avg.load_avg, se->avg.load_avg);
+sched/fair.c:	sub_positive(&cfs_rq->avg.load_sum, se_weight(se) * se->avg.load_sum);
+sched/fair.c:		if (cfs_rq->curr == se)
+sched/fair.c:	struct task_group *tg = cfs_rq->tg;
+sched/fair.c:	load = max(scale_load_down(cfs_rq->load.weight), cfs_rq->avg.load_avg);
+sched/fair.c:	tg_weight -= cfs_rq->tg_load_avg_contrib;//在update_load_avg()中可以被更新,然后update_cfs_group()->calc_group_shares()
+sched/fair.c:	tg_weight += load; //cfs_rq->tg_load_avg_contrib = cfs_rq->avg.load_avg;
+sched/fair.c:	load_avg = max(cfs_rq->avg.load_avg,
+sched/fair.c:		       scale_load_down(cfs_rq->load.weight));
+sched/fair.c:	runnable = max(cfs_rq->avg.runnable_load_avg,
+sched/fair.c:		       scale_load_down(cfs_rq->runnable_weight));
+sched/fair.c:	runnable = shares = READ_ONCE(gcfs_rq->tg->shares);
+sched/fair.c:	long delta = cfs_rq->avg.load_avg - cfs_rq->tg_load_avg_contrib;
+sched/fair.c:	if (cfs_rq->tg == &root_task_group)
+sched/fair.c:	if (force || abs(delta) > cfs_rq->tg_load_avg_contrib / 64) {
+sched/fair.c:		atomic_long_add(delta, &cfs_rq->tg->load_avg);
+sched/fair.c:		cfs_rq->tg_load_avg_contrib = cfs_rq->avg.load_avg;
+sched/fair.c:	long delta = gcfs_rq->avg.util_avg - se->avg.util_avg;
+sched/fair.c:	se->avg.util_avg = gcfs_rq->avg.util_avg;
+sched/fair.c:	add_positive(&cfs_rq->avg.util_avg, delta);
+sched/fair.c:	cfs_rq->avg.util_sum = cfs_rq->avg.util_avg * LOAD_AVG_MAX;
+sched/fair.c:	long delta_avg, running_sum, runnable_sum = gcfs_rq->prop_runnable_sum;
+sched/fair.c:	gcfs_rq->prop_runnable_sum = 0;
+sched/fair.c:		if (scale_load_down(gcfs_rq->load.weight)) {
+sched/fair.c:			load_sum = div_s64(gcfs_rq->avg.load_sum,
+sched/fair.c:				scale_load_down(gcfs_rq->load.weight));
+sched/fair.c:	add_positive(&cfs_rq->avg.load_avg, delta_avg);
+sched/fair.c:	add_positive(&cfs_rq->avg.load_sum, delta_sum);
+sched/fair.c:		add_positive(&cfs_rq->avg.runnable_load_avg, delta_avg);
+sched/fair.c:		add_positive(&cfs_rq->avg.runnable_load_sum, delta_sum);
+sched/fair.c:	cfs_rq->propagate = 1;
+sched/fair.c:	cfs_rq->prop_runnable_sum += runnable_sum;
+sched/fair.c:	if (!gcfs_rq->propagate)
+sched/fair.c:	gcfs_rq->propagate = 0;
+sched/fair.c:	add_tg_cfs_propagate(cfs_rq, gcfs_rq->prop_runnable_sum);
+sched/fair.c:	if (gcfs_rq->propagate)
+sched/fair.c: * cfs_rq->avg is used for task_h_load() and update_cfs_share() for example.
+sched/fair.c: * Since both these conditions indicate a changed cfs_rq->avg.load we should
+sched/fair.c:	struct sched_avg *sa = &cfs_rq->avg;
+sched/fair.c:	if (cfs_rq->removed.nr) {
+sched/fair.c:		raw_spin_lock(&cfs_rq->removed.lock);
+sched/fair.c:		swap(cfs_rq->removed.util_avg, removed_util);
+sched/fair.c:		swap(cfs_rq->removed.load_avg, removed_load);
+sched/fair.c:		swap(cfs_rq->removed.runnable_sum, removed_runnable_sum);
+sched/fair.c:		cfs_rq->removed.nr = 0;
+sched/fair.c:		raw_spin_unlock(&cfs_rq->removed.lock);
+sched/fair.c:	cfs_rq->load_last_update_time_copy = sa->last_update_time;
+sched/fair.c: * cfs_rq->avg.last_update_time being current.
+sched/fair.c:	u32 divider = LOAD_AVG_MAX - 1024 + cfs_rq->avg.period_contrib;
+sched/fair.c:	se->avg.last_update_time = cfs_rq->avg.last_update_time;
+sched/fair.c:	se->avg.period_contrib = cfs_rq->avg.period_contrib;
+sched/fair.c:	cfs_rq->avg.util_avg += se->avg.util_avg;
+sched/fair.c:	cfs_rq->avg.util_sum += se->avg.util_sum;
+sched/fair.c: * cfs_rq->avg.last_update_time being current.
+sched/fair.c:	sub_positive(&cfs_rq->avg.util_avg, se->avg.util_avg);
+sched/fair.c:	sub_positive(&cfs_rq->avg.util_sum, se->avg.util_sum);
+sched/fair.c:		last_update_time_copy = cfs_rq->load_last_update_time_copy;
+sched/fair.c:		last_update_time = cfs_rq->avg.last_update_time;
+sched/fair.c:	return cfs_rq->avg.last_update_time;
+sched/fair.c:	raw_spin_lock_irqsave(&cfs_rq->removed.lock, flags);
+sched/fair.c:	++cfs_rq->removed.nr;
+sched/fair.c:	cfs_rq->removed.util_avg	+= se->avg.util_avg;
+sched/fair.c:	cfs_rq->removed.load_avg	+= se->avg.load_avg;
+sched/fair.c:	cfs_rq->removed.runnable_sum	+= se->avg.load_sum; /* == runnable_sum */
+sched/fair.c:	raw_spin_unlock_irqrestore(&cfs_rq->removed.lock, flags);
+sched/fair.c:	return cfs_rq->avg.runnable_load_avg;
+sched/fair.c:	return cfs_rq->avg.load_avg;
+sched/fair.c:	enqueued  = cfs_rq->avg.util_est.enqueued;
+sched/fair.c:	WRITE_ONCE(cfs_rq->avg.util_est.enqueued, enqueued);
+sched/fair.c:	ue.enqueued  = cfs_rq->avg.util_est.enqueued;
+sched/fair.c:	WRITE_ONCE(cfs_rq->avg.util_est.enqueued, ue.enqueued);
+sched/fair.c:	s64 d = se->vruntime - cfs_rq->min_vruntime;
+sched/fair.c:		schedstat_inc(cfs_rq->nr_spread_over);
+sched/fair.c:	u64 vruntime = cfs_rq->min_vruntime;
+sched/fair.c:	bool curr = cfs_rq->curr == se;
+sched/fair.c:		se->vruntime += cfs_rq->min_vruntime;
+sched/fair.c:		se->vruntime += cfs_rq->min_vruntime;
+sched/fair.c:	 *   - Add its load to cfs_rq->runnable_avg
+sched/fair.c:	 *   - Add its new weight to cfs_rq->load.weight
+sched/fair.c:	if (cfs_rq->nr_running == 1) {
+sched/fair.c:		if (cfs_rq->last != se)
+sched/fair.c:		cfs_rq->last = NULL;
+sched/fair.c:		if (cfs_rq->next != se)
+sched/fair.c:		cfs_rq->next = NULL;
+sched/fair.c:		if (cfs_rq->skip != se)
+sched/fair.c:		cfs_rq->skip = NULL;
+sched/fair.c:	if (cfs_rq->last == se)
+sched/fair.c:	if (cfs_rq->next == se)
+sched/fair.c:	if (cfs_rq->skip == se)
+sched/fair.c:	 *   - Subtract its load from the cfs_rq->runnable_avg.
+sched/fair.c:	 *   - Subtract its previous weight from cfs_rq->load.weight.
+sched/fair.c:	if (se != cfs_rq->curr)
+sched/fair.c:		se->vruntime -= cfs_rq->min_vruntime;
+sched/fair.c:	cfs_rq->curr = se;
+sched/fair.c:	if (cfs_rq->skip == se) {
+sched/fair.c:	if (cfs_rq->last && wakeup_preempt_entity(cfs_rq->last, left) < 1)
+sched/fair.c:		se = cfs_rq->last;
+sched/fair.c:	if (cfs_rq->next && wakeup_preempt_entity(cfs_rq->next, left) < 1)
+sched/fair.c:		se = cfs_rq->next;
+sched/fair.c:	cfs_rq->curr = NULL;
+sched/fair.c:	if (cfs_rq->nr_running > 1)
+sched/fair.c:	struct task_group *tg = cfs_rq->tg;
+sched/fair.c:	min_amount = sched_cfs_bandwidth_slice() - cfs_rq->runtime_remaining;
+sched/fair.c:	cfs_rq->runtime_remaining += amount;
+sched/fair.c:	return cfs_rq->runtime_remaining > 0;
+sched/fair.c:	cfs_rq->runtime_remaining -= delta_exec;
+sched/fair.c:	if (likely(cfs_rq->runtime_remaining > 0))
+sched/fair.c:	if (cfs_rq->throttled)
+sched/fair.c:	if (!assign_cfs_rq_runtime(cfs_rq) && likely(cfs_rq->curr))
+sched/fair.c:	if (!cfs_bandwidth_used() || !cfs_rq->runtime_enabled)
+sched/fair.c:	return cfs_bandwidth_used() && cfs_rq->throttled;
+sched/fair.c:	return cfs_bandwidth_used() && cfs_rq->throttle_count;
+sched/fair.c:	cfs_rq->throttle_count--;
+sched/fair.c:	if (!cfs_rq->throttle_count) {
+sched/fair.c:		cfs_rq->throttled_clock_task_time += rq_clock_task(rq) -
+sched/fair.c:					     cfs_rq->throttled_clock_task;
+sched/fair.c:		if (cfs_rq->nr_running >= 1)
+sched/fair.c:	if (!cfs_rq->throttle_count) {
+sched/fair.c:		cfs_rq->throttled_clock_task = rq_clock_task(rq);
+sched/fair.c:	cfs_rq->throttle_count++;
+sched/fair.c:	struct cfs_bandwidth *cfs_b = tg_cfs_bandwidth(cfs_rq->tg);
+sched/fair.c:	se = cfs_rq->tg->se[cpu_of(rq_of(cfs_rq))];
+sched/fair.c:  /* task_group可以父子关系嵌套。walk_tg_tree_from()函数功能是顺着cfs_rq->tg往下便利每一个child task_group，并且对每个task_group调用tg_throttle_down()函数。tg_throttle_down()负责增加cfs_rq->throttle_count计数 */
+sched/fair.c:	walk_tg_tree_from(cfs_rq->tg, tg_throttle_down, tg_nop, (void *)rq);
+sched/fair.c:	task_delta = cfs_rq->h_nr_running;
+sched/fair.c:	idle_task_delta = cfs_rq->idle_h_nr_running;
+sched/fair.c:		qcfs_rq->h_nr_running -= task_delta;
+sched/fair.c:		qcfs_rq->idle_h_nr_running -= idle_task_delta;
+sched/fair.c:    /* 如果qcfs_rq运行的进程只有即将被dequeue的se一个的话，那么parent se也需要dequeue。如果qcfs_rq->load.weight不为0，说明qcfs_rq就绪队列上运行的进程不止se一个，那么parent se理所应当不能被dequeue */
+sched/fair.c:		if (qcfs_rq->load.weight)
+sched/fair.c:	cfs_rq->throttled = 1;
+sched/fair.c:	cfs_rq->throttled_clock = rq_clock(rq);
+sched/fair.c:		list_add_rcu(&cfs_rq->throttled_list, &cfs_b->throttled_cfs_rq);
+sched/fair.c:		list_add_tail_rcu(&cfs_rq->throttled_list, &cfs_b->throttled_cfs_rq);
+sched/fair.c:	struct cfs_bandwidth *cfs_b = tg_cfs_bandwidth(cfs_rq->tg);
+sched/fair.c:	se = cfs_rq->tg->se[cpu_of(rq)];
+sched/fair.c:	cfs_rq->throttled = 0;
+sched/fair.c:	cfs_b->throttled_time += rq_clock(rq) - cfs_rq->throttled_clock;
+sched/fair.c:	list_del_rcu(&cfs_rq->throttled_list);
+sched/fair.c:	walk_tg_tree_from(cfs_rq->tg, tg_nop, tg_unthrottle_up, (void *)rq);
+sched/fair.c:	if (!cfs_rq->load.weight)
+sched/fair.c:	task_delta = cfs_rq->h_nr_running;
+sched/fair.c:	idle_task_delta = cfs_rq->idle_h_nr_running;
+sched/fair.c:		cfs_rq->h_nr_running += task_delta;
+sched/fair.c:		cfs_rq->idle_h_nr_running += idle_task_delta;
+sched/fair.c:		SCHED_WARN_ON(cfs_rq->runtime_remaining > 0);
+sched/fair.c:		runtime = -cfs_rq->runtime_remaining + 1;
+sched/fair.c:		cfs_rq->runtime_remaining += runtime;
+sched/fair.c:    /* 如果从全局时间池借到的时间保证cfs_rq->runtime_remaining的值应该大于0，执行unthrottle操作 */
+sched/fair.c:		if (cfs_rq->runtime_remaining > 0)
+sched/fair.c:	struct cfs_bandwidth *cfs_b = tg_cfs_bandwidth(cfs_rq->tg);
+sched/fair.c:	s64 slack_runtime = cfs_rq->runtime_remaining - min_cfs_rq_runtime;
+sched/fair.c:	cfs_rq->runtime_remaining -= slack_runtime;
+sched/fair.c:	if (!cfs_rq->runtime_enabled || cfs_rq->nr_running)
+sched/fair.c:	if (!cfs_rq->runtime_enabled || cfs_rq->curr)
+sched/fair.c:	if (cfs_rq->runtime_remaining <= 0)
+sched/fair.c:	cfs_rq->throttle_count = pcfs_rq->throttle_count;
+sched/fair.c:	cfs_rq->throttled_clock_task = rq_clock_task(cpu_rq(cpu));
+sched/fair.c:	if (likely(!cfs_rq->runtime_enabled || cfs_rq->runtime_remaining > 0))
+sched/fair.c:	cfs_rq->runtime_enabled = 0;
+sched/fair.c:	INIT_LIST_HEAD(&cfs_rq->throttled_list);
+sched/fair.c:		cfs_rq->runtime_enabled = cfs_b->quota != RUNTIME_INF;
+sched/fair.c:		if (!cfs_rq->runtime_enabled)
+sched/fair.c:		cfs_rq->runtime_remaining = 1;
+sched/fair.c:		cfs_rq->runtime_enabled = 0;
+sched/fair.c:		cfs_rq->h_nr_running++;
+sched/fair.c:		cfs_rq->idle_h_nr_running += idle_h_nr_running;
+sched/fair.c:		cfs_rq->h_nr_running++;
+sched/fair.c:		cfs_rq->idle_h_nr_running += idle_h_nr_running;
+sched/fair.c:		cfs_rq->h_nr_running--;
+sched/fair.c:		cfs_rq->idle_h_nr_running -= idle_h_nr_running;
+sched/fair.c:		if (cfs_rq->load.weight) {
+sched/fair.c:		cfs_rq->h_nr_running--;
+sched/fair.c:		cfs_rq->idle_h_nr_running -= idle_h_nr_running;
+sched/fair.c:	util = READ_ONCE(cfs_rq->avg.util_avg);
+sched/fair.c:		util = max(util, READ_ONCE(cfs_rq->avg.util_est.enqueued));
+sched/fair.c:	util = READ_ONCE(cfs_rq->avg.util_avg);
+sched/fair.c:			READ_ONCE(cfs_rq->avg.util_est.enqueued);
+sched/fair.c:	unsigned long util_est, util = READ_ONCE(cfs_rq->avg.util_avg);
+sched/fair.c:		util_est = READ_ONCE(cfs_rq->avg.util_est.enqueued);
+sched/fair.c:		 * appear in the cfs_rq->avg.util_est.enqueued of any rq,
+sched/fair.c:			min_vruntime_copy = cfs_rq->min_vruntime_copy;
+sched/fair.c:			min_vruntime = cfs_rq->min_vruntime;
+sched/fair.c:		min_vruntime = cfs_rq->min_vruntime;
+sched/fair.c:	int scale = cfs_rq->nr_running >= sched_nr_latency;
+sched/fair.c:		struct sched_entity *curr = cfs_rq->curr;
+sched/fair.c:		 * have to consider cfs_rq->curr. If it is still a runnable
+sched/fair.c:				if (!cfs_rq->nr_running)
+sched/fair.c:	if (cfs_rq->avg.load_avg)
+sched/fair.c:	if (cfs_rq->avg.util_avg)
+sched/fair.c:	if (cfs_rq->load.weight)
+sched/fair.c:	if (cfs_rq->avg.load_sum)
+sched/fair.c:	if (cfs_rq->avg.util_sum)
+sched/fair.c:	if (cfs_rq->avg.runnable_load_sum)
+sched/fair.c:		se = cfs_rq->tg->se[cpu];
+sched/fair.c:	struct sched_entity *se = cfs_rq->tg->se[cpu_of(rq)];
+sched/fair.c:	if (cfs_rq->last_h_load_update == now)
+sched/fair.c:	WRITE_ONCE(cfs_rq->h_load_next, NULL);
+sched/fair.c:		WRITE_ONCE(cfs_rq->h_load_next, se);
+sched/fair.c:		if (cfs_rq->last_h_load_update == now)
+sched/fair.c:		cfs_rq->h_load = cfs_rq_load_avg(cfs_rq);
+sched/fair.c:		cfs_rq->last_h_load_update = now;
+sched/fair.c:	while ((se = READ_ONCE(cfs_rq->h_load_next)) != NULL) {
+sched/fair.c:		load = cfs_rq->h_load;
+sched/fair.c:		cfs_rq->h_load = load;
+sched/fair.c:		cfs_rq->last_h_load_update = now;
+sched/fair.c:	return div64_ul(p->se.avg.load_avg * cfs_rq->h_load,
+sched/fair.c:	curr = cfs_rq->curr;
+sched/fair.c:  /*place_entity()函数在进程创建以及唤醒的时候都会调用，创建进程的时候传递参数initial=1。主要目的是更新调度实体得到虚拟时间（se->vruntime成员）。要和cfs_rq->min_vruntime的值保持差别不大，否则疯狂占用cpu运行*/
+sched/fair.c:	se->vruntime -= cfs_rq->min_vruntime;//?
+sched/fair.c:		se->vruntime -= cfs_rq->min_vruntime;
+sched/fair.c:		se->vruntime += cfs_rq->min_vruntime;
+sched/fair.c: * This routine is mostly called to set cfs_rq->curr field when a task
+sched/fair.c:	cfs_rq->tasks_timeline = RB_ROOT_CACHED;
+sched/fair.c:	cfs_rq->min_vruntime = (u64)(-(1LL << 20));
+sched/fair.c:	cfs_rq->min_vruntime_copy = cfs_rq->min_vruntime;
+sched/fair.c:	raw_spin_lock_init(&cfs_rq->removed.lock);
+sched/fair.c:	cfs_rq->tg = tg;
+sched/fair.c:	cfs_rq->rq = rq;
+sched/fair.c:	return cfs_rq ? &cfs_rq->avg : NULL;
+sched/core.c:	struct sched_entity *curr = (&p->se)->cfs_rq->curr;
+sched/core.c:	 * Prevent race between setting of cfs_rq->runtime_enabled and
+sched/core.c:		struct rq *rq = cfs_rq->rq;
+sched/core.c:		cfs_rq->runtime_enabled = runtime_enabled;
+sched/core.c:		cfs_rq->runtime_remaining = 0;
+sched/core.c:		if (cfs_rq->throttled)
+avg.load_sum:./sched/pelt.h:	if (unlikely(cfs_rq->throttle_count))
+avg.load_sum:./sched/pelt.h:		return cfs_rq->throttled_clock_task - cfs_rq->throttled_clock_task_time;
+avg.load_sum:./sched/pelt.h:	return rq_clock_pelt(rq_of(cfs_rq)) - cfs_rq->throttled_clock_task_time;
+avg.load_sum:./sched/debug.c:	SEQ_printf(m, "cfs_rq[%d]:%s\n", cpu, task_group_path(cfs_rq->tg));
+avg.load_sum:./sched/debug.c:			SPLIT_NS(cfs_rq->exec_clock));
+avg.load_sum:./sched/debug.c:	if (rb_first_cached(&cfs_rq->tasks_timeline))
+avg.load_sum:./sched/debug.c:	min_vruntime = cfs_rq->min_vruntime;
+avg.load_sum:./sched/debug.c:			cfs_rq->nr_spread_over);
+avg.load_sum:./sched/debug.c:	SEQ_printf(m, "  .%-30s: %d\n", "nr_running", cfs_rq->nr_running);
+avg.load_sum:./sched/debug.c:	SEQ_printf(m, "  .%-30s: %ld\n", "load", cfs_rq->load.weight);
+avg.load_sum:./sched/debug.c:	SEQ_printf(m, "  .%-30s: %ld\n", "runnable_weight", cfs_rq->runnable_weight);
+avg.load_sum:./sched/debug.c:			cfs_rq->avg.load_avg);
+avg.load_sum:./sched/debug.c:			cfs_rq->avg.runnable_load_avg);
+avg.load_sum:./sched/debug.c:			cfs_rq->avg.util_avg);
+avg.load_sum:./sched/debug.c:			cfs_rq->avg.util_est.enqueued);
+avg.load_sum:./sched/debug.c:			cfs_rq->removed.load_avg);
+avg.load_sum:./sched/debug.c:			cfs_rq->removed.util_avg);
+avg.load_sum:./sched/debug.c:			cfs_rq->removed.runnable_sum);
+avg.load_sum:./sched/debug.c:			cfs_rq->tg_load_avg_contrib);
+avg.load_sum:./sched/debug.c:			atomic_long_read(&cfs_rq->tg->load_avg));
+avg.load_sum:./sched/debug.c:			cfs_rq->throttled);
+avg.load_sum:./sched/debug.c:			cfs_rq->throttle_count);
+avg.load_sum:./sched/debug.c:	print_cfs_group_stats(m, cpu, cfs_rq->tg);
+avg.load_sum:./sched/core.c:	struct sched_entity *curr = (&p->se)->cfs_rq->curr;
+avg.load_sum:./sched/core.c:	 * Prevent race between setting of cfs_rq->runtime_enabled and
+avg.load_sum:./sched/core.c:		struct rq *rq = cfs_rq->rq;
+avg.load_sum:./sched/core.c:		cfs_rq->runtime_enabled = runtime_enabled;
+avg.load_sum:./sched/core.c:		cfs_rq->runtime_remaining = 0;
+avg.load_sum:./sched/core.c:		if (cfs_rq->throttled)
+avg.load_sum:./sched/sched.h:  /*虽然自己是unthrottle状态，但是parent cfs_rq是throttle状态，自己也是没办法运行的。所以throttled_clock_task_time统计的是cfs_rq->throttle_count从非零变成0经历的时间总和*/
+avg.load_sum:./sched/sched.h:	return cfs_rq->rq;
+avg.load_sum:./sched/fair.c:	if (cfs_rq && task_group_is_autogroup(cfs_rq->tg))
+avg.load_sum:./sched/fair.c:		autogroup_path(cfs_rq->tg, path, len);
+avg.load_sum:./sched/fair.c:	else if (cfs_rq && cfs_rq->tg->css.cgroup)
+avg.load_sum:./sched/fair.c:		cgroup_path(cfs_rq->tg->css.cgroup, path, len);
+avg.load_sum:./sched/fair.c:	if (cfs_rq->on_list)
+avg.load_sum:./sched/fair.c:	cfs_rq->on_list = 1;
+avg.load_sum:./sched/fair.c:	if (cfs_rq->tg->parent &&
+avg.load_sum:./sched/fair.c:	    cfs_rq->tg->parent->cfs_rq[cpu]->on_list) {
+avg.load_sum:./sched/fair.c:		list_add_tail_rcu(&cfs_rq->leaf_cfs_rq_list,
+avg.load_sum:./sched/fair.c:			&(cfs_rq->tg->parent->cfs_rq[cpu]->leaf_cfs_rq_list));
+avg.load_sum:./sched/fair.c:	if (!cfs_rq->tg->parent) {
+avg.load_sum:./sched/fair.c:		list_add_tail_rcu(&cfs_rq->leaf_cfs_rq_list,
+avg.load_sum:./sched/fair.c:	list_add_rcu(&cfs_rq->leaf_cfs_rq_list, rq->tmp_alone_branch);
+avg.load_sum:./sched/fair.c:	rq->tmp_alone_branch = &cfs_rq->leaf_cfs_rq_list;
+avg.load_sum:./sched/fair.c:	if (cfs_rq->on_list) {
+avg.load_sum:./sched/fair.c:		if (rq->tmp_alone_branch == &cfs_rq->leaf_cfs_rq_list)
+avg.load_sum:./sched/fair.c:			rq->tmp_alone_branch = cfs_rq->leaf_cfs_rq_list.prev;
+avg.load_sum:./sched/fair.c:		list_del_rcu(&cfs_rq->leaf_cfs_rq_list);
+avg.load_sum:./sched/fair.c:		cfs_rq->on_list = 0;
+avg.load_sum:./sched/fair.c:	struct sched_entity *curr = cfs_rq->curr;
+avg.load_sum:./sched/fair.c:	struct rb_node *leftmost = rb_first_cached(&cfs_rq->tasks_timeline);
+avg.load_sum:./sched/fair.c:	u64 vruntime = cfs_rq->min_vruntime;
+avg.load_sum:./sched/fair.c:	cfs_rq->min_vruntime = max_vruntime(cfs_rq->min_vruntime, vruntime);
+avg.load_sum:./sched/fair.c:	cfs_rq->min_vruntime_copy = cfs_rq->min_vruntime;
+avg.load_sum:./sched/fair.c:	struct rb_node **link = &cfs_rq->tasks_timeline.rb_root.rb_node;
+avg.load_sum:./sched/fair.c:			       &cfs_rq->tasks_timeline, leftmost);
+avg.load_sum:./sched/fair.c:	rb_erase_cached(&se->run_node, &cfs_rq->tasks_timeline);
+avg.load_sum:./sched/fair.c:	struct rb_node *left = rb_first_cached(&cfs_rq->tasks_timeline);
+avg.load_sum:./sched/fair.c:	struct rb_node *last = rb_last(&cfs_rq->tasks_timeline.rb_root);
+avg.load_sum:./sched/fair.c:	u64 slice = __sched_period(cfs_rq->nr_running + !se->on_rq);
+avg.load_sum:./sched/fair.c:		load = &cfs_rq->load;
+avg.load_sum:./sched/fair.c:			lw = cfs_rq->load;
+avg.load_sum:./sched/fair.c: *   util_avg = cfs_rq->util_avg / (cfs_rq->load_avg + 1) * se.load.weight
+avg.load_sum:./sched/fair.c: *   util_avg_cap = (cpu_scale - cfs_rq->avg.util_avg) / 2^n
+avg.load_sum:./sched/fair.c:	long cap = (long)(cpu_scale - cfs_rq->avg.util_avg) / 2;
+avg.load_sum:./sched/fair.c:		if (cfs_rq->avg.util_avg != 0) {
+avg.load_sum:./sched/fair.c:			sa->util_avg  = cfs_rq->avg.util_avg * se->load.weight;
+avg.load_sum:./sched/fair.c:			sa->util_avg /= (cfs_rq->avg.load_avg + 1);
+avg.load_sum:./sched/fair.c:	struct sched_entity *curr = cfs_rq->curr;
+avg.load_sum:./sched/fair.c:	schedstat_add(cfs_rq->exec_clock, delta_exec);
+avg.load_sum:./sched/fair.c:   * 1. 就绪队列本身的cfs_rq->min_vruntime成员
+avg.load_sum:./sched/fair.c:	if (se != cfs_rq->curr)
+avg.load_sum:./sched/fair.c:	if (se != cfs_rq->curr)
+avg.load_sum:./sched/fair.c:	update_load_add(&cfs_rq->load, se->load.weight);
+avg.load_sum:./sched/fair.c:	cfs_rq->nr_running++;
+avg.load_sum:./sched/fair.c:	update_load_sub(&cfs_rq->load, se->load.weight);
+avg.load_sum:./sched/fair.c:	cfs_rq->nr_running--;
+avg.load_sum:./sched/fair.c:	cfs_rq->runnable_weight += se->runnable_weight;
+avg.load_sum:./sched/fair.c:	cfs_rq->avg.runnable_load_avg += se->avg.runnable_load_avg;
+avg.load_sum:./sched/fair.c:	cfs_rq->avg.runnable_load_sum += se_runnable(se) * se->avg.runnable_load_sum;
+avg.load_sum:./sched/fair.c:	cfs_rq->runnable_weight -= se->runnable_weight;
+avg.load_sum:./sched/fair.c:	sub_positive(&cfs_rq->avg.runnable_load_avg, se->avg.runnable_load_avg);
+avg.load_sum:./sched/fair.c:	sub_positive(&cfs_rq->avg.runnable_load_sum,
+avg.load_sum:./sched/fair.c:	cfs_rq->avg.load_avg += se->avg.load_avg; //系统第一次调用这个函数,cfs_rq->avg.load_avg = 0,se->avg.load_avg=0x400=1024
+avg.load_sum:./sched/fair.c:	cfs_rq->avg.load_sum += se_weight(se) * se->avg.load_sum;
+avg.load_sum:./sched/fair.c:	sub_positive(&cfs_rq->avg.load_avg, se->avg.load_avg);
+avg.load_sum:./sched/fair.c:	sub_positive(&cfs_rq->avg.load_sum, se_weight(se) * se->avg.load_sum);
+avg.load_sum:./sched/fair.c:		if (cfs_rq->curr == se)
+avg.load_sum:./sched/fair.c:	struct task_group *tg = cfs_rq->tg;
+avg.load_sum:./sched/fair.c:	load = max(scale_load_down(cfs_rq->load.weight), cfs_rq->avg.load_avg);
+avg.load_sum:./sched/fair.c:	tg_weight -= cfs_rq->tg_load_avg_contrib;//在update_load_avg()中可以被更新,然后update_cfs_group()->calc_group_shares()
+avg.load_sum:./sched/fair.c:	tg_weight += load; //cfs_rq->tg_load_avg_contrib = cfs_rq->avg.load_avg;
+avg.load_sum:./sched/fair.c:	load_avg = max(cfs_rq->avg.load_avg,
+avg.load_sum:./sched/fair.c:		       scale_load_down(cfs_rq->load.weight));
+avg.load_sum:./sched/fair.c:	runnable = max(cfs_rq->avg.runnable_load_avg,
+avg.load_sum:./sched/fair.c:		       scale_load_down(cfs_rq->runnable_weight));
+avg.load_sum:./sched/fair.c:	runnable = shares = READ_ONCE(gcfs_rq->tg->shares);
+avg.load_sum:./sched/fair.c:	long delta = cfs_rq->avg.load_avg - cfs_rq->tg_load_avg_contrib;
+avg.load_sum:./sched/fair.c:	if (cfs_rq->tg == &root_task_group)
+avg.load_sum:./sched/fair.c:	if (force || abs(delta) > cfs_rq->tg_load_avg_contrib / 64) {
+avg.load_sum:./sched/fair.c:		atomic_long_add(delta, &cfs_rq->tg->load_avg);
+avg.load_sum:./sched/fair.c:		cfs_rq->tg_load_avg_contrib = cfs_rq->avg.load_avg;
+avg.load_sum:./sched/fair.c:	long delta = gcfs_rq->avg.util_avg - se->avg.util_avg;
+avg.load_sum:./sched/fair.c:	se->avg.util_avg = gcfs_rq->avg.util_avg;
+avg.load_sum:./sched/fair.c:	add_positive(&cfs_rq->avg.util_avg, delta);
+avg.load_sum:./sched/fair.c:	cfs_rq->avg.util_sum = cfs_rq->avg.util_avg * LOAD_AVG_MAX;
+avg.load_sum:./sched/fair.c:	long delta_avg, running_sum, runnable_sum = gcfs_rq->prop_runnable_sum;
+avg.load_sum:./sched/fair.c:	gcfs_rq->prop_runnable_sum = 0;
+avg.load_sum:./sched/fair.c:		if (scale_load_down(gcfs_rq->load.weight)) {
+avg.load_sum:./sched/fair.c:			load_sum = div_s64(gcfs_rq->avg.load_sum,
+avg.load_sum:./sched/fair.c:				scale_load_down(gcfs_rq->load.weight));
+avg.load_sum:./sched/fair.c:	add_positive(&cfs_rq->avg.load_avg, delta_avg);
+avg.load_sum:./sched/fair.c:	add_positive(&cfs_rq->avg.load_sum, delta_sum);
+avg.load_sum:./sched/fair.c:		add_positive(&cfs_rq->avg.runnable_load_avg, delta_avg);
+avg.load_sum:./sched/fair.c:		add_positive(&cfs_rq->avg.runnable_load_sum, delta_sum);
+avg.load_sum:./sched/fair.c:	cfs_rq->propagate = 1;
+avg.load_sum:./sched/fair.c:	cfs_rq->prop_runnable_sum += runnable_sum;
+avg.load_sum:./sched/fair.c:	if (!gcfs_rq->propagate)
+avg.load_sum:./sched/fair.c:	gcfs_rq->propagate = 0;
+avg.load_sum:./sched/fair.c:	add_tg_cfs_propagate(cfs_rq, gcfs_rq->prop_runnable_sum);
+avg.load_sum:./sched/fair.c:	if (gcfs_rq->propagate)
+avg.load_sum:./sched/fair.c: * cfs_rq->avg is used for task_h_load() and update_cfs_share() for example.
+avg.load_sum:./sched/fair.c: * Since both these conditions indicate a changed cfs_rq->avg.load we should
+avg.load_sum:./sched/fair.c:	struct sched_avg *sa = &cfs_rq->avg;
+avg.load_sum:./sched/fair.c:	if (cfs_rq->removed.nr) {
+avg.load_sum:./sched/fair.c:		raw_spin_lock(&cfs_rq->removed.lock);
+avg.load_sum:./sched/fair.c:		swap(cfs_rq->removed.util_avg, removed_util);
+avg.load_sum:./sched/fair.c:		swap(cfs_rq->removed.load_avg, removed_load);
+avg.load_sum:./sched/fair.c:		swap(cfs_rq->removed.runnable_sum, removed_runnable_sum);
+avg.load_sum:./sched/fair.c:		cfs_rq->removed.nr = 0;
+avg.load_sum:./sched/fair.c:		raw_spin_unlock(&cfs_rq->removed.lock);
+avg.load_sum:./sched/fair.c:	cfs_rq->load_last_update_time_copy = sa->last_update_time;
+avg.load_sum:./sched/fair.c: * cfs_rq->avg.last_update_time being current.
+avg.load_sum:./sched/fair.c:	u32 divider = LOAD_AVG_MAX - 1024 + cfs_rq->avg.period_contrib;
+avg.load_sum:./sched/fair.c:	se->avg.last_update_time = cfs_rq->avg.last_update_time;
+avg.load_sum:./sched/fair.c:	se->avg.period_contrib = cfs_rq->avg.period_contrib;
+avg.load_sum:./sched/fair.c:	cfs_rq->avg.util_avg += se->avg.util_avg;
+avg.load_sum:./sched/fair.c:	cfs_rq->avg.util_sum += se->avg.util_sum;
+avg.load_sum:./sched/fair.c: * cfs_rq->avg.last_update_time being current.
+avg.load_sum:./sched/fair.c:	sub_positive(&cfs_rq->avg.util_avg, se->avg.util_avg);
+avg.load_sum:./sched/fair.c:	sub_positive(&cfs_rq->avg.util_sum, se->avg.util_sum);
+avg.load_sum:./sched/fair.c:		last_update_time_copy = cfs_rq->load_last_update_time_copy;
+avg.load_sum:./sched/fair.c:		last_update_time = cfs_rq->avg.last_update_time;
+avg.load_sum:./sched/fair.c:	return cfs_rq->avg.last_update_time;
+avg.load_sum:./sched/fair.c:	raw_spin_lock_irqsave(&cfs_rq->removed.lock, flags);
+avg.load_sum:./sched/fair.c:	++cfs_rq->removed.nr;
+avg.load_sum:./sched/fair.c:	cfs_rq->removed.util_avg	+= se->avg.util_avg;
+avg.load_sum:./sched/fair.c:	cfs_rq->removed.load_avg	+= se->avg.load_avg;
+avg.load_sum:./sched/fair.c:	cfs_rq->removed.runnable_sum	+= se->avg.load_sum; /* == runnable_sum */
+avg.load_sum:./sched/fair.c:	raw_spin_unlock_irqrestore(&cfs_rq->removed.lock, flags);
+avg.load_sum:./sched/fair.c:	return cfs_rq->avg.runnable_load_avg;
+avg.load_sum:./sched/fair.c:	return cfs_rq->avg.load_avg;
+avg.load_sum:./sched/fair.c:	enqueued  = cfs_rq->avg.util_est.enqueued;
+avg.load_sum:./sched/fair.c:	WRITE_ONCE(cfs_rq->avg.util_est.enqueued, enqueued);
+avg.load_sum:./sched/fair.c:	ue.enqueued  = cfs_rq->avg.util_est.enqueued;
+avg.load_sum:./sched/fair.c:	WRITE_ONCE(cfs_rq->avg.util_est.enqueued, ue.enqueued);
+avg.load_sum:./sched/fair.c:	s64 d = se->vruntime - cfs_rq->min_vruntime;
+avg.load_sum:./sched/fair.c:		schedstat_inc(cfs_rq->nr_spread_over);
+avg.load_sum:./sched/fair.c:	u64 vruntime = cfs_rq->min_vruntime;
+avg.load_sum:./sched/fair.c:	bool curr = cfs_rq->curr == se;
+avg.load_sum:./sched/fair.c:		se->vruntime += cfs_rq->min_vruntime;
+avg.load_sum:./sched/fair.c:		se->vruntime += cfs_rq->min_vruntime;
+avg.load_sum:./sched/fair.c:	 *   - Add its load to cfs_rq->runnable_avg
+avg.load_sum:./sched/fair.c:	 *   - Add its new weight to cfs_rq->load.weight
+avg.load_sum:./sched/fair.c:	if (cfs_rq->nr_running == 1) {
+avg.load_sum:./sched/fair.c:		if (cfs_rq->last != se)
+avg.load_sum:./sched/fair.c:		cfs_rq->last = NULL;
+avg.load_sum:./sched/fair.c:		if (cfs_rq->next != se)
+avg.load_sum:./sched/fair.c:		cfs_rq->next = NULL;
+avg.load_sum:./sched/fair.c:		if (cfs_rq->skip != se)
+avg.load_sum:./sched/fair.c:		cfs_rq->skip = NULL;
+avg.load_sum:./sched/fair.c:	if (cfs_rq->last == se)
+avg.load_sum:./sched/fair.c:	if (cfs_rq->next == se)
+avg.load_sum:./sched/fair.c:	if (cfs_rq->skip == se)
+avg.load_sum:./sched/fair.c:	 *   - Subtract its load from the cfs_rq->runnable_avg.
+avg.load_sum:./sched/fair.c:	 *   - Subtract its previous weight from cfs_rq->load.weight.
+avg.load_sum:./sched/fair.c:	if (se != cfs_rq->curr)
+avg.load_sum:./sched/fair.c:		se->vruntime -= cfs_rq->min_vruntime;
+avg.load_sum:./sched/fair.c:	cfs_rq->curr = se;
+avg.load_sum:./sched/fair.c:	if (cfs_rq->skip == se) {
+avg.load_sum:./sched/fair.c:	if (cfs_rq->last && wakeup_preempt_entity(cfs_rq->last, left) < 1)
+avg.load_sum:./sched/fair.c:		se = cfs_rq->last;
+avg.load_sum:./sched/fair.c:	if (cfs_rq->next && wakeup_preempt_entity(cfs_rq->next, left) < 1)
+avg.load_sum:./sched/fair.c:		se = cfs_rq->next;
+avg.load_sum:./sched/fair.c:	cfs_rq->curr = NULL;
+avg.load_sum:./sched/fair.c:	if (cfs_rq->nr_running > 1)
+avg.load_sum:./sched/fair.c:	struct task_group *tg = cfs_rq->tg;
+avg.load_sum:./sched/fair.c:	min_amount = sched_cfs_bandwidth_slice() - cfs_rq->runtime_remaining;
+avg.load_sum:./sched/fair.c:	cfs_rq->runtime_remaining += amount;
+avg.load_sum:./sched/fair.c:	return cfs_rq->runtime_remaining > 0;
+avg.load_sum:./sched/fair.c:	cfs_rq->runtime_remaining -= delta_exec;
+avg.load_sum:./sched/fair.c:	if (likely(cfs_rq->runtime_remaining > 0))
+avg.load_sum:./sched/fair.c:	if (cfs_rq->throttled)
+avg.load_sum:./sched/fair.c:	if (!assign_cfs_rq_runtime(cfs_rq) && likely(cfs_rq->curr))
+avg.load_sum:./sched/fair.c:	if (!cfs_bandwidth_used() || !cfs_rq->runtime_enabled)
+avg.load_sum:./sched/fair.c:	return cfs_bandwidth_used() && cfs_rq->throttled;
+avg.load_sum:./sched/fair.c:	return cfs_bandwidth_used() && cfs_rq->throttle_count;
+avg.load_sum:./sched/fair.c:	cfs_rq->throttle_count--;
+avg.load_sum:./sched/fair.c:	if (!cfs_rq->throttle_count) {
+avg.load_sum:./sched/fair.c:		cfs_rq->throttled_clock_task_time += rq_clock_task(rq) -
+avg.load_sum:./sched/fair.c:					     cfs_rq->throttled_clock_task;
+avg.load_sum:./sched/fair.c:		if (cfs_rq->nr_running >= 1)
+avg.load_sum:./sched/fair.c:	if (!cfs_rq->throttle_count) {
+avg.load_sum:./sched/fair.c:		cfs_rq->throttled_clock_task = rq_clock_task(rq);
+avg.load_sum:./sched/fair.c:	cfs_rq->throttle_count++;
+avg.load_sum:./sched/fair.c:	struct cfs_bandwidth *cfs_b = tg_cfs_bandwidth(cfs_rq->tg);
+avg.load_sum:./sched/fair.c:	se = cfs_rq->tg->se[cpu_of(rq_of(cfs_rq))];
+avg.load_sum:./sched/fair.c:  /* task_group可以父子关系嵌套。walk_tg_tree_from()函数功能是顺着cfs_rq->tg往下便利每一个child task_group，并且对每个task_group调用tg_throttle_down()函数。tg_throttle_down()负责增加cfs_rq->throttle_count计数 */
+avg.load_sum:./sched/fair.c:	walk_tg_tree_from(cfs_rq->tg, tg_throttle_down, tg_nop, (void *)rq);
+avg.load_sum:./sched/fair.c:	task_delta = cfs_rq->h_nr_running;
+avg.load_sum:./sched/fair.c:	idle_task_delta = cfs_rq->idle_h_nr_running;
+avg.load_sum:./sched/fair.c:		qcfs_rq->h_nr_running -= task_delta;
+avg.load_sum:./sched/fair.c:		qcfs_rq->idle_h_nr_running -= idle_task_delta;
+avg.load_sum:./sched/fair.c:    /* 如果qcfs_rq运行的进程只有即将被dequeue的se一个的话，那么parent se也需要dequeue。如果qcfs_rq->load.weight不为0，说明qcfs_rq就绪队列上运行的进程不止se一个，那么parent se理所应当不能被dequeue */
+avg.load_sum:./sched/fair.c:		if (qcfs_rq->load.weight)
+avg.load_sum:./sched/fair.c:	cfs_rq->throttled = 1;
+avg.load_sum:./sched/fair.c:	cfs_rq->throttled_clock = rq_clock(rq);
+avg.load_sum:./sched/fair.c:		list_add_rcu(&cfs_rq->throttled_list, &cfs_b->throttled_cfs_rq);
+avg.load_sum:./sched/fair.c:		list_add_tail_rcu(&cfs_rq->throttled_list, &cfs_b->throttled_cfs_rq);
+avg.load_sum:./sched/fair.c:	struct cfs_bandwidth *cfs_b = tg_cfs_bandwidth(cfs_rq->tg);
+avg.load_sum:./sched/fair.c:	se = cfs_rq->tg->se[cpu_of(rq)];
+avg.load_sum:./sched/fair.c:	cfs_rq->throttled = 0;
+avg.load_sum:./sched/fair.c:	cfs_b->throttled_time += rq_clock(rq) - cfs_rq->throttled_clock;
+avg.load_sum:./sched/fair.c:	list_del_rcu(&cfs_rq->throttled_list);
+avg.load_sum:./sched/fair.c:	walk_tg_tree_from(cfs_rq->tg, tg_nop, tg_unthrottle_up, (void *)rq);
+avg.load_sum:./sched/fair.c:	if (!cfs_rq->load.weight)
+avg.load_sum:./sched/fair.c:	task_delta = cfs_rq->h_nr_running;
+avg.load_sum:./sched/fair.c:	idle_task_delta = cfs_rq->idle_h_nr_running;
+avg.load_sum:./sched/fair.c:		cfs_rq->h_nr_running += task_delta;
+avg.load_sum:./sched/fair.c:		cfs_rq->idle_h_nr_running += idle_task_delta;
+avg.load_sum:./sched/fair.c:		SCHED_WARN_ON(cfs_rq->runtime_remaining > 0);
+avg.load_sum:./sched/fair.c:		runtime = -cfs_rq->runtime_remaining + 1;
+avg.load_sum:./sched/fair.c:		cfs_rq->runtime_remaining += runtime;
+avg.load_sum:./sched/fair.c:    /* 如果从全局时间池借到的时间保证cfs_rq->runtime_remaining的值应该大于0，执行unthrottle操作 */
+avg.load_sum:./sched/fair.c:		if (cfs_rq->runtime_remaining > 0)
+avg.load_sum:./sched/fair.c:	struct cfs_bandwidth *cfs_b = tg_cfs_bandwidth(cfs_rq->tg);
+avg.load_sum:./sched/fair.c:	s64 slack_runtime = cfs_rq->runtime_remaining - min_cfs_rq_runtime;
+avg.load_sum:./sched/fair.c:	cfs_rq->runtime_remaining -= slack_runtime;
+avg.load_sum:./sched/fair.c:	if (!cfs_rq->runtime_enabled || cfs_rq->nr_running)
+avg.load_sum:./sched/fair.c:	if (!cfs_rq->runtime_enabled || cfs_rq->curr)
+avg.load_sum:./sched/fair.c:	if (cfs_rq->runtime_remaining <= 0)
+avg.load_sum:./sched/fair.c:	cfs_rq->throttle_count = pcfs_rq->throttle_count;
+avg.load_sum:./sched/fair.c:	cfs_rq->throttled_clock_task = rq_clock_task(cpu_rq(cpu));
+avg.load_sum:./sched/fair.c:	if (likely(!cfs_rq->runtime_enabled || cfs_rq->runtime_remaining > 0))
+avg.load_sum:./sched/fair.c:	cfs_rq->runtime_enabled = 0;
+avg.load_sum:./sched/fair.c:	INIT_LIST_HEAD(&cfs_rq->throttled_list);
+avg.load_sum:./sched/fair.c:		cfs_rq->runtime_enabled = cfs_b->quota != RUNTIME_INF;
+avg.load_sum:./sched/fair.c:		if (!cfs_rq->runtime_enabled)
+avg.load_sum:./sched/fair.c:		cfs_rq->runtime_remaining = 1;
+avg.load_sum:./sched/fair.c:		cfs_rq->runtime_enabled = 0;
+avg.load_sum:./sched/fair.c:		cfs_rq->h_nr_running++;
+avg.load_sum:./sched/fair.c:		cfs_rq->idle_h_nr_running += idle_h_nr_running;
+avg.load_sum:./sched/fair.c:		cfs_rq->h_nr_running++;
+avg.load_sum:./sched/fair.c:		cfs_rq->idle_h_nr_running += idle_h_nr_running;
+avg.load_sum:./sched/fair.c:		cfs_rq->h_nr_running--;
+avg.load_sum:./sched/fair.c:		cfs_rq->idle_h_nr_running -= idle_h_nr_running;
+avg.load_sum:./sched/fair.c:		if (cfs_rq->load.weight) {
+avg.load_sum:./sched/fair.c:		cfs_rq->h_nr_running--;
+avg.load_sum:./sched/fair.c:		cfs_rq->idle_h_nr_running -= idle_h_nr_running;
+avg.load_sum:./sched/fair.c:	util = READ_ONCE(cfs_rq->avg.util_avg);
+avg.load_sum:./sched/fair.c:		util = max(util, READ_ONCE(cfs_rq->avg.util_est.enqueued));
+avg.load_sum:./sched/fair.c:	util = READ_ONCE(cfs_rq->avg.util_avg);
+avg.load_sum:./sched/fair.c:			READ_ONCE(cfs_rq->avg.util_est.enqueued);
+avg.load_sum:./sched/fair.c:	unsigned long util_est, util = READ_ONCE(cfs_rq->avg.util_avg);
+avg.load_sum:./sched/fair.c:		util_est = READ_ONCE(cfs_rq->avg.util_est.enqueued);
+avg.load_sum:./sched/fair.c:		 * appear in the cfs_rq->avg.util_est.enqueued of any rq,
+avg.load_sum:./sched/fair.c:			min_vruntime_copy = cfs_rq->min_vruntime_copy;
+avg.load_sum:./sched/fair.c:			min_vruntime = cfs_rq->min_vruntime;
+avg.load_sum:./sched/fair.c:		min_vruntime = cfs_rq->min_vruntime;
+avg.load_sum:./sched/fair.c:	int scale = cfs_rq->nr_running >= sched_nr_latency;
+avg.load_sum:./sched/fair.c:		struct sched_entity *curr = cfs_rq->curr;
+avg.load_sum:./sched/fair.c:		 * have to consider cfs_rq->curr. If it is still a runnable
+avg.load_sum:./sched/fair.c:				if (!cfs_rq->nr_running)
+avg.load_sum:./sched/fair.c:	if (cfs_rq->avg.load_avg)
+avg.load_sum:./sched/fair.c:	if (cfs_rq->avg.util_avg)
+avg.load_sum:./sched/fair.c:	if (cfs_rq->load.weight)
+avg.load_sum:./sched/fair.c:	if (cfs_rq->avg.load_sum)
+avg.load_sum:./sched/fair.c:	if (cfs_rq->avg.util_sum)
+avg.load_sum:./sched/fair.c:	if (cfs_rq->avg.runnable_load_sum)
+avg.load_sum:./sched/fair.c:		se = cfs_rq->tg->se[cpu];
+avg.load_sum:./sched/fair.c:	struct sched_entity *se = cfs_rq->tg->se[cpu_of(rq)];
+avg.load_sum:./sched/fair.c:	if (cfs_rq->last_h_load_update == now)
+avg.load_sum:./sched/fair.c:	WRITE_ONCE(cfs_rq->h_load_next, NULL);
+avg.load_sum:./sched/fair.c:		WRITE_ONCE(cfs_rq->h_load_next, se);
+avg.load_sum:./sched/fair.c:		if (cfs_rq->last_h_load_update == now)
+avg.load_sum:./sched/fair.c:		cfs_rq->h_load = cfs_rq_load_avg(cfs_rq);
+avg.load_sum:./sched/fair.c:		cfs_rq->last_h_load_update = now;
+avg.load_sum:./sched/fair.c:	while ((se = READ_ONCE(cfs_rq->h_load_next)) != NULL) {
+avg.load_sum:./sched/fair.c:		load = cfs_rq->h_load;
+avg.load_sum:./sched/fair.c:		cfs_rq->h_load = load;
+avg.load_sum:./sched/fair.c:		cfs_rq->last_h_load_update = now;
+avg.load_sum:./sched/fair.c:	return div64_ul(p->se.avg.load_avg * cfs_rq->h_load,
+avg.load_sum:./sched/fair.c:	curr = cfs_rq->curr;
+avg.load_sum:./sched/fair.c:  /*place_entity()函数在进程创建以及唤醒的时候都会调用，创建进程的时候传递参数initial=1。主要目的是更新调度实体得到虚拟时间（se->vruntime成员）。要和cfs_rq->min_vruntime的值保持差别不大，否则疯狂占用cpu运行*/
+avg.load_sum:./sched/fair.c:	se->vruntime -= cfs_rq->min_vruntime;//?
+avg.load_sum:./sched/fair.c:		se->vruntime -= cfs_rq->min_vruntime;
+avg.load_sum:./sched/fair.c:		se->vruntime += cfs_rq->min_vruntime;
+avg.load_sum:./sched/fair.c: * This routine is mostly called to set cfs_rq->curr field when a task
+avg.load_sum:./sched/fair.c:	cfs_rq->tasks_timeline = RB_ROOT_CACHED;
+avg.load_sum:./sched/fair.c:	cfs_rq->min_vruntime = (u64)(-(1LL << 20));
+avg.load_sum:./sched/fair.c:	cfs_rq->min_vruntime_copy = cfs_rq->min_vruntime;
+avg.load_sum:./sched/fair.c:	raw_spin_lock_init(&cfs_rq->removed.lock);
+avg.load_sum:./sched/fair.c:	cfs_rq->tg = tg;
+avg.load_sum:./sched/fair.c:	cfs_rq->rq = rq;
+avg.load_sum:./sched/fair.c:	return cfs_rq ? &cfs_rq->avg : NULL;
+avg.load_sum:./sched/core.i: return cfs_rq->rq;
+avg.load_sum:./sched/core.i: if (__builtin_expect(!!(cfs_rq->throttle_count), 0))
+avg.load_sum:./sched/core.i:  return cfs_rq->throttled_clock_task - cfs_rq->throttled_clock_task_time;
+avg.load_sum:./sched/core.i: return rq_clock_pelt(rq_of(cfs_rq)) - cfs_rq->throttled_clock_task_time;
+avg.load_sum:./sched/core.i: struct sched_entity *curr = (&p->se)->cfs_rq->curr;
+avg.load_sum:./sched/core.i:  struct rq *rq = cfs_rq->rq;
+avg.load_sum:./sched/core.i:  cfs_rq->runtime_enabled = runtime_enabled;
+avg.load_sum:./sched/core.i:  cfs_rq->runtime_remaining = 0;
+avg.load_sum:./sched/core.i:  if (cfs_rq->throttled)
+avg.load_sum:./sched/pelt.c:	if (load) // 这里的load可能为cfs_rq->load.weight, rq 下所有 se 的 weight 之和 , 参考account_entity_enqueue
+avg.load_sum:./sched/pelt.c:	 * se has been already dequeued but cfs_rq->curr still points to it.
+avg.load_sum:./sched/pelt.c:	sa->load_avg = div_u64(load * sa->load_sum, divider); //同样这里的load可能为1，也可能为cfs_rq->load.weight,取决于context
+avg.load_sum:./sched/pelt.c:				cfs_rq->curr == se)) { //return 1(periods>0) if update sucessful
+avg.load_sum:./sched/pelt.c:	if (___update_load_sum(now, &cfs_rq->avg,
+avg.load_sum:./sched/pelt.c:				scale_load_down(cfs_rq->load.weight),
+avg.load_sum:./sched/pelt.c:				scale_load_down(cfs_rq->runnable_weight),
+avg.load_sum:./sched/pelt.c:				cfs_rq->curr != NULL)) {
+avg.load_sum:./sched/pelt.c:		___update_load_avg(&cfs_rq->avg, 1, 1);

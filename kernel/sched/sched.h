@@ -118,7 +118,7 @@ extern long calc_load_fold_active(struct rq *this_rq, long adjust);
 #ifdef CONFIG_64BIT
 # define NICE_0_LOAD_SHIFT	(SCHED_FIXEDPOINT_SHIFT + SCHED_FIXEDPOINT_SHIFT)
 # define scale_load(w)		((w) << SCHED_FIXEDPOINT_SHIFT)
-# define scale_load_down(w)	((w) >> SCHED_FIXEDPOINT_SHIFT) //10
+# define scale_load_down(w)	((w) >> SCHED_FIXEDPOINT_SHIFT) //>> 10 ,对权重进行缩放,缩小1024倍
 #else
 # define NICE_0_LOAD_SHIFT	(SCHED_FIXEDPOINT_SHIFT)
 # define scale_load(w)		(w)
@@ -369,9 +369,10 @@ struct task_group {
 
 #ifdef	CONFIG_SMP
 	/*
-	 * load_avg can be heavily contended at clock tick time, so put
+	 * load_avg can be heavily contended(竞争) at clock tick time, so put
 	 * it in its own cacheline separated from the fields above which
 	 * will also be accessed at each tick.
+   * update_tg_load_avg()设置此成员
 	 */
 	atomic_long_t		load_avg ____cacheline_aligned;
 #endif
@@ -523,6 +524,7 @@ struct cfs_rq {
 #ifdef CONFIG_SMP
 	/*
 	 * CFS load tracking
+   * 在函数__update_load_avg_cfs_rq()计算avg.load_avg
 	 */
 	struct sched_avg	avg;
 #ifndef CONFIG_64BIT
@@ -537,7 +539,7 @@ struct cfs_rq {
 	} removed;
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
-	unsigned long		tg_load_avg_contrib;
+	unsigned long		tg_load_avg_contrib; // 保存cfs_rq->avg.load_avg,用于判断是否需要更新
 	long			propagate;
 	long			prop_runnable_sum;
 
@@ -710,7 +712,7 @@ struct dl_rq {
  */
 static inline long se_weight(struct sched_entity *se)
 {
-	return scale_load_down(se->load.weight);
+	return scale_load_down(se->load.weight); 
 }
 
 static inline long se_runnable(struct sched_entity *se)
