@@ -116,20 +116,20 @@ static inline void update_idle_rq_clock_pelt(struct rq *rq)
 
 static inline u64 rq_clock_pelt(struct rq *rq)
 {
-	lockdep_assert_held(&rq->lock);
+	lockdep_assert_held(&rq->lock); //用于死锁检测
 	assert_clock_updated(rq);
-
+  //rq.clock_pelt在update_rq_clock_pelt()中计算
 	return rq->clock_pelt - rq->lost_idle_time;
 }
 
 #ifdef CONFIG_CFS_BANDWIDTH
 /* rq->task_clock normalized against any time this cfs_rq has spent throttled */
 static inline u64 cfs_rq_clock_pelt(struct cfs_rq *cfs_rq)
-{
+{//由于task_group支持嵌套，当parent task_group的cfs_rq被throttle时，其chaild task_group对应的cfs_rq的throttle_count成员计数增加
 	if (unlikely(cfs_rq->throttle_count))
 		return cfs_rq->throttled_clock_task - cfs_rq->throttled_clock_task_time;
-
-	return rq_clock_pelt(rq_of(cfs_rq)) - cfs_rq->throttled_clock_task_time;
+//虽然自己是unthrottle状态，但是parent cfs_rq是throttle状态，自己也是没办法运行的。所以throttled_clock_task_time统计的是cfs_rq->throttle_count从非零(存在父task_group)变成0经历的时间总和
+	return rq_clock_pelt(rq_of(cfs_rq)) - cfs_rq->throttled_clock_task_time;//throttled_clock_task_time还包括由于parent cfs_rq被throttle的时间
 }
 #else
 static inline u64 cfs_rq_clock_pelt(struct cfs_rq *cfs_rq)
@@ -138,7 +138,7 @@ static inline u64 cfs_rq_clock_pelt(struct cfs_rq *cfs_rq)
 }
 #endif
 
-#else
+#else //0
 
 static inline int
 update_cfs_rq_load_avg(u64 now, struct cfs_rq *cfs_rq)

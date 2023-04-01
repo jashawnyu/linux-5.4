@@ -38,11 +38,11 @@ static u64 decay_load(u64 val, u64 n)
 {
 	unsigned int local_n;
 
-  /* 我们认为当时间经过2016个周期后，衰减后的值为0。即val*yn=0, n > 2016 */
+  /* 我们认为当时间经过2016个周期后，衰减后的值为0。即val*y^n=0, n > 2016 */
 	if (unlikely(n > LOAD_AVG_PERIOD * 63)) //2016
-		return 0;
+		return 0; //为了避免浮点数运算，采用移位和乘法运算提高计算速度
 
-	/* after bounds checking we can collapse to 32-bit */
+	/* after bounds checking we can collapse(折叠) to 32-bit */
 	local_n = n;
 
 	/*
@@ -56,8 +56,8 @@ static u64 decay_load(u64 val, u64 n)
 		val >>= local_n / LOAD_AVG_PERIOD;
 		local_n %= LOAD_AVG_PERIOD;
 	}
-
-	val = mul_u64_u32_shr(val, runnable_avg_yN_inv[local_n], 32);
+//runnable_avg_yN_inv[local_n]中的值已经乘以了2^32
+	val = mul_u64_u32_shr(val, runnable_avg_yN_inv[local_n], 32); //>>32 ，表示在计算完后缩小
 	return val;
 }
 
@@ -111,7 +111,7 @@ static u32 __accumulate_pelt_segments(u64 periods, u32 d1, u32 d3)
  *                     n=1
  */
 static __always_inline u32
-accumulate_sum(u64 delta, struct sched_avg *sa,
+accumulate_sum(u64 delta, struct sched_avg *sa, // 用來計算計算 sched_entity 對 load 的貢獻
 	       unsigned long load, unsigned long runnable, int running)
 {
 	u32 contrib = (u32)delta; /* p == 0 -> delta < 1024 */
@@ -127,7 +127,7 @@ accumulate_sum(u64 delta, struct sched_avg *sa,
 	 * Step 1: decay old *_sum if we crossed period boundaries.
 	 */
 	if (periods) {
-    //调用decay_load()函数计算公式中的step1部分
+    //调用decay_load()函数计算公式中的step1部分, sa->load_sum是上个周期负载贡献总和
 		sa->load_sum = decay_load(sa->load_sum, periods);
 		sa->runnable_load_sum =
 			decay_load(sa->runnable_load_sum, periods);
@@ -141,14 +141,14 @@ accumulate_sum(u64 delta, struct sched_avg *sa,
 				1024 - sa->period_contrib, delta);
 	}
   //period_contrib记录的是上次更新负载不足1024us周期的时间
-	sa->period_contrib = delta;
-
-	if (load)
-		sa->load_sum += load * contrib;
+	sa->period_contrib = delta; //sa->period_contrib 記下 d3，下一次週期時會需要
+//可以將 contrib 總結到 *_sum 中
+	if (load) // 这里的load可能为cfs_rq->load.weight, rq 下所有 se 的 weight 之和 , 参考account_entity_enqueue
+		sa->load_sum += load * contrib;//load为1 ,也可能是当前进程的权重,需要根据上下文判断
 	if (runnable)
 		sa->runnable_load_sum += runnable * contrib;
 	if (running)
-		sa->util_sum += contrib << SCHED_CAPACITY_SHIFT;
+		sa->util_sum += contrib << SCHED_CAPACITY_SHIFT; //<<10
 
 	return periods;
 }
@@ -234,15 +234,15 @@ ___update_load_sum(u64 now, struct sched_avg *sa,
 
 static __always_inline void
 ___update_load_avg(struct sched_avg *sa, unsigned long load, unsigned long runnable)
-{
-	u32 divider = LOAD_AVG_MAX - 1024 + sa->period_contrib;
+{//计算当前时间的负载只需要上个周期负载贡献总和乘以衰减系数y ,所以 LOAD_AVG_MAX*y + sa->period_contrib
+	u32 divider = LOAD_AVG_MAX - 1024 + sa->period_contrib; // LOAD_AVG_MAX*y 约等于 LOAD_AVG_MAX-1024,原因见__accumulate_pelt_segments()注释
 
 	/*
 	 * Step 2: update *_avg.
 	 */
-	sa->load_avg = div_u64(load * sa->load_sum, divider);
+	sa->load_avg = div_u64(load * sa->load_sum, divider); //同样这里的load可能为1，也可能为cfs_rq->load.weight,取决于context
 	sa->runnable_load_avg =	div_u64(runnable * sa->runnable_load_sum, divider);
-	WRITE_ONCE(sa->util_avg, sa->util_sum / divider);
+	WRITE_ONCE(sa->util_avg, sa->util_sum / divider); //util_sum 类型为u32,所以不需要div_u64
 }
 
 /*
@@ -284,9 +284,9 @@ int __update_load_avg_blocked_se(u64 now, struct sched_entity *se)
 }
 
 int __update_load_avg_se(u64 now, struct cfs_rq *cfs_rq, struct sched_entity *se)
-{
+{//每次 __update_load_avg_se 時，首先都要先透過 ___update_load_sum 更新 _*sum 相關的數據
 	if (___update_load_sum(now, &se->avg, !!se->on_rq, !!se->on_rq,
-				cfs_rq->curr == se)) { //return 1 if update sucessful
+				cfs_rq->curr == se)) { //return 1(periods>0) if update sucessful
 
 		___update_load_avg(&se->avg, se_weight(se), se_runnable(se));
 		cfs_se_util_change(&se->avg);
@@ -362,7 +362,7 @@ int update_dl_rq_load_avg(u64 now, struct rq *rq, int running)
 	return 0;
 }
 
-#ifdef CONFIG_HAVE_SCHED_AVG_IRQ
+#ifdef CONFIG_HAVE_SCHED_AVG_IRQ //1
 /*
  * irq:
  *
@@ -386,7 +386,7 @@ int update_irq_load_avg(struct rq *rq, u64 running)
 
 	/*
 	 * We know the time that has been used by interrupt since last update
-	 * but we don't when. Let be pessimistic and assume that interrupt has
+	 * but we don't when. Let be pessimistic(悲观) and assume that interrupt has
 	 * happened just before the update. This is not so far from reality
 	 * because interrupt will most probably wake up task and trig an update
 	 * of rq clock during which the metric is updated.

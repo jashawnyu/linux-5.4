@@ -112,8 +112,8 @@ extern s64 div64_s64(s64 dividend, s64 divisor);
 
 /**
  * div_u64 - unsigned 64bit divide with 32bit divisor
- * @dividend: unsigned 64bit dividend
- * @divisor: unsigned 32bit divisor
+ * @dividend: unsigned 64bit dividend //被除数
+ * @divisor: unsigned 32bit divisor  //除数
  *
  * This is the most common 64bit divide and should be used if possible,
  * as many 32bit archs can optimize this variant better than a full 64bit
