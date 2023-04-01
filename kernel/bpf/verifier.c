@@ -8864,7 +8864,7 @@ static int fixup_call_args(struct bpf_verifier_env *env)
 }
 
 /* fixup insn->imm field of bpf_call instructions
- * and inline eligible helpers as explicit sequence of BPF instructions
+ * and inline eligible(有资格的) helpers as explicit sequence of BPF instructions
  *
  * this function is called after eBPF program passed verification
  */
@@ -8880,8 +8880,8 @@ static int fixup_bpf_calls(struct bpf_verifier_env *env)
 	struct bpf_prog *new_prog;
 	struct bpf_map *map_ptr;
 	int i, cnt, delta = 0;
-
-	for (i = 0; i < insn_cnt; i++, insn++) {
+  //遍历所有的 eBPF 字节码
+	for (i = 0; i < insn_cnt; i++, insn++) { //下面是几个if判断
 		if (insn->code == (BPF_ALU64 | BPF_MOD | BPF_X) ||
 		    insn->code == (BPF_ALU64 | BPF_DIV | BPF_X) ||
 		    insn->code == (BPF_ALU | BPF_MOD | BPF_X) ||
@@ -9136,8 +9136,8 @@ static int fixup_bpf_calls(struct bpf_verifier_env *env)
 
 			goto patch_call_imm;
 		}
-
-patch_call_imm:
+    //// 如果是函数调用指令
+patch_call_imm: // 通过 helper 函数的编号获取其真实地址
 		fn = env->ops->get_func_proto(insn->imm, env->prog);
 		/* all functions that have prototype and verifier allowed
 		 * programs to call them, must be real in-kernel functions
@@ -9147,8 +9147,8 @@ patch_call_imm:
 				"kernel subsystem misconfigured func %s#%d\n",
 				func_id_name(insn->imm), insn->imm);
 			return -EFAULT;
-		}
-		insn->imm = fn->func - __bpf_call_base;
+		}// 由于 bpf_insn 结构的 imm 字段类型为 int, 为了能够将 helper 函数的地址（64位）保存到一个 int 中
+		insn->imm = fn->func - __bpf_call_base;// 所以减去一个基础函数地址，调用的时候加上这个基础函数地址即可
 	}
 
 	return 0;
@@ -9333,7 +9333,7 @@ skip_full_check:
 		/* program is valid, convert *(u32*)(ctx + off) accesses */
 		ret = convert_ctx_accesses(env);
 
-	if (ret == 0)
+	if (ret == 0) //修正 helper 函数的地址
 		ret = fixup_bpf_calls(env);
 
 	/* do 32-bit optimization after insn patching has done so those patched

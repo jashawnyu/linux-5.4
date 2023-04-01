@@ -1670,7 +1670,7 @@ static int bpf_prog_load(union bpf_attr *attr, union bpf_attr __user *uattr)
 	if (bpf_prog_load_check_attach_type(type, attr->expected_attach_type))
 		return -EINVAL;
 
-	/* plain bpf_prog allocation */
+	/* plain bpf_prog allocation , 用于保存 eBPF 字节码和相关信息*/
 	prog = bpf_prog_alloc(bpf_prog_size(attr->insn_cnt), GFP_USER);
 	if (!prog)
 		return -ENOMEM;
@@ -1686,10 +1686,10 @@ static int bpf_prog_load(union bpf_attr *attr, union bpf_attr __user *uattr)
 	err = bpf_prog_charge_memlock(prog);
 	if (err)
 		goto free_prog_sec;
-
+  //字节码长度(也就是有多少条 eBPF 字节码)
 	prog->len = attr->insn_cnt;
 
-	err = -EFAULT;
+	err = -EFAULT;//// 把 eBPF 字节码从用户态复制到 bpf_prog 对象中
 	if (copy_from_user(prog->insns, u64_to_user_ptr(attr->insns),
 			   bpf_prog_insn_size(prog)) != 0)
 		goto free_prog;
@@ -1707,7 +1707,7 @@ static int bpf_prog_load(union bpf_attr *attr, union bpf_attr __user *uattr)
 	}
 
 	/* find program type: socket_filter vs tracing_filter */
-	err = find_prog_type(type, prog);
+	err = find_prog_type(type, prog);//找到特定模块的相关处理函数（如修正helper函数）
 	if (err < 0)
 		goto free_prog;
 
@@ -1720,7 +1720,7 @@ static int bpf_prog_load(union bpf_attr *attr, union bpf_attr __user *uattr)
 	err = bpf_check(&prog, attr, uattr);
 	if (err < 0)
 		goto free_used_maps;
-
+  //尝试将 eBPF 字节码编译成本地机器码(JIT模式)
 	prog = bpf_prog_select_runtime(prog, &err);
 	if (err < 0)
 		goto free_used_maps;
@@ -1745,7 +1745,7 @@ static int bpf_prog_load(union bpf_attr *attr, union bpf_attr __user *uattr)
 	 */
 	bpf_prog_kallsyms_add(prog);
 	perf_event_bpf_event(prog, PERF_BPF_EVENT_PROG_LOAD, 0);
-
+  //// 申请一个文件句柄用于与 bpf_prog 对象关联
 	err = bpf_prog_new_fd(prog);
 	if (err < 0)
 		bpf_prog_put(prog);
