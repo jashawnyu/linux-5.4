@@ -17,9 +17,9 @@
 #include <linux/property.h>
 #include <linux/etherdevice.h>
 #include <linux/phy.h>
-
-struct fwnode_handle *dev_fwnode(struct device *dev)
-{
+//有fwnode对设备树进行解析，有的人喜欢用of，功能都是一样的,fwnode_函数都是二次封装的of_函数
+struct fwnode_handle *dev_fwnode(struct device *dev) //fwnode_operations回调函数的设置是在内核初始化发生,of_node_init
+{//dev_fwnodes如果支持设备树，就从设备树节点中获取并返回fwnode
 	return IS_ENABLED(CONFIG_OF) && dev->of_node ?
 		&dev->of_node->fwnode : dev->fwnode;
 }
@@ -48,7 +48,7 @@ bool fwnode_property_present(const struct fwnode_handle *fwnode,
 {
 	bool ret;
 
-	ret = fwnode_call_bool_op(fwnode, property_present, propname);
+	ret = fwnode_call_bool_op(fwnode, property_present, propname); //最终调用of_find_property
 	if (ret == false && !IS_ERR_OR_NULL(fwnode) &&
 	    !IS_ERR_OR_NULL(fwnode->secondary))
 		ret = fwnode_call_bool_op(fwnode->secondary, property_present,

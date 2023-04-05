@@ -42,18 +42,18 @@ static bool mctrl_gpio_flags_is_dir_out(unsigned int idx)
 	return mctrl_gpios_desc[idx].flags & GPIOD_FLAGS_BIT_DIR_OUT;
 }
 
-void mctrl_gpio_set(struct mctrl_gpios *gpios, unsigned int mctrl)
+void mctrl_gpio_set(struct mctrl_gpios *gpios, unsigned int mctrl)//"mctrl" means  current modem ctrl settings
 {
 	enum mctrl_gpio_idx i;
 	struct gpio_desc *desc_array[UART_GPIO_MAX];
-	DECLARE_BITMAP(values, UART_GPIO_MAX);
+	DECLARE_BITMAP(values, UART_GPIO_MAX);//valus为数组名
 	unsigned int count = 0;
 
 	if (gpios == NULL)
 		return;
 
 	for (i = 0; i < UART_GPIO_MAX; i++)
-		if (gpios->gpio[i] && mctrl_gpio_flags_is_dir_out(i)) {
+		if (gpios->gpio[i] && mctrl_gpio_flags_is_dir_out(i)) {//rts-gpios也会在这里被设置
 			desc_array[count] = gpios->gpio[i];
 			__assign_bit(count, values,
 				     mctrl & mctrl_gpios_desc[i].mctrl);
@@ -126,17 +126,17 @@ struct mctrl_gpios *mctrl_gpio_init_noauto(struct device *dev, unsigned int idx)
 	for (i = 0; i < UART_GPIO_MAX; i++) {
 		char *gpio_str;
 		bool present;
-
+    /* 格式化输出字符串到一段且gfp分配的内存中 */
 		/* Check if GPIO property exists and continue if not */
-		gpio_str = kasprintf(GFP_KERNEL, "%s-gpios",
+		gpio_str = kasprintf(GFP_KERNEL, "%s-gpios", 
 				     mctrl_gpios_desc[i].name);
 		if (!gpio_str)
 			continue;
-
-		present = device_property_present(dev, gpio_str);
+    // 检查设备属性是否存在
+		present = device_property_present(dev, gpio_str); //比如在fwnode节点找到rts-gpios存在
 		kfree(gpio_str);
 		if (!present)
-			continue;
+			continue; //不存在继续循环check next
 
 		gpios->gpio[i] =
 			devm_gpiod_get_index_optional(dev,
@@ -194,7 +194,7 @@ struct mctrl_gpios *mctrl_gpio_init(struct uart_port *port, unsigned int idx)
 	struct mctrl_gpios *gpios;
 	enum mctrl_gpio_idx i;
 
-	gpios = mctrl_gpio_init_noauto(port->dev, idx);
+	gpios = mctrl_gpio_init_noauto(port->dev, idx); //idx=0
 	if (IS_ERR(gpios))
 		return gpios;
 

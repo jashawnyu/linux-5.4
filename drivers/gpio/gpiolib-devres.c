@@ -256,7 +256,7 @@ EXPORT_SYMBOL_GPL(devm_fwnode_get_index_gpiod_from_child);
 struct gpio_desc *__must_check devm_gpiod_get_index_optional(struct device *dev,
 							     const char *con_id,
 							     unsigned int index,
-							     enum gpiod_flags flags)
+							     enum gpiod_flags flags) //index = 0
 {
 	struct gpio_desc *desc;
 

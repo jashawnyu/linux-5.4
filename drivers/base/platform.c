@@ -52,7 +52,7 @@ struct resource *platform_get_resource(struct platform_device *dev,
 
 	for (i = 0; i < dev->num_resources; i++) {
 		struct resource *r = &dev->resource[i];
-
+    //判断调用者想获取的资源类型是否跟本次循环找到的资源类型一致，是，就返回资源，否则继续循环,num=0表示是第一个(如果有多个这种类型的资源，可以以此传入1、2等等)
 		if (type == resource_type(r) && num-- == 0)
 			return r;
 	}

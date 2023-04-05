@@ -204,7 +204,7 @@ struct imx_port {
 	const struct imx_uart_data *devdata;
 
 	struct mctrl_gpios *gpios;
-
+/*CPU在写Register的时候，会先写在上层的Shadow Register，随后硬件update之后才会在下层供Hw访问的Register开始执行*/
 	/* shadow registers */
 	unsigned int ucr1;
 	unsigned int ucr2;
@@ -1534,7 +1534,7 @@ static void imx_uart_flush_buffer(struct uart_port *port)
 	imx_uart_writel(sport, ubmr, UBMR);
 	imx_uart_writel(sport, uts, IMX21_UTS);
 }
-
+/* 该函数在应用层调用 tcsetattr 时被调用 */
 static void
 imx_uart_set_termios(struct uart_port *port, struct ktermios *termios,
 		     struct ktermios *old)
@@ -1836,7 +1836,7 @@ static int imx_uart_rs485_config(struct uart_port *port,
 	rs485conf->delay_rts_after_send = 0;
 
 	/* RTS is required to control the transmitter */
-	if (!sport->have_rtscts && !sport->have_rtsgpio)
+	if (!sport->have_rtscts && !sport->have_rtsgpio) /* 如果have_rtscts和have_rtsgpio都没有设置就会关闭rs485*/
 		rs485conf->flags &= ~SER_RS485_ENABLED;
 
 	if (rs485conf->flags & SER_RS485_ENABLED) {
@@ -1889,7 +1889,7 @@ static const struct uart_ops imx_uart_pops = {
 
 static struct imx_port *imx_uart_ports[UART_NR];
 
-#ifdef CONFIG_SERIAL_IMX_CONSOLE
+#ifdef CONFIG_SERIAL_IMX_CONSOLE //1
 static void imx_uart_console_putchar(struct uart_port *port, int ch)
 {
 	struct imx_port *sport = (struct imx_port *)port;
@@ -2148,7 +2148,7 @@ static int imx_uart_probe_dt(struct imx_port *sport,
 	if (!sport->devdata)
 		/* no device tree device */
 		return 1;
-
+  /* 别名通常以数字结尾，比如别名为i2c1，设备树的初始化程序在解析别名属性时，会将数字1记录在struct alias_prop结构的id成员中，使用of_alias_get_id可以获得这个数字 */
 	ret = of_alias_get_id(np, "serial");
 	if (ret < 0) {
 		dev_err(&pdev->dev, "failed to get alias id, errno %d\n", ret);
@@ -2187,7 +2187,7 @@ static void imx_uart_probe_pdata(struct imx_port *sport,
 	if (!pdata)
 		return;
 
-	if (pdata->flags & IMXUART_HAVE_RTSCTS)
+	if (pdata->flags & IMXUART_HAVE_RTSCTS)// &1
 		sport->have_rtscts = 1;
 }
 
@@ -2198,36 +2198,36 @@ static int imx_uart_probe(struct platform_device *pdev)
 	int ret = 0;
 	u32 ucr1;
 	struct resource *res;
-	int txirq, rxirq, rtsirq;
-
+	int txirq, rxirq, rtsirq; // RTS/CTS may refer to: Request to Send and Clear to Send, flow control signals
+  /* 给struct imx_port分配空间 */
 	sport = devm_kzalloc(&pdev->dev, sizeof(*sport), GFP_KERNEL);
 	if (!sport)
 		return -ENOMEM;
-
-	ret = imx_uart_probe_dt(sport, pdev);
-	if (ret > 0)
+  /* 根据设备中的配置，来改变struct imx_port中的一些成员标志位*/
+	ret = imx_uart_probe_dt(sport, pdev); 
+	if (ret > 0) //没有设备树的情况，ret = 1 ,platform_data就会有效
 		imx_uart_probe_pdata(sport, pdev);
 	else if (ret < 0)
 		return ret;
-
-	if (sport->port.line >= ARRAY_SIZE(imx_uart_ports)) {
+  //sport->port.line就是串口的序列号，是第几个串口
+	if (sport->port.line >= ARRAY_SIZE(imx_uart_ports)) {//imx_uart_ports为指向imx_port的指针数组,有8个元素,这里是为了检查dts配置的串口port是否超出范围
 		dev_err(&pdev->dev, "serial%d out of range\n",
 			sport->port.line);
 		return -EINVAL;
 	}
-
-	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	base = devm_ioremap_resource(&pdev->dev, res);
+  /* 在driver probe接口中，以IORESOURCE_MEM为参数，调用platform_get_resource接口，以struct resource的形式，将上面定义的寄存器信息取出来，并保存在uart port的mapbase指针中 */ 
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);//获取指向MEM类型的struct resource指针
+	base = devm_ioremap_resource(&pdev->dev, res);//将物理地址映射到虚拟地址返回
 	if (IS_ERR(base))
 		return PTR_ERR(base);
 
-	rxirq = platform_get_irq(pdev, 0);
+	rxirq = platform_get_irq(pdev, 0); //设备硬件中断号到Linux irq 中断号的映射
 	txirq = platform_get_irq_optional(pdev, 1);
 	rtsirq = platform_get_irq_optional(pdev, 2);
-
+  //uart_port作为imx_port的成员被分配空间
 	sport->port.dev = &pdev->dev;
-	sport->port.mapbase = res->start;
-	sport->port.membase = base;
+	sport->port.mapbase = res->start; //物理地址
+	sport->port.membase = base;  //将上面定义的寄存器信息取出来，并保存在uart_port的mapbase指针中
 	sport->port.type = PORT_IMX,
 	sport->port.iotype = UPIO_MEM;
 	sport->port.irq = rxirq;
@@ -2235,13 +2235,13 @@ static int imx_uart_probe(struct platform_device *pdev)
 	sport->port.ops = &imx_uart_pops;
 	sport->port.rs485_config = imx_uart_rs485_config;
 	sport->port.flags = UPF_BOOT_AUTOCONF;
-	timer_setup(&sport->timer, imx_uart_timeout, 0);
+	timer_setup(&sport->timer, imx_uart_timeout, 0); //设置定时器来处理自上次调用以来调制解调器状态信号的任何变化
 
 	sport->gpios = mctrl_gpio_init(&sport->port, 0);
 	if (IS_ERR(sport->gpios))
 		return PTR_ERR(sport->gpios);
 
-	sport->clk_ipg = devm_clk_get(&pdev->dev, "ipg");
+	sport->clk_ipg = devm_clk_get(&pdev->dev, "ipg"); //解析dtb，获取时钟配置
 	if (IS_ERR(sport->clk_ipg)) {
 		ret = PTR_ERR(sport->clk_ipg);
 		dev_err(&pdev->dev, "failed to get ipg clk: %d\n", ret);
@@ -2265,7 +2265,7 @@ static int imx_uart_probe(struct platform_device *pdev)
 	}
 
 	/* initialize shadow register values */
-	sport->ucr1 = readl(sport->port.membase + UCR1);
+	sport->ucr1 = readl(sport->port.membase + UCR1); //dts中只有基地址，然后通过偏移宏来定位到具体寄存器
 	sport->ucr2 = readl(sport->port.membase + UCR2);
 	sport->ucr3 = readl(sport->port.membase + UCR3);
 	sport->ucr4 = readl(sport->port.membase + UCR4);
@@ -2556,7 +2556,7 @@ static struct platform_driver imx_uart_platform_driver = {
 
 static int __init imx_uart_init(void)
 {
-	int ret = uart_register_driver(&imx_uart_uart_driver);
+	int ret = uart_register_driver(&imx_uart_uart_driver); //初始化struct uart_driver指针传入serial core layer进行注册
 
 	if (ret)
 		return ret;
