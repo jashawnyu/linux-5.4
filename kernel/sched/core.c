@@ -6578,10 +6578,10 @@ void __init sched_init(void)
 
 	wait_bit_init();
 
-#ifdef CONFIG_FAIR_GROUP_SCHED
-	ptr += 2 * nr_cpu_ids * sizeof(void **);
+#ifdef CONFIG_FAIR_GROUP_SCHED //1
+	ptr += 2 * nr_cpu_ids * sizeof(void **); //0x1000 = 2^1 * 2^8 * 2^3 = 2 ^12
 #endif
-#ifdef CONFIG_RT_GROUP_SCHED
+#ifdef CONFIG_RT_GROUP_SCHED //0
 	ptr += 2 * nr_cpu_ids * sizeof(void **);
 #endif
 	if (ptr) {

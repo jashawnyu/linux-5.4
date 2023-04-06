@@ -11,7 +11,7 @@
 #include <linux/types.h>
 #include <linux/bpf_common.h>
 
-/* Extended instruction set based on top of classic BPF */
+/* (基于经典BPF的扩展指令集)Extended instruction set based on top of classic BPF */
 
 /* instruction classes */
 #define BPF_JMP32	0x06	/* jmp mode in word width */
