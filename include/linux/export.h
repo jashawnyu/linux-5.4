@@ -11,7 +11,7 @@
  */
 
 #ifndef __ASSEMBLY__
-#ifdef MODULE
+#ifdef MODULE 
 extern struct module __this_module;
 #define THIS_MODULE (&__this_module)
 #else

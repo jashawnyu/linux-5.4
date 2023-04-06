@@ -2946,7 +2946,7 @@ unsigned long to_ratio(u64 period, u64 runtime)
 /*
  * wake_up_new_task - wake up a newly created task for the first time.
  *
- * This function will do some initial scheduler statistics housekeeping
+ * This function will do some initial scheduler statistics housekeeping(家务)
  * that must be done for every newly created context, then puts the task
  * on the runqueue and wakes it.
  */

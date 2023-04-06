@@ -3764,7 +3764,7 @@ int gpiod_set_array_value(unsigned int array_size,
 		return -EINVAL;
 	return gpiod_set_array_value_complex(false, false, array_size,
 					     desc_array, array_info,
-					     value_bitmap);
+					     value_bitmap); //array_info=NULL
 }
 EXPORT_SYMBOL_GPL(gpiod_set_array_value);
 

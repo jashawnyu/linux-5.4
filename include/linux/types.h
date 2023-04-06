@@ -8,7 +8,7 @@
 #ifndef __ASSEMBLY__
 
 #define DECLARE_BITMAP(name,bits) \
-	unsigned long name[BITS_TO_LONGS(bits)]
+	unsigned long name[BITS_TO_LONGS(bits)] //BITS_TO_LONGS表示(bits+32-1)/32 
 
 typedef u32 __kernel_dev_t;
 
