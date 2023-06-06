@@ -255,7 +255,7 @@ enum aarch64_insn_adr_type {
 	AARCH64_INSN_ADR_TYPE_ADRP,
 	AARCH64_INSN_ADR_TYPE_ADR,
 };
-
+//BUILD_BUG_ON(condition),在编译的时候如果condition为真，则编译出错
 #define	__AARCH64_INSN_FUNCS(abbr, mask, val)				\
 static __always_inline bool aarch64_insn_is_##abbr(u32 code)		\
 {									\

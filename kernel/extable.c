@@ -54,7 +54,7 @@ const struct exception_table_entry *search_exception_tables(unsigned long addr)
 	const struct exception_table_entry *e;
 
 	e = search_kernel_exception_table(addr);
-	if (!e)
+	if (!e)//if return null
 		e = search_module_extables(addr);
 	return e;
 }
@@ -68,10 +68,10 @@ int init_kernel_text(unsigned long addr)
 }
 
 int notrace core_kernel_text(unsigned long addr)
-{
-	if (addr >= (unsigned long)_stext &&
-	    addr < (unsigned long)_etext)
-		return 1;
+{//_stext、_etext是文本段的起始和结束
+	if (addr >= (unsigned long)_stext && // 0xffff8000100f2f30>=0xffff800010081000
+	    addr < (unsigned long)_etext)  //0xffff800010e60000
+		return 1; //1
 
 	if (system_state < SYSTEM_RUNNING &&
 	    init_kernel_text(addr))
@@ -119,7 +119,7 @@ int kernel_text_address(unsigned long addr)
 	bool no_rcu;
 	int ret = 1;
 
-	if (core_kernel_text(addr))
+	if (core_kernel_text(addr)) //判断是否为内核代码段,是就返回1
 		return 1;
 
 	/*

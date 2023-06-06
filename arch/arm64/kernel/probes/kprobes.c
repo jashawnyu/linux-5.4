@@ -88,22 +88,22 @@ int __kprobes arch_prepare_kprobe(struct kprobe *p)
 		return -EINVAL;
 
 	/* copy instruction */
-	p->opcode = le32_to_cpu(*p->addr);
-
+	p->opcode = le32_to_cpu(*p->addr);//0xa9b87bfd, objdump -d可印证
+  //内核和模块的向量表中用二分法查找
 	if (search_exception_tables(probe_addr))
 		return -EINVAL;
 
-	/* decode instruction */
-	switch (arm_kprobe_decode_insn(p->addr, &p->ainsn)) {
+	/* decode解码 instruction */
+	switch (arm_kprobe_decode_insn(p->addr, &p->ainsn)) {//0x2
 	case INSN_REJECTED:	/* insn not supported */
 		return -EINVAL;
 
-	case INSN_GOOD_NO_SLOT:	/* insn need simulation */
+	case INSN_GOOD_NO_SLOT:	/* insn need simulation 一些分支等特殊指令，需要特别处理*/
 		p->ainsn.api.insn = NULL;
 		break;
 
-	case INSN_GOOD:	/* instruction uses slot */
-		p->ainsn.api.insn = get_insn_slot();
+	case INSN_GOOD:	/* instruction uses slot 正常可以probe的指令*/
+		p->ainsn.api.insn = get_insn_slot();//不存在就会调用kmalloc申请
 		if (!p->ainsn.api.insn)
 			return -ENOMEM;
 		break;
