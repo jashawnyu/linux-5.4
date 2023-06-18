@@ -78,7 +78,7 @@ arm_probe_decode_insn(probe_opcode_t insn, struct arch_probe_insn *api)
 	 */
 	if (aarch64_insn_is_steppable(insn))
 		return INSN_GOOD;
-
+//一些分支等特殊指令，需要特别处理,给arch_probe_insn成员handler赋值
 	if (aarch64_insn_is_bcond(insn)) {
 		api->handler = simulate_b_cond;
 	} else if (aarch64_insn_is_cbz(insn) ||
@@ -152,7 +152,7 @@ arm_kprobe_decode_insn(kprobe_opcode_t *addr, struct arch_specific_insn *asi)
 		if (offset < (MAX_ATOMIC_CONTEXT_SIZE*sizeof(kprobe_opcode_t)))
 			scan_end = addr - (offset / sizeof(kprobe_opcode_t));
 		else
-			scan_end = addr - MAX_ATOMIC_CONTEXT_SIZE;
+			scan_end = addr - MAX_ATOMIC_CONTEXT_SIZE;//addr-32
 	}
 	decoded = arm_probe_decode_insn(insn, &asi->api);
 
@@ -160,6 +160,6 @@ arm_kprobe_decode_insn(kprobe_opcode_t *addr, struct arch_specific_insn *asi)
 		if (is_probed_address_atomic(addr - 1, scan_end))
 			return INSN_REJECTED;
 
-	return decoded;
+	return decoded;//0x2
 }
 #endif

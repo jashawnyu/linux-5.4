@@ -61,9 +61,9 @@ static unsigned int kallsyms_expand_symbol(unsigned int off,
 	const u8 *tptr, *data;
 
 	/* Get the compressed symbol length from the first symbol byte. */
-	data = &kallsyms_names[off];
-	len = *data;
-	data++;
+	data = &kallsyms_names[off];//kallsyms_lookup_name()->kallsyms_expand_symbol(), off=0
+	len = *data;/* 符号的第一个字符就是符号的长度，在这里赋值给了变量len */
+	data++; /* 将data指向了符号的下一个字节，这就是符号真正的内容了 */
 
 	/*
 	 * Update the offset to return the offset for the next symbol on
@@ -88,7 +88,7 @@ static unsigned int kallsyms_expand_symbol(unsigned int off,
 			if (skipped_first) {
 				if (maxlen <= 1)
 					goto tail;
-				*result = *tptr;
+				*result = *tptr;//这里做拼接
 				result++;
 				maxlen--;
 			} else
@@ -170,8 +170,8 @@ unsigned long kallsyms_lookup_name(const char *name)
 	unsigned long i;
 	unsigned int off;
 
-	for (i = 0, off = 0; i < kallsyms_num_syms; i++) {
-		off = kallsyms_expand_symbol(off, namebuf, ARRAY_SIZE(namebuf));
+	for (i = 0, off = 0; i < kallsyms_num_syms; i++) {//i < 144925
+		off = kallsyms_expand_symbol(off, namebuf, ARRAY_SIZE(namebuf));//解析符号，获得符号名称存入namebuf
 
 		if (strcmp(namebuf, name) == 0)
 			return kallsyms_sym_address(i);
@@ -198,7 +198,7 @@ int kallsyms_on_each_symbol(int (*fn)(void *, const char *, struct module *,
 	return module_kallsyms_on_each_symbol(fn, data);
 }
 EXPORT_SYMBOL_GPL(kallsyms_on_each_symbol);
-
+// 获取符号地址在符号地址表kallsym_addresses数组中的索引
 static unsigned long get_symbol_pos(unsigned long addr,
 				    unsigned long *symbolsize,
 				    unsigned long *offset)
@@ -207,7 +207,7 @@ static unsigned long get_symbol_pos(unsigned long addr,
 	unsigned long i, low, high, mid;
 
 	/* This kernel should never had been booted. */
-	if (!IS_ENABLED(CONFIG_KALLSYMS_BASE_RELATIVE))
+	if (!IS_ENABLED(CONFIG_KALLSYMS_BASE_RELATIVE))//!1
 		BUG_ON(!kallsyms_addresses);
 	else
 		BUG_ON(!kallsyms_offsets);
@@ -255,7 +255,7 @@ static unsigned long get_symbol_pos(unsigned long addr,
 		*symbolsize = symbol_end - symbol_start;
 	if (offset)
 		*offset = addr - symbol_start;
-
+/* offset的含义就是我们所需查找的地址和小于该地址的符号表地址之间的差值。（前提条件是该地址在符号表中不存在,如果存在则为0）*/
 	return low;
 }
 
@@ -265,9 +265,9 @@ static unsigned long get_symbol_pos(unsigned long addr,
 int kallsyms_lookup_size_offset(unsigned long addr, unsigned long *symbolsize,
 				unsigned long *offset)
 {
-	char namebuf[KSYM_NAME_LEN];
+	char namebuf[KSYM_NAME_LEN];//[128]
 
-	if (is_ksym_addr(addr)) {
+	if (is_ksym_addr(addr)) {//获取符号位置之前先判断其合法性
 		get_symbol_pos(addr, symbolsize, offset);
 		return 1;
 	}

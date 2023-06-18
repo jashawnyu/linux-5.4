@@ -3790,7 +3790,7 @@ static struct platform_driver fec_driver = {
 	.remove	= fec_drv_remove,
 };
 
-module_platform_driver(fec_driver);
+module_platform_driver(fec_driver); //调用platform_driver_register和unregister
 
 MODULE_ALIAS("platform:"DRIVER_NAME);
 MODULE_LICENSE("GPL");

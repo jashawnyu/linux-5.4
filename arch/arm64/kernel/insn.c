@@ -211,7 +211,7 @@ static int __kprobes aarch64_insn_patch_text_cb(void *arg)
 
 int __kprobes aarch64_insn_patch_text(void *addrs[], u32 insns[], int cnt)
 {
-	struct aarch64_insn_patch patch = {
+	struct aarch64_insn_patch patch = { //local variable
 		.text_addrs = addrs,
 		.new_insns = insns,
 		.insn_cnt = cnt,

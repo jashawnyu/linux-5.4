@@ -591,7 +591,7 @@ static int __init cpu_stop_init(void)
 	return 0;
 }
 early_initcall(cpu_stop_init);
-
+//Provide stop_machine_cpuslocked() to avoid nested calls to get_online_cpus()
 int stop_machine_cpuslocked(cpu_stop_fn_t fn, void *data,
 			    const struct cpumask *cpus)
 {
@@ -604,9 +604,9 @@ int stop_machine_cpuslocked(cpu_stop_fn_t fn, void *data,
 
 	lockdep_assert_cpus_held();
 
-	if (!stop_machine_initialized) {
+	if (!stop_machine_initialized) {//启动后此值为1,对于kprobe，为1
 		/*
-		 * Handle the case where stop_machine() is called
+	nclude/env_default.h	 * Handle the case where stop_machine() is called
 		 * early in boot before stop_machine() has been
 		 * initialized.
 		 */

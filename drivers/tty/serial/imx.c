@@ -1599,7 +1599,7 @@ imx_uart_set_termios(struct uart_port *port, struct ktermios *termios,
 		 * to have RTS inactive (which then should take precedence).
 		 */
 		if (ucr2 & UCR2_CTS)
-			ucr2 |= UCR2_CTSC;
+			ucr2 |= UCR2_CTSC; //The CTS_B pin is controlled by the receiver
 	}
 
 	if (termios->c_cflag & CRTSCTS)

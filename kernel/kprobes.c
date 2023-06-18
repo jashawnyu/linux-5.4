@@ -92,10 +92,10 @@ struct kprobe_insn_page {
 #define KPROBE_INSN_PAGE_SIZE(slots)			\
 	(offsetof(struct kprobe_insn_page, slot_used) +	\
 	 (sizeof(char) * (slots)))
-
+//此函数总是返回1024
 static int slots_per_page(struct kprobe_insn_cache *c)
 {
-	return PAGE_SIZE/(c->insn_size * sizeof(kprobe_opcode_t));
+	return PAGE_SIZE/(c->insn_size * sizeof(kprobe_opcode_t));/*4096/(1*4)=1024*/
 }
 
 enum kprobe_slot_state {
@@ -119,7 +119,7 @@ struct kprobe_insn_cache kprobe_insn_slots = {
 	.alloc = alloc_insn_page,
 	.free = free_insn_page,
 	.pages = LIST_HEAD_INIT(kprobe_insn_slots.pages),
-	.insn_size = MAX_INSN_SIZE,
+	.insn_size = MAX_INSN_SIZE, //1
 	.nr_garbage = 0,
 };
 static int collect_garbage_slots(struct kprobe_insn_cache *c);
@@ -136,24 +136,24 @@ kprobe_opcode_t *__get_insn_slot(struct kprobe_insn_cache *c)
 	/* Since the slot array is not protected by rcu, we need a mutex */
 	mutex_lock(&c->mutex);
  retry:
-	rcu_read_lock();
+	rcu_read_lock();//kprobe_insn_page->list在下面list_add_rcu被加入到kprobe_insn_cache->pages
 	list_for_each_entry_rcu(kip, &c->pages, list) {
-		if (kip->nused < slots_per_page(c)) {
+		if (kip->nused < slots_per_page(c)) {//判断是否还存在可用的slot
 			int i;
 			for (i = 0; i < slots_per_page(c); i++) {
-				if (kip->slot_used[i] == SLOT_CLEAN) {
+				if (kip->slot_used[i] == SLOT_CLEAN) {//找到了未使用的slot
 					kip->slot_used[i] = SLOT_USED;
-					kip->nused++;
-					slot = kip->insns + (i * c->insn_size);
+					kip->nused++; //已使用的slot数量
+					slot = kip->insns + (i * c->insn_size);//+(i*1),地址偏移(i+1)
 					rcu_read_unlock();
-					goto out;
+					goto out; //这里直接返回指向kprobe_opcode_t指针slot
 				}
 			}
 			/* kip->nused is broken. Fix it. */
 			kip->nused = slots_per_page(c);
 			WARN_ON(1);
 		}
-	}
+	}//第一次加载kprobe例子驱动，会申请slot，卸载驱动后并不会释放
 	rcu_read_unlock();
 
 	/* If there are any garbage slots, collect it and try again. */
@@ -255,7 +255,7 @@ out:
 	if (kip) {
 		/* Check double free */
 		WARN_ON(kip->slot_used[idx] != SLOT_USED);
-		if (dirty) {
+		if (dirty) {//arm64平台总是为0
 			kip->slot_used[idx] = SLOT_DIRTY;
 			kip->ngarbage++;
 			if (++c->nr_garbage > slots_per_page(c))
@@ -1475,9 +1475,9 @@ static kprobe_opcode_t *kprobe_addr(struct kprobe *p)
 
 /* Check passed kprobe is valid and return kprobe in kprobe_table. */
 static struct kprobe *__get_valid_kprobe(struct kprobe *p)
-{
+{//addr地址值搜索全局hash表并查看是否有同样的kprobe实例已经在表中
 	struct kprobe *ap, *list_p;
-
+//用于从同一被探测点的不同探测kprobe的链表中查找当前的kprobe是否存在，如果存在，返回kprobe地址，不存在则返回NULL
 	ap = get_kprobe(p->addr);
 	if (unlikely(!ap))
 		return NULL;
@@ -1512,11 +1512,11 @@ int __weak arch_check_ftrace_location(struct kprobe *p)
 
 	ftrace_addr = ftrace_location((unsigned long)p->addr);
 	if (ftrace_addr) {
-#ifdef CONFIG_KPROBES_ON_FTRACE
+#ifdef CONFIG_KPROBES_ON_FTRACE //0
 		/* Given address is not on the instruction boundary */
 		if ((unsigned long)p->addr != ftrace_addr)
 			return -EILSEQ;
-		p->flags |= KPROBE_FLAG_FTRACE;
+		p->flags |= KPROBE_FLAG_FTRACE; //表示本kprobe已使用ftrace
 #else	/* !CONFIG_KPROBES_ON_FTRACE */
 		return -EINVAL;
 #endif
@@ -1528,13 +1528,13 @@ static int check_kprobe_address_safe(struct kprobe *p,
 				     struct module **probed_mod)
 {
 	int ret;
-
+//从ftrace_pages_start中二分查找struct dyn_ftrace结构，如果找到，讲给kprobe标志flags置位p->flags |= KPROBE_FLAG_FTRACE
 	ret = arch_check_ftrace_location(p);
 	if (ret)
 		return ret;
 	jump_label_lock();
-	preempt_disable();
-
+	preempt_disable();//关闭抢占,kprobe的地址不可以是jump_label预留地址
+//kprobe的地址不可以不是内核代码段地址,kprobe的地址不可以是kprobe黑名单中的地址
 	/* Ensure it is not in reserved area nor out of text */
 	if (!kernel_text_address((unsigned long) p->addr) ||
 	    within_kprobe_blacklist((unsigned long) p->addr) ||
@@ -1547,7 +1547,7 @@ static int check_kprobe_address_safe(struct kprobe *p,
 	/* Check if are we probing a module */
 	*probed_mod = __module_text_address((unsigned long) p->addr);
 	if (*probed_mod) {
-		/*
+		/*检测是否为模块中的地址，如果是，将赋值给check_kprobe_address_safe函数入参的struct module二级指针
 		 * We must hold a refcount of the probed module while updating
 		 * its code to prohibit unexpected unloading.
 		 */
@@ -1582,20 +1582,20 @@ int register_kprobe(struct kprobe *p)
 	kprobe_opcode_t *addr;
 
 	/* Adjust probe address from symbol */
-	addr = kprobe_addr(p);
+	addr = kprobe_addr(p);//查找symbol返回地址加上p->offset偏移返回
 	if (IS_ERR(addr))
 		return PTR_ERR(addr);
 	p->addr = addr;
 
-	ret = check_kprobe_rereg(p);
+	ret = check_kprobe_rereg(p);//检测kprobe是否可用，使用函数check_kprobe_rereg，该函数调用__get_valid_kprobe
 	if (ret)
 		return ret;
-
+//将初始化一些字段
 	/* User can pass only KPROBE_FLAG_DISABLED to register_kprobe */
-	p->flags &= KPROBE_FLAG_DISABLED;
+	p->flags &= KPROBE_FLAG_DISABLED;//2
 	p->nmissed = 0;
 	INIT_LIST_HEAD(&p->list);
-
+//检测kprobe是否安全,kprobe常常结合ftrace使用，所以在内核编译过程中是默认开启CONFIG_KPROBES_ON_FTRACE的
 	ret = check_kprobe_address_safe(p, &probed_mod);
 	if (ret)
 		return ret;

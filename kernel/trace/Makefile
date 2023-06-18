@@ -85,4 +85,7 @@ obj-$(CONFIG_UPROBE_EVENTS) += trace_uprobe.o
 
 obj-$(CONFIG_TRACEPOINT_BENCHMARK) += trace_benchmark.o
 
-libftrace-y := ftrace.o
+# 下面的处理位于scripts/Makefile.lib,解释了libftrace-y的作用
+#modname-multi = $(subst $(space),:,$(sort $(foreach m,$(multi-used),         
+#$(if $(filter $*.o, $($(m:.o=-objs)) $($(m:.o=-y)) $($(m:.o=-m))),$(m:.o=))))) 
+#libftrace-y := ftrace.o
