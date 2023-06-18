@@ -1469,7 +1469,7 @@ invalid:
 }
 
 static kprobe_opcode_t *kprobe_addr(struct kprobe *p)
-{
+{ //addr=NULL,symbol,0
 	return _kprobe_addr(p->addr, p->symbol_name, p->offset);
 }
 

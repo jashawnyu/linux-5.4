@@ -280,6 +280,8 @@ static inline void kernel_param_unlock(struct module *mod)
  *
  * This actually copies the string when it's set (unlike type charp).
  * @len is usually just sizeof(string).
+ * MODULE_PARAM_PREFIX为空当编译成ko时
+ * ,此函数的作用是把字符串信息组合成kernel_param结构体放入特殊的section
  */
 #define module_param_string(name, string, len, perm)			\
 	static const struct kparam_string __param_string_##name		\
