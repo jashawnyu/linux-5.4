@@ -225,6 +225,6 @@ static inline long arch_atomic64_dec_if_positive(atomic64_t *v)
 
 #define arch_atomic64_dec_if_positive		arch_atomic64_dec_if_positive
 
-#include <asm-generic/atomic-instrumented.h>
+#include <asm-generic/atomic-instrumented.h>  //上面的arch打头的文件是为了覆盖这个头文件里的默认定义
 
 #endif /* __ASM_ATOMIC_H */

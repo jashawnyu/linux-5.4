@@ -218,7 +218,7 @@ void __read_once_size_nocheck(const volatile void *p, void *res, int size)
 }
 
 static __always_inline void __write_once_size(volatile void *p, void *res, int size)
-{//不会出现指针类型错误，而且用了volatile关键字保证编译器不回优化
+{//不会出现指针类型错误，而且用了volatile关键字保证编译器不会优化
 	switch (size) {
 	case 1: *(volatile __u8 *)p = *(__u8 *)res; break;
 	case 2: *(volatile __u16 *)p = *(__u16 *)res; break;

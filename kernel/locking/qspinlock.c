@@ -65,7 +65,7 @@
  */
 
 #include "mcs_spinlock.h"
-#define MAX_NODES	4
+#define MAX_NODES 4
 
 /*
  * On 64-bit architectures, the mcs_spinlock structure will be 16 bytes in
@@ -94,7 +94,7 @@ struct qnode {
  * (挂起的位旋转循环计数。 这种启发式方法用于限制atomic_cond_read_relaxed在等待锁从“== _Q_PENDING_VAL”状态转换出来时访问锁字的次数。 我们不会无限期地拖延，因为没有人能保证我们会取得进展 )
  */
 #ifndef _Q_PENDING_LOOPS
-#define _Q_PENDING_LOOPS	1
+#define _Q_PENDING_LOOPS 1
 #endif
 
 /*
@@ -116,7 +116,7 @@ static inline __pure u32 encode_tail(int cpu, int idx)
 {
 	u32 tail;
 
-	tail  = (cpu + 1) << _Q_TAIL_CPU_OFFSET;
+	tail = (cpu + 1) << _Q_TAIL_CPU_OFFSET;
 	tail |= idx << _Q_TAIL_IDX_OFFSET; /* assume < 4 */
 
 	return tail;
@@ -125,13 +125,13 @@ static inline __pure u32 encode_tail(int cpu, int idx)
 static inline __pure struct mcs_spinlock *decode_tail(u32 tail)
 {
 	int cpu = (tail >> _Q_TAIL_CPU_OFFSET) - 1;
-	int idx = (tail &  _Q_TAIL_IDX_MASK) >> _Q_TAIL_IDX_OFFSET;
+	int idx = (tail & _Q_TAIL_IDX_MASK) >> _Q_TAIL_IDX_OFFSET;
 
 	return per_cpu_ptr(&qnodes[idx].mcs, cpu);
 }
 
-static inline __pure
-struct mcs_spinlock *grab_mcs_node(struct mcs_spinlock *base, int idx)
+static inline __pure struct mcs_spinlock *
+grab_mcs_node(struct mcs_spinlock *base, int idx)
 {
 	return &((struct qnode *)base + idx)->mcs;
 }
@@ -179,8 +179,8 @@ static __always_inline u32 xchg_tail(struct qspinlock *lock, u32 tail)
 	 * We can use relaxed semantics since the caller ensures that the
 	 * MCS node is properly initialized before updating the tail.
 	 */
-	return (u32)xchg_relaxed(&lock->tail,
-				 tail >> _Q_TAIL_OFFSET) << _Q_TAIL_OFFSET;
+	return (u32)xchg_relaxed(&lock->tail, tail >> _Q_TAIL_OFFSET)
+	       << _Q_TAIL_OFFSET;
 }
 
 #else /* _Q_PENDING_BITS == 8 */
@@ -246,7 +246,8 @@ static __always_inline u32 xchg_tail(struct qspinlock *lock, u32 tail)
  * *,*,* -> *,1,*
  */
 #ifndef queued_fetch_set_pending_acquire
-static __always_inline u32 queued_fetch_set_pending_acquire(struct qspinlock *lock)
+static __always_inline u32
+queued_fetch_set_pending_acquire(struct qspinlock *lock)
 {
 	return atomic_fetch_or_acquire(_Q_PENDING_VAL, &lock->val);
 }
@@ -263,30 +264,37 @@ static __always_inline void set_locked(struct qspinlock *lock)
 	WRITE_ONCE(lock->locked, _Q_LOCKED_VAL);
 }
 
-
 /*
  * Generate the native code for queued_spin_unlock_slowpath(); provide NOPs for
  * all the PV callbacks.
  */
 
-static __always_inline void __pv_init_node(struct mcs_spinlock *node) { }
+static __always_inline void __pv_init_node(struct mcs_spinlock *node)
+{
+}
 static __always_inline void __pv_wait_node(struct mcs_spinlock *node,
-					   struct mcs_spinlock *prev) { }
+					   struct mcs_spinlock *prev)
+{
+}
 static __always_inline void __pv_kick_node(struct qspinlock *lock,
-					   struct mcs_spinlock *node) { }
-static __always_inline u32  __pv_wait_head_or_lock(struct qspinlock *lock,
-						   struct mcs_spinlock *node)
-						   { return 0; }
+					   struct mcs_spinlock *node)
+{
+}
+static __always_inline u32 __pv_wait_head_or_lock(struct qspinlock *lock,
+						  struct mcs_spinlock *node)
+{
+	return 0;
+}
 
-#define pv_enabled()		false
+#define pv_enabled() false
 
-#define pv_init_node		__pv_init_node
-#define pv_wait_node		__pv_wait_node
-#define pv_kick_node		__pv_kick_node
-#define pv_wait_head_or_lock	__pv_wait_head_or_lock
+#define pv_init_node __pv_init_node
+#define pv_wait_node __pv_wait_node
+#define pv_kick_node __pv_kick_node
+#define pv_wait_head_or_lock __pv_wait_head_or_lock
 
 #ifdef CONFIG_PARAVIRT_SPINLOCKS //0
-#define queued_spin_lock_slowpath	native_queued_spin_lock_slowpath
+#define queued_spin_lock_slowpath native_queued_spin_lock_slowpath
 #endif
 
 #endif /* _GEN_PV_LOCK_SLOWPATH */
@@ -333,17 +341,15 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
 	 *
 	 * 0,1,0 -> 0,0,1
 	 */
-  /* 开始先判断锁的状态是不是(0, 1, 0)，处于这个状态说明只有一个CPU在等待这个自旋锁，并且持有这个自旋锁的CPU已经将其释放了，后面会提到过不了多久那个等待这个自旋锁的CPU就会将锁的状态改成(0, 0, 1)。这时候，当前CPU就可以自旋等待一会，如果锁的状态真的变成了(0, 0, 1)，那就可以“抢”到pending位，就不用再走队列模式了 */
+	/* 开始先判断锁的状态是不是(0, 1, 0)，处于这个状态说明只有一个CPU在等待这个自旋锁，并且持有这个自旋锁的CPU已经将其释放了，后面会提到过不了多久那个等待这个自旋锁的CPU就会将锁的状态改成(0, 0, 1)。这时候，当前CPU就可以自旋等待一会，如果锁的状态真的变成了(0, 0, 1)，那就可以“抢”到pending位，就不用再走队列模式了 */
 	if (val == _Q_PENDING_VAL) { //1<<8=256
 		int cnt = _Q_PENDING_LOOPS; //1
-		val = atomic_cond_read_relaxed(&lock->val,
-					       (VAL != _Q_PENDING_VAL) || !cnt--);
+		val = atomic_cond_read_relaxed(
+			&lock->val, (VAL != _Q_PENDING_VAL) || !cnt--);
 	}
-
 	/*
 	 * If we observe any contention(竞争); queue.
-	 */
-  //当前CPU atomic_cond_read_relaxed()就可以自旋等待一会，如果锁的状态真的变成了(0, 0, 1)，那就可以“抢”到pending位，就不用再走队列模式了
+	 如果前一步读取到锁的tail字段不是0或者pending位是1，*/
 	if (val & ~_Q_LOCKED_MASK) //~0xff = 0x ff00
 		goto queue;
 
@@ -352,9 +358,9 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
 	 *
 	 * 0,0,* -> 0,1,* -> 0,0,1 pending, trylock
 	 */
-  //这个函数会原子的将锁的pending位设置成1，并且返回没设置之前锁的值
+	//这个函数会原子的将锁的pending位设置成1，并且返回没设置之前锁的值
 	val = queued_fetch_set_pending_acquire(lock);
-
+	// 最多只会有一个CPU监测到这种pending位从0到1的跳变
 	/*
 	 * If we observe contention, there is a concurrent locker.
 	 *
@@ -363,7 +369,6 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
 	 * on @next to become !NULL.
 	 */
 	if (unlikely(val & ~_Q_LOCKED_MASK)) {
-
 		/* Undo PENDING if we set it. */
 		if (!(val & _Q_PENDING_MASK))
 			clear_pending(lock);
@@ -512,7 +517,8 @@ pv_queue:
 	if ((val = pv_wait_head_or_lock(lock, node)))
 		goto locked;
 
-	val = atomic_cond_read_acquire(&lock->val, !(VAL & _Q_LOCKED_PENDING_MASK));
+	val = atomic_cond_read_acquire(&lock->val,
+				       !(VAL & _Q_LOCKED_PENDING_MASK));
 
 locked:
 	/*
@@ -571,16 +577,16 @@ EXPORT_SYMBOL(queued_spin_lock_slowpath);
 #if !defined(_GEN_PV_LOCK_SLOWPATH) && defined(CONFIG_PARAVIRT_SPINLOCKS)
 #define _GEN_PV_LOCK_SLOWPATH
 
-#undef  pv_enabled
-#define pv_enabled()	true
+#undef pv_enabled
+#define pv_enabled() true
 
 #undef pv_init_node
 #undef pv_wait_node
 #undef pv_kick_node
 #undef pv_wait_head_or_lock
 
-#undef  queued_spin_lock_slowpath
-#define queued_spin_lock_slowpath	__pv_queued_spin_lock_slowpath
+#undef queued_spin_lock_slowpath
+#define queued_spin_lock_slowpath __pv_queued_spin_lock_slowpath
 
 #include "qspinlock_paravirt.h"
 #include "qspinlock.c"

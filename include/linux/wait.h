@@ -17,9 +17,9 @@ typedef int (*wait_queue_func_t)(struct wait_queue_entry *wq_entry, unsigned mod
 int default_wake_function(struct wait_queue_entry *wq_entry, unsigned mode, int flags, void *key);
 
 /* wait_queue_entry::flags */
-#define WQ_FLAG_EXCLUSIVE	0x01
+#define WQ_FLAG_EXCLUSIVE	0x01 /*进行排他性的唤醒*/
 #define WQ_FLAG_WOKEN		0x02
-#define WQ_FLAG_BOOKMARK	0x04
+#define WQ_FLAG_BOOKMARK	0x04 /*用于wake_up()唤醒等待队列时实现分段遍历,减少单次对自旋锁的占用时间*/
 
 /*
  * A single wait-queue entry structure:

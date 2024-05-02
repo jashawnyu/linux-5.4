@@ -661,7 +661,7 @@ atomic_cmpxchg(atomic_t *v, int old, int new)
 static inline int
 atomic_cmpxchg_acquire(atomic_t *v, int old, int new)
 {
-	kasan_check_write(v, sizeof(*v));
+	kasan_check_write(v, sizeof(*v)); 
 	return arch_atomic_cmpxchg_acquire(v, old, new);
 }
 #define atomic_cmpxchg_acquire atomic_cmpxchg_acquire
