@@ -185,19 +185,20 @@ struct eventpoll {
 	 * collection loop, the file cleanup path, the epoll file exit
 	 * code and the ctl operations.
 	 */
-	struct mutex mtx;
+	struct mutex mtx; //在分配此结构体内存之前会初始化这个mutex
 
 	/* Wait queue used by sys_epoll_wait() */
-	wait_queue_head_t wq;
+	wait_queue_head_t wq; //在分配此结构体内存之前会init_waitqueue_head初始化,队列里存放的是执行epoll_wait从而等待的进程队列
 
 	/* Wait queue used by file->poll() */
-	wait_queue_head_t poll_wait;
+	wait_queue_head_t poll_wait;//在分配此结构体内存之前会init_waitqueue_head初始化,这个队列里存放的是该eventloop作为poll对象的一个实例，加入到等待的队列
 
 	/* List of ready file descriptors */
-	struct list_head rdllist;
+	struct list_head rdllist;//在分配此结构体内存之前会调用INIT_LIST_HEAD初始化,事件就绪的fd列表，链表的每个元素是下面的epitem
 
 	/* Lock which protects rdllist and ovflist */
-	rwlock_t lock;
+	rwlock_t lock; // 在分配此结构体内存之前会初始化这个rwlock
+
 
 	/* RB tree root used to store monitored fd structs */
 	struct rb_root_cached rbr;
@@ -213,14 +214,14 @@ struct eventpoll {
 	struct wakeup_source *ws;
 
 	/* The user that created the eventpoll descriptor */
-	struct user_struct *user;
+	struct user_struct *user; //初始化时调用get_current_user得到此指针
 
-	struct file *file;
+	struct file *file; //通过anon_inode_getfile获得匿名inode封装的文件对象
 
 	/* used to optimize loop detection check */
 	int visited;
 	struct list_head visited_list_link;
-
+//allows network drivers to use busy polling to check for incoming packets rather than relying solely on interrupt-driven packet reception
 #ifdef CONFIG_NET_RX_BUSY_POLL
 	/* used to track busy poll napi_id */
 	unsigned int napi_id;
@@ -230,7 +231,7 @@ struct eventpoll {
 /* Wait structure used by the poll hooks */
 struct eppoll_entry {
 	/* List header used to link this structure to the "struct epitem" */
-	struct list_head llink;
+	struct list_head llink; //加到epi->pwqlist链表尾部
 
 	/* The "base" pointer is set to the container "struct epitem" */
 	struct epitem *base;
@@ -326,7 +327,7 @@ static inline void ep_set_ffd(struct epoll_filefd *ffd,
 /* Compare RB tree keys */
 static inline int ep_cmp_ffd(struct epoll_filefd *p1,
 			     struct epoll_filefd *p2)
-{
+{//按照struct file的地址大小排序。如果两个相同，就按照文件的文件描述字来排序
 	return (p1->file > p2->file ? +1:
 	        (p1->file < p2->file ? -1 : p1->fd - p2->fd));
 }
@@ -888,11 +889,11 @@ static __poll_t ep_item_poll(const struct epitem *epi, poll_table *pt,
 	bool locked;
 
 	pt->_key = epi->event.events;
-	if (!is_file_epoll(epi->ffd.file))
+	if (!is_file_epoll(epi->ffd.file)) //这里注意非epoll文件调用vfs_poll后退出
 		return vfs_poll(epi->ffd.file, pt) & epi->event.events;
-
+	//epoll嵌套,暂不讨论
 	ep = epi->ffd.file->private_data;
-	poll_wait(epi->ffd.file, &ep->poll_wait, pt);
+	poll_wait(epi->ffd.file, &ep->poll_wait, pt); //ep_alloc中poll_wait被初始化
 	locked = pt && (pt->_qproc == ep_ptable_queue_proc);
 
 	return ep_scan_ready_list(epi->ffd.file->private_data,
@@ -1016,7 +1017,7 @@ static int ep_alloc(struct eventpoll **pep)
 	struct user_struct *user;
 	struct eventpoll *ep;
 
-	user = get_current_user();
+	user = get_current_user();//为啥在kzalloc之前调用get_current_user?
 	error = -ENOMEM;
 	ep = kzalloc(sizeof(*ep), GFP_KERNEL);
 	if (unlikely(!ep))
@@ -1027,8 +1028,8 @@ static int ep_alloc(struct eventpoll **pep)
 	init_waitqueue_head(&ep->wq);
 	init_waitqueue_head(&ep->poll_wait);
 	INIT_LIST_HEAD(&ep->rdllist);
-	ep->rbr = RB_ROOT_CACHED;
-	ep->ovflist = EP_UNACTIVE_PTR;
+	ep->rbr = RB_ROOT_CACHED; //初始化指针为空
+	ep->ovflist = EP_UNACTIVE_PTR; //初始化为无效指针
 	ep->user = user;
 
 	*pep = ep;
@@ -1050,8 +1051,8 @@ static struct epitem *ep_find(struct eventpoll *ep, struct file *file, int fd)
 	int kcmp;
 	struct rb_node *rbp;
 	struct epitem *epi, *epir = NULL;
-	struct epoll_filefd ffd;
-
+	struct epoll_filefd ffd; //其排序能力是依靠 epoll_filefd 结构体来完成的
+	//按照struct file的地址大小排序。如果两个相同，就按照文件的文件描述字来排序
 	ep_set_ffd(&ffd, file, fd);
 	for (rbp = ep->rbr.rb_root.rb_node; rbp; ) {
 		epi = rb_entry(rbp, struct epitem, rbn);
@@ -1213,7 +1214,7 @@ static int ep_poll_callback(wait_queue_entry_t *wait, unsigned mode, int sync, v
 	unsigned long flags;
 	int ewake = 0;
 
-	read_lock_irqsave(&ep->lock, flags);
+	read_lock_irqsave(&ep->lock, flags); //保存本地cpu的irq标志，然后关掉cpu中断，获取指定锁
 
 	ep_set_busy_poll_napi_id(epi);
 
@@ -1326,7 +1327,7 @@ static void ep_ptable_queue_proc(struct file *file, wait_queue_head_t *whead,
 		if (epi->event.events & EPOLLEXCLUSIVE)
 			add_wait_queue_exclusive(whead, &pwq->wait);
 		else
-			add_wait_queue(whead, &pwq->wait);
+			add_wait_queue(whead, &pwq->wait); //将一个等待队列条目添加到给定等待队列中
 		list_add_tail(&pwq->llink, &epi->pwqlist);
 		epi->nwait++;
 	} else {
@@ -1502,12 +1503,12 @@ static int ep_insert(struct eventpoll *ep, const struct epoll_event *event,
 	struct epitem *epi;
 	struct ep_pqueue epq;
 
-	lockdep_assert_irqs_enabled();
+	lockdep_assert_irqs_enabled(); //CONFIG_PROVE_LOCKING
 
 	user_watches = atomic_long_read(&ep->user->epoll_watches);
 	if (unlikely(user_watches >= max_user_watches))
 		return -ENOSPC;
-	if (!(epi = kmem_cache_alloc(epi_cache, GFP_KERNEL)))
+	if (!(epi = kmem_cache_alloc(epi_cache, GFP_KERNEL))) //从内存缓存分配对象，提高内存分配效率
 		return -ENOMEM;
 
 	/* Item initialization follow here ... */
@@ -1516,20 +1517,20 @@ static int ep_insert(struct eventpoll *ep, const struct epoll_event *event,
 	INIT_LIST_HEAD(&epi->pwqlist);
 	epi->ep = ep;
 	ep_set_ffd(&epi->ffd, tfile, fd);
-	epi->event = *event;
+	epi->event = *event; //从用户空间拷贝的epoll_event
 	epi->nwait = 0;
-	epi->next = EP_UNACTIVE_PTR;
-	if (epi->event.events & EPOLLWAKEUP) {
-		error = ep_create_wakeup_source(epi);
+	epi->next = EP_UNACTIVE_PTR; //表示无效指针
+	if (epi->event.events & EPOLLWAKEUP) { //epoll_create中也会调用ep_take_care_of_epollwakeup检查
+		error = ep_create_wakeup_source(epi); //如果!CONFIG_PM_SLEEP或!capable(CAP_BLOCK_SUSPEND),此位会被清除
 		if (error)
 			goto error_create_wakeup_source;
 	} else {
-		RCU_INIT_POINTER(epi->ws, NULL);
+		RCU_INIT_POINTER(epi->ws, NULL); //未定义EPOLLWAKEUP事件，此指针无用置为空
 	}
 
 	/* Initialize the poll table using the queue callback */
-	epq.epi = epi;
-	init_poll_funcptr(&epq.pt, ep_ptable_queue_proc);
+	epq.epi = epi; //经过上面的操作，epi初始化完毕,这里赋值给struct ep_pqueue成员,进一步组织数据
+	init_poll_funcptr(&epq.pt, ep_ptable_queue_proc);//设置struct poll_table的成员_qproc
 
 	/*
 	 * Attach the item to the poll hooks and get current event bits.
@@ -2048,12 +2049,12 @@ static int do_epoll_create(int flags)
 	/* Check the EPOLL_* constant for consistency.  */
 	BUILD_BUG_ON(EPOLL_CLOEXEC != O_CLOEXEC);
 
-	if (flags & ~EPOLL_CLOEXEC)
+	if (flags & ~EPOLL_CLOEXEC)//确保flags要么为0，要么就是O_CLOEXEC
 		return -EINVAL;
 	/*
 	 * Create the internal data structure ("struct eventpoll").
 	 */
-	error = ep_alloc(&ep);
+	error = ep_alloc(&ep); //分配struct eventpoll内存，且初始化其成员mutex,rbtree etc.
 	if (error < 0)
 		return error;
 	/*
@@ -2064,16 +2065,16 @@ static int do_epoll_create(int flags)
 	if (fd < 0) {
 		error = fd;
 		goto out_free_ep;
-	}
-	file = anon_inode_getfile("[eventpoll]", &eventpoll_fops, ep,
+	}//用于创建匿名 inode，并将其封装为文件对象
+	file = anon_inode_getfile("[eventpoll]", &eventpoll_fops, ep, // eventpoll 作为匿名file 的 private_data
 				 O_RDWR | (flags & O_CLOEXEC));
-	if (IS_ERR(file)) {
-		error = PTR_ERR(file);
+	if (IS_ERR(file)) {//检查一个指针是否指向一个错误代码
+		error = PTR_ERR(file);//从一个错误指针中提取错误码
 		goto out_free_fd;
 	}
 	ep->file = file;
-	fd_install(fd, file);
-	return fd;
+	fd_install(fd, file);//将给定的文件描述符和文件对象进行关联
+	return fd; //这个文件描述字作为 epoll 的文件句柄，被返回给 epoll_create 的调用者
 
 out_free_fd:
 	put_unused_fd(fd);
@@ -2105,7 +2106,7 @@ SYSCALL_DEFINE4(epoll_ctl, int, epfd, int, op, int, fd,
 {
 	int error;
 	int full_check = 0;
-	struct fd f, tf;
+	struct fd f, tf; //表示的是 target file，即待处理的目标文件
 	struct eventpoll *ep;
 	struct epitem *epi;
 	struct epoll_event epds;
@@ -2113,22 +2114,22 @@ SYSCALL_DEFINE4(epoll_ctl, int, epfd, int, op, int, fd,
 
 	error = -EFAULT;
 	if (ep_op_has_event(op) &&
-	    copy_from_user(&epds, event, sizeof(struct epoll_event)))
+	    copy_from_user(&epds, event, sizeof(struct epoll_event))) //Returns number of bytes that could not be copied. On success, this will be zero
 		goto error_return;
 
 	error = -EBADF;
-	f = fdget(epfd);
+	f = fdget(epfd);//用户调用epoll_create返回的epoll的fd,通过它得到struct fd
 	if (!f.file)
 		goto error_return;
 
 	/* Get the "struct file *" for the target file */
-	tf = fdget(fd);
-	if (!tf.file)
+	tf = fdget(fd); //
+	if (!tf.file) //如果你不会判断fdget的返回值，最快的方法是看看内核其它地方是如何处理的
 		goto error_fput;
 
 	/* The target file descriptor must support poll */
 	error = -EPERM;
-	if (!file_can_poll(tf.file))
+	if (!file_can_poll(tf.file))//判断poll函数是否实现
 		goto error_tgt_fput;
 
 	/* Check if EPOLLWAKEUP is allowed */
@@ -2152,8 +2153,8 @@ SYSCALL_DEFINE4(epoll_ctl, int, epfd, int, op, int, fd,
 	if (ep_op_has_event(op) && (epds.events & EPOLLEXCLUSIVE)) {
 		if (op == EPOLL_CTL_MOD)
 			goto error_tgt_fput;
-		if (op == EPOLL_CTL_ADD && (is_file_epoll(tf.file) ||
-				(epds.events & ~EPOLLEXCLUSIVE_OK_BITS)))
+		if (op == EPOLL_CTL_ADD && (is_file_epoll(tf.file) || //目标文件是一个eventpoll 文件
+				(epds.events & ~EPOLLEXCLUSIVE_OK_BITS)))//确保其他OK_BITS之外的BIT没有被置位
 			goto error_tgt_fput;
 	}
 
@@ -2161,7 +2162,7 @@ SYSCALL_DEFINE4(epoll_ctl, int, epfd, int, op, int, fd,
 	 * At this point it is safe to assume that the "private_data" contains
 	 * our own data structure.
 	 */
-	ep = f.file->private_data;
+	ep = f.file->private_data; //调用anon_inode_getfile时传入的struct eventpoll
 
 	/*
 	 * When we insert an epoll file descriptor, inside another epoll file
@@ -2178,7 +2179,7 @@ SYSCALL_DEFINE4(epoll_ctl, int, epfd, int, op, int, fd,
 	 * deep wakeup paths from forming in parallel through multiple
 	 * EPOLL_CTL_ADD operations.
 	 */
-	mutex_lock_nested(&ep->mtx, 0);
+	mutex_lock_nested(&ep->mtx, 0);  //此处有些复杂，应该是处理递归嵌套问题，暂不分析
 	if (op == EPOLL_CTL_ADD) {
 		if (!list_empty(&f.file->f_ep_links) ||
 						is_file_epoll(tf.file)) {
@@ -2186,7 +2187,7 @@ SYSCALL_DEFINE4(epoll_ctl, int, epfd, int, op, int, fd,
 			mutex_unlock(&ep->mtx);
 			mutex_lock(&epmutex);
 			if (is_file_epoll(tf.file)) {
-				error = -ELOOP;
+				error = -ELOOP; //epoll监视队列是可以添加epoll描述符的，就是支持嵌套。当嵌套关系成环时，或者嵌套深度超过5层时，会报这个错误
 				if (ep_loop_check(ep, tf.file) != 0) {
 					clear_tfile_check_list();
 					goto error_tgt_fput;

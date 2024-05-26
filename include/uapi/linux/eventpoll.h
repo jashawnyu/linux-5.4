@@ -42,7 +42,7 @@
 #define EPOLLRDHUP	(__force __poll_t)0x00002000
 
 /* Set exclusive wakeup mode for the target file descriptor */
-#define EPOLLEXCLUSIVE	((__force __poll_t)(1U << 28))
+#define EPOLLEXCLUSIVE	((__force __poll_t)(1U << 28))//该事件将会成为独占的，即其他使用同一个 epoll 实例的事件处理器将无法同时监听相同的文件描述符上的事件
 
 /*
  * Request the handling of system wakeup events so as to prevent system suspends
@@ -82,7 +82,7 @@ struct epoll_event {
 #ifdef CONFIG_PM_SLEEP
 static inline void ep_take_care_of_epollwakeup(struct epoll_event *epev)
 {
-	if ((epev->events & EPOLLWAKEUP) && !capable(CAP_BLOCK_SUSPEND))
+	if ((epev->events & EPOLLWAKEUP) && !capable(CAP_BLOCK_SUSPEND)) //进程调用系统调用 suspended() 来阻止系统进入挂起（suspend）状态
 		epev->events &= ~EPOLLWAKEUP;
 }
 #else

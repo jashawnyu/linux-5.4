@@ -539,7 +539,7 @@ static int alloc_fd(unsigned start, unsigned flags)
 {
 	return __alloc_fd(current->files, start, rlimit(RLIMIT_NOFILE), flags);
 }
-
+//它会尝试在当前进程的文件描述符表中找到一个未使用的文件描述符，并将其分配给caller
 int get_unused_fd_flags(unsigned flags)
 {
 	return __alloc_fd(current->files, 0, rlimit(RLIMIT_NOFILE), flags);

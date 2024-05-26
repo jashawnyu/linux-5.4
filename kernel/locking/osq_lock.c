@@ -91,7 +91,7 @@ bool osq_lock(struct optimistic_spin_queue *lock)
 {
 	struct optimistic_spin_node *node = this_cpu_ptr(&osq_node);
 	struct optimistic_spin_node *prev, *next;
-	int curr = encode_cpu(smp_processor_id());
+	int curr = encode_cpu(smp_processor_id());//cpu编号+1, 0表示没有cpu
 	int old;
 
 	node->locked = 0;
@@ -104,12 +104,12 @@ bool osq_lock(struct optimistic_spin_queue *lock)
 	 * the node fields we just initialised) semantics when updating
 	 * the lock tail.
 	 */
-	old = atomic_xchg(&lock->tail, curr);
-	if (old == OSQ_UNLOCKED_VAL)
+	old = atomic_xchg(&lock->tail, curr); //交换全局lock->tail和当前cpu编号
+	if (old == OSQ_UNLOCKED_VAL) //说明琐还没有被cpu持有,属于快速通道
 		return true;
 
-	prev = decode_cpu(old);
-	node->prev = prev;
+	prev = decode_cpu(old); //返回变量old指向的cpu所属的节点
+	node->prev = prev; //使之成为当前节点的前继节点
 
 	/*
 	 * osq_lock()			unqueue

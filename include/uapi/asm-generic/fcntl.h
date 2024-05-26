@@ -59,7 +59,7 @@
 #ifndef O_NOATIME
 #define O_NOATIME	01000000
 #endif
-#ifndef O_CLOEXEC
+#ifndef O_CLOEXEC//helps prevent resource leaks in multithreaded programs 
 #define O_CLOEXEC	02000000	/* set close_on_exec */
 #endif
 
