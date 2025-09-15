@@ -87,7 +87,7 @@ struct kmem_cache {
 	unsigned int size;	/* The size of an object including metadata */
 	unsigned int object_size;/* The size of an object without metadata */
 	unsigned int offset;	/* Free pointer offset */
-#ifdef CONFIG_SLUB_CPU_PARTIAL
+#ifdef CONFIG_SLUB_CPU_PARTIAL //1
 	/* Number of per cpu partial objects to keep around */
 	unsigned int cpu_partial;
 #endif

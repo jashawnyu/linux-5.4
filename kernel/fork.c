@@ -866,8 +866,8 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
 	struct vm_struct *stack_vm_area __maybe_unused;
 	int err;
 
-	if (node == NUMA_NO_NODE) // 1
-		node = tsk_fork_get_node(orig);
+	if (node == NUMA_NO_NODE) // -1, No numa node specified
+		node = tsk_fork_get_node(orig); //kthread get preference numa node
 	tsk = alloc_task_struct_node(node);
 	if (!tsk)
 		return NULL;
@@ -876,14 +876,13 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
 	if (!stack)
 		goto free_tsk;
 
-	if (memcg_charge_kernel_stack(tsk))
+	if (memcg_charge_kernel_stack(tsk)) //mem cgroup charging and accounting
 		goto free_stack;
 
 	//alloc_thread_stack_node  alloc it before
-	//这个变量没有任何code用到，编译器也不会报错
-	stack_vm_area = task_stack_vm_area(tsk);
+	stack_vm_area = task_stack_vm_area(tsk); //get tsk vmalloc object
 
-	err = arch_dup_task_struct(tsk, orig);
+	err = arch_dup_task_struct(tsk, orig); //fpsimd save
 
 	/*
 	 * arch_dup_task_struct() clobbers the stack-related fields(清除与堆栈相关的字段).  Make
@@ -2388,7 +2387,6 @@ long _do_fork(struct kernel_clone_args *args)
 	p = copy_process(NULL, trace, NUMA_NO_NODE, args);
 	//??
 	add_latent_entropy();
-
 	if (IS_ERR(p))
 		return PTR_ERR(p);
 
