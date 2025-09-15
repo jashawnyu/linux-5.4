@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ ! -e vmlinux ]; then 
-#make  ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- defconfig
+make  ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- defconfig
 #sed -i '26s/^/extern /' scripts/dtc/dtc-lexer.l
 scripts/kconfig/merge_config.sh -m .config my.config
 fi

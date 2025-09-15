@@ -5,3 +5,4 @@ sudo qemu-system-aarch64 -machine virt -cpu cortex-a57 -nographic -smp 2 -m 1024
 -drive file=ubuntu-base.ext4,if=none,format=raw,id=hd0 \
 -device virtio-blk-device,drive=hd0
  # -netdev type=user,id=eth0 -device virtio-net-device,netdev=eth0 
+ # default ubuntu-base.ext4 admin: jashawnyu; passwd: yjx

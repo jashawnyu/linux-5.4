@@ -872,6 +872,10 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
 	if (!tsk)
 		return NULL;
 
+	err = arch_dup_task_struct(tsk, orig); //fpsimd save
+	if (err)
+		goto free_stack;
+
 	stack = alloc_thread_stack_node(tsk, node);
 	if (!stack)
 		goto free_tsk;
@@ -882,23 +886,23 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
 	//alloc_thread_stack_node  alloc it before
 	stack_vm_area = task_stack_vm_area(tsk); //get tsk vmalloc object
 
-	err = arch_dup_task_struct(tsk, orig); //fpsimd save
+	/* err = arch_dup_task_struct(tsk, orig); //fpsimd save */
 
 	/*
 	 * arch_dup_task_struct() clobbers the stack-related fields(清除与堆栈相关的字段).  Make
 	 * sure they're properly initialized before using any stack-related
 	 * functions again.
 	 */
-	tsk->stack = stack;
-#ifdef CONFIG_VMAP_STACK
-	tsk->stack_vm_area = stack_vm_area;
-#endif
+/* 	tsk->stack = stack; */
+/* #ifdef CONFIG_VMAP_STACK */
+/* 	tsk->stack_vm_area = stack_vm_area; */
+/* #endif */
 #ifdef CONFIG_THREAD_INFO_IN_TASK
 	refcount_set(&tsk->stack_refcount, 1);
 #endif
 
-	if (err)
-		goto free_stack;
+	/* if (err) */
+	/* 	goto free_stack; */
 
 #ifdef CONFIG_SECCOMP
 	/*
