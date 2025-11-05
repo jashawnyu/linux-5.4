@@ -21,7 +21,7 @@ extern void get_avenrun(unsigned long *loads, unsigned long offset, int shift);
 #define EXP_1		1884		/* 1/exp(5sec/1min) as fixed-point */
 #define EXP_5		2014		/* 1/exp(5sec/5min) */
 #define EXP_15		2037		/* 1/exp(5sec/15min) */
-
+//load average 使用的是 EMA（指数移动平均）算法:loadt=loadt−1×e−Δt/τ+new_load×(1−e−Δt/τ)
 /*
  * a1 = a0 * e + a * (1 - e)
  */
@@ -41,7 +41,7 @@ extern unsigned long calc_load_n(unsigned long load, unsigned long exp,
 				 unsigned long active, unsigned int n);
 
 #define LOAD_INT(x) ((x) >> FSHIFT)
-#define LOAD_FRAC(x) LOAD_INT(((x) & (FIXED_1-1)) * 100)
+#define LOAD_FRAC(x) LOAD_INT(((x) & (FIXED_1-1)) * 100) //数学原理:从定点小数还原小数位
 
 extern void calc_global_load(unsigned long ticks);
 

@@ -28,7 +28,7 @@ typedef struct {
 u64 smp_irq_stat_cpu(unsigned int cpu);
 #define arch_irq_stat_cpu	smp_irq_stat_cpu
 
-#define __ARCH_IRQ_EXIT_IRQS_DISABLED	1
+#define __ARCH_IRQ_EXIT_IRQS_DISABLED	1 //在调用 irq_exit() 时，中断已经被屏蔽（即 DAIF.I = 1）
 
 struct nmi_ctx {
 	u64 hcr;

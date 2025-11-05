@@ -250,7 +250,7 @@ static inline void cpu_relax(void)
 /* Thread switching */
 extern struct task_struct *cpu_switch_to(struct task_struct *prev,
 					 struct task_struct *next);
-
+//获取 某个任务的寄存器上下文 (pt_regs) 的宏
 #define task_pt_regs(p) \
 	((struct pt_regs *)(THREAD_SIZE + task_stack_page(p)) - 1)
 

@@ -32,7 +32,7 @@
 #endif
 
 #ifndef ____cacheline_aligned
-#define ____cacheline_aligned __attribute__((__aligned__(SMP_CACHE_BYTES)))
+#define ____cacheline_aligned __attribute__((__aligned__(SMP_CACHE_BYTES))) //arm64, equals 64
 #endif
 
 #ifndef ____cacheline_aligned_in_smp

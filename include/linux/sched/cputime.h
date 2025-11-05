@@ -74,7 +74,7 @@ void thread_group_sample_cputime(struct task_struct *tsk, u64 *samples);
  *
  * @tsk:	Pointer to target task.
  */
-#ifdef CONFIG_POSIX_TIMERS
+#ifdef CONFIG_POSIX_TIMERS //是否启用 POSIX 定时器（POSIX timers） 功能
 static inline
 struct thread_group_cputimer *get_running_cputimer(struct task_struct *tsk)
 {
@@ -156,7 +156,7 @@ static inline void account_group_system_time(struct task_struct *tsk,
 	atomic64_add(cputime, &cputimer->cputime_atomic.stime);
 }
 
-/**
+/**用于把某个任务（task）在 CFS 调度器中实际运行的时间，累加到它所在的调度组（task group）的执行时间统计中
  * account_group_exec_runtime - Maintain exec runtime for a thread group.
  *
  * @tsk:	Pointer to task structure.

@@ -220,7 +220,8 @@ unsigned long schedutil_cpu_util(int cpu, unsigned long util_cfs,
 	/*
 	 * Early check to see if IRQ/steal time saturates the CPU, can be
 	 * because of inaccuracies in how we track these -- see
-	 * update_irq_load_avg().
+	 * update_irq_load_avg(). 早期检查IRQ/窃取时间是否使CPU饱和，
+	 * 可能是因为我们跟踪这些时间的方式不准确——参见update_irq_load_avg（）
 	 */
 	irq = cpu_util_irq(rq);
 	if (unlikely(irq >= max))

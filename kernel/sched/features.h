@@ -40,7 +40,7 @@ SCHED_FEAT(WAKEUP_PREEMPTION, true)
 SCHED_FEAT(HRTICK, false)
 SCHED_FEAT(DOUBLE_TICK, false)
 
-/*
+/* (根据不运行任务的时间减少CPU占用)
  * Decrement CPU capacity based on time not spent running tasks
  */
 SCHED_FEAT(NONTASK_CAPACITY, true)

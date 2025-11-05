@@ -264,9 +264,9 @@ struct cred *prepare_creds(void)
 	old = task->cred;
 	memcpy(new, old, sizeof(struct cred));
 
-	new->non_rcu = 0;
+	new->non_rcu = 0; //指示这个 struct cred 凭证对象是否可以不使用 RCU（Read-Copy-Update）机制进行释放
 	atomic_set(&new->usage, 1);
-	set_cred_subscribers(new, 0);
+	set_cred_subscribers(new, 0); //DEBUG have no effect
 	get_group_info(new->group_info);
 	get_uid(new->user);
 	get_user_ns(new->user_ns);
@@ -337,14 +337,14 @@ int copy_creds(struct task_struct *p, unsigned long clone_flags)
 #endif
 
 	if (
-#ifdef CONFIG_KEYS
+#ifdef CONFIG_KEYS //1;密钥的框架用于内核子系统安全地处理各种认证和加密凭证
 		!p->cred->thread_keyring &&
 #endif
 		clone_flags & CLONE_THREAD
 	    ) {
-		p->real_cred = get_cred(p->cred);
-		get_cred(p->cred);
-		alter_cred_subscribers(p->cred, 2);
+		p->real_cred = get_cred(p->cred); //validation cred depends on CONFIG_DEBUG_CREDENTIALS, cred->usage++
+		get_cred(p->cred); //cred->usage++
+		alter_cred_subscribers(p->cred, 2); //default 0, depends on CONFIG_DEBUG_CREDENTIALS
 		kdebug("share_creds(%p{%d,%d})",
 		       p->cred, atomic_read(&p->cred->usage),
 		       read_cred_subscribers(p->cred));

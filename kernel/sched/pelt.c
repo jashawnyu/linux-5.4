@@ -43,7 +43,7 @@ static u64 decay_load(u64 val, u64 n)
 		return 0; //为了避免浮点数运算，采用移位和乘法运算提高计算速度
 
 	/* after bounds checking we can collapse(折叠) to 32-bit */
-	local_n = n;
+	local_n = n;//会截断高 32 位，只保留低 32 位的值
 
 	/*
 	 * As y^PERIOD = 1/2, we can combine
@@ -52,11 +52,13 @@ static u64 decay_load(u64 val, u64 n)
 	 *
 	 * To achieve constant time decay_load.
 	 */
+	/*由于y^32=0.5，因此我们只需要计算y*2^32~y^31*2^32的值保存到数组中即可。当n大于31的时候，为了计算yn*2^32我们可以借助y^32=0.5公式间接计算*/
+	/*http://www.wowotech.net/process_management/450.html*/
 	if (unlikely(local_n >= LOAD_AVG_PERIOD)) {
 		val >>= local_n / LOAD_AVG_PERIOD;
 		local_n %= LOAD_AVG_PERIOD;
 	}
-//runnable_avg_yN_inv[local_n]中的值已经乘以了2^32
+//runnable_avg_yN_inv[local_n]中val is y^local_n * 2^32
 	val = mul_u64_u32_shr(val, runnable_avg_yN_inv[local_n], 32); //>>32 ，表示在计算完后缩小
 	return val;
 }
@@ -82,7 +84,12 @@ static u32 __accumulate_pelt_segments(u64 periods, u32 d1, u32 d3)
   /*  y^0+...+y^n=y^0+...y^p-1+y^p+...+y^n
    * y^1+...y^p-1=y^0+...+y^n-(y^p+...+y^n)-y^0
    * */
-	c2 = LOAD_AVG_MAX - decay_load(LOAD_AVG_MAX, periods) - 1024;
+	/*****easy understanding: Sp=y^p+y^(p+1)+⋯=y^p(1+y+y2+⋯)=y^p*S*/
+	c2 = LOAD_AVG_MAX - decay_load(LOAD_AVG_MAX, periods) - 1024; //在完整的衰减总和中，去掉最早的 y^0 和最晚 y^p~y^n，剩下的是中间段的负载
+	/* another解释一下(y^p+ ... y^n)怎么算, 根据等比级数求和公式，极限和S=a/(1-r)，首项为a，公比为r；
+	 * 可以知道y^p+...+y^n的值为，S=y^p / (1-y)；
+	 * 因为LOAD_AVG_MAX=1024 * (y^0 + y^1 + y^2 + ... + y^n)= 1024 * 1/(1-y)，n无穷大；
+	 * 所以S * 1024=y^p * LOAD_AVG_MAX，可由 `decay_load` 求出*/
 
 	return c1 + c2 + c3;
 }
@@ -128,10 +135,10 @@ accumulate_sum(u64 delta, struct sched_avg *sa, // 用來計算計算 sched_enti
 	 */
 	if (periods) {
     //调用decay_load()函数计算公式中的step1部分, sa->load_sum是上个周期负载贡献总和
-		sa->load_sum = decay_load(sa->load_sum, periods);
+		sa->load_sum = decay_load(sa->load_sum, periods);//decay sa->load_sum according to the periods
 		sa->runnable_load_sum =
-			decay_load(sa->runnable_load_sum, periods);
-		sa->util_sum = decay_load((u64)(sa->util_sum), periods);
+			decay_load(sa->runnable_load_sum, periods); // same as above
+		sa->util_sum = decay_load((u64)(sa->util_sum), periods);//sa->util_sum's datatype is u32
 
 		/*
 		 * Step 2
@@ -148,14 +155,14 @@ accumulate_sum(u64 delta, struct sched_avg *sa, // 用來計算計算 sched_enti
 	if (runnable)
 		sa->runnable_load_sum += runnable * contrib;
 	if (running)
-		sa->util_sum += contrib << SCHED_CAPACITY_SHIFT; //<<10
+		sa->util_sum += contrib << SCHED_CAPACITY_SHIFT; //<<10; 左移的作用是为了让 util_sum 和 util_avg 的数值保持“定点整数精度”
 
 	return periods;
 }
 
-/*
+/* (我们可以将历史对可运行平均值的贡献表示为几何级数的系数)
  * We can represent the historical contribution to runnable average as the
- * coefficients of a geometric series.  To do this we sub-divide our runnable
+ * coefficients of a geometric series.  To do this we sub-divide(细分) our runnable
  * history into segments of approximately 1ms (1024us); label the segment that
  * occurred N-ms ago p_N, with p_0 corresponding to the current period, e.g.
  *
@@ -183,7 +190,7 @@ accumulate_sum(u64 delta, struct sched_avg *sa, // 用來計算計算 sched_enti
  */
 static __always_inline int
 ___update_load_sum(u64 now, struct sched_avg *sa,
-		  unsigned long load, unsigned long runnable, int running)
+		  unsigned long load, unsigned long runnable, int running)// load:当前负载权重（task 的静态权重)se->load.weight;runnable: 在运行队列上;running:当前实体正在执行
 {
 	u64 delta;
 
@@ -201,7 +208,7 @@ ___update_load_sum(u64 now, struct sched_avg *sa,
 	 * Use 1024ns as the unit of measurement since it's a reasonable
 	 * approximation of 1us and fast to compute.
 	 */
-	delta >>= 10;
+	delta >>= 10; //round down, Remove the part that is less than 1024ns
 	if (!delta)
 		return 0;
 
@@ -235,8 +242,8 @@ ___update_load_sum(u64 now, struct sched_avg *sa,
 static __always_inline void
 ___update_load_avg(struct sched_avg *sa, unsigned long load, unsigned long runnable)
 {//计算当前时间的负载只需要上个周期负载贡献总和乘以衰减系数y ,所以 LOAD_AVG_MAX*y + sa->period_contrib
-	u32 divider = LOAD_AVG_MAX - 1024 + sa->period_contrib; // LOAD_AVG_MAX*y 约等于 LOAD_AVG_MAX-1024,原因见__accumulate_pelt_segments()注释
-
+	u32 divider = LOAD_AVG_MAX - 1024 + sa->period_contrib;  //可根据等比级数求和公式求得: S = a / (1 - r); a：首项, r：公比（common ratio）
+	
 	/*
 	 * Step 2: update *_avg.
 	 */
@@ -271,11 +278,13 @@ ___update_load_avg(struct sched_avg *sa, unsigned long load, unsigned long runna
  *   runnable_load_sum = \Sum se_runnable(se) * se->avg.runnable_load_sum
  *   runnable_load_avg = \Sum se->avg.runable_load_avg
  */
-
+//当任务 sleep、阻塞（即不在运行队列中）时，它的负载也应该随着时间“慢慢变小”
+//Purpose: 用于 更新处于“阻塞”状态（blocked，即不在运行队列上）的调度实体（sched_entity）的负载平均值(sched_avg)
 int __update_load_avg_blocked_se(u64 now, struct sched_entity *se)
-{
-	if (___update_load_sum(now, &se->avg, 0, 0, 0)) {
+{//True:负载状态有更新(util_sum、runnable_load_sum、load_sum至少一个值发生变化)
+	if (___update_load_sum(now, &se->avg, 0, 0, 0)) {//参数 0, 0, 0 表示当前这个更新不添加新的活跃贡献值，仅做指数衰减
 		___update_load_avg(&se->avg, se_weight(se), se_runnable(se));
+	  //Following tracepoints are not exported in tracefs and provide hooking* mechanisms only for testing and debugging purposes. Postfixed with _tp to make them easily identifiable in the code.
 		trace_pelt_se_tp(se);
 		return 1;
 	}
@@ -288,7 +297,7 @@ int __update_load_avg_se(u64 now, struct cfs_rq *cfs_rq, struct sched_entity *se
 	if (___update_load_sum(now, &se->avg, !!se->on_rq, !!se->on_rq,
 				cfs_rq->curr == se)) { //return 1(periods>0) if update sucessful
 
-		___update_load_avg(&se->avg, se_weight(se), se_runnable(se));
+		___update_load_avg(&se->avg, se_weight(se), se_runnable(se)); //(,1024,)
 		cfs_se_util_change(&se->avg);
 		trace_pelt_se_tp(se);
 		return 1;
@@ -371,7 +380,8 @@ int update_dl_rq_load_avg(u64 now, struct rq *rq, int running)
  *   runnable_load_sum = load_sum
  *
  */
-
+/*@running: 表示从上次更新以来该 CPU 的 中断运行时间（ns）*/
+/*update rq->irq_avg::*_sum&*_avg */
 int update_irq_load_avg(struct rq *rq, u64 running)
 {
 	int ret = 0;
@@ -381,8 +391,9 @@ int update_irq_load_avg(struct rq *rq, u64 running)
 	 * clock_task. Instead we directly scale the running time to
 	 * reflect the real amount of computation
 	 */
-	running = cap_scale(running, arch_scale_freq_capacity(cpu_of(rq)));
-	running = cap_scale(running, arch_scale_cpu_capacity(cpu_of(rq)));
+	running = cap_scale(running, arch_scale_freq_capacity(cpu_of(rq))); //The value remains unchanged.
+	running = cap_scale(running, arch_scale_cpu_capacity(cpu_of(rq))); //The value remains unchanged.
+
 
 	/*
 	 * We know the time that has been used by interrupt since last update
@@ -395,13 +406,20 @@ int update_irq_load_avg(struct rq *rq, u64 running)
 	 * We can safely remove running from rq->clock because
 	 * rq->clock += delta with delta >= running
 	 */
-	ret = ___update_load_sum(rq->clock - running, &rq->avg_irq,
-				0,
+	/*中断时间段包含两种状态：
+	 * 中断前：CPU 正常运行任务（非中断负载）
+	 * 中断时：CPU 被中断抢占（irq 负载）
+	 * 所以只能分两次调用，表示这两个状态区间
+	 * */
+	/*用来对历史值做衰减（decay），相当于“推进时间到中断开始之前”*/
+	ret = ___update_load_sum(rq->clock - running, &rq->avg_irq, //更新时间推进到中断发生前的时刻(rq->clock - running)
+				0, //参数全是 0 → 表示这一段时间没有活动（sleeping 状态）
 				0,
 				0);
-	ret += ___update_load_sum(rq->clock, &rq->avg_irq,
-				1,
-				1,
+/*把这段中断时间 (running) 的负载贡献加入到统计中*/
+	ret += ___update_load_sum(rq->clock, &rq->avg_irq,  //更新时间推进到当前时刻（rq->clock）；
+				1, //参数全为 1 → 表示这段时间是活跃的（中断在运行）
+				1, 
 				1);
 
 	if (ret) {

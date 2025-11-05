@@ -355,7 +355,7 @@ static int gic_set_affinity(struct irq_data *d, const struct cpumask *mask_val,
 }
 #endif
 
-static void __exception_irq_entry gic_handle_irq(struct pt_regs *regs)
+static void __exception_irq_entry gic_handle_irq(struct pt_regs *regs) //=handle_arch_irq, be called at arch/arm64/kernel.entry.S
 {
 	u32 irqstat, irqnr;
 	struct gic_chip_data *gic = &gic_data[0];
@@ -363,7 +363,7 @@ static void __exception_irq_entry gic_handle_irq(struct pt_regs *regs)
 
 	do {
 		irqstat = readl_relaxed(cpu_base + GIC_CPU_INTACK);
-		irqnr = irqstat & GICC_IAR_INT_ID_MASK;
+		irqnr = irqstat & GICC_IAR_INT_ID_MASK; //"irqnr" is equal to the value in the fifth column of the /proc/interrupts content
 
 		if (likely(irqnr > 15 && irqnr < 1020)) {
 			if (static_branch_likely(&supports_deactivate_key))

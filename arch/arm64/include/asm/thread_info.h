@@ -32,7 +32,7 @@ struct thread_info {
 	u64			ttbr0;		/* saved TTBR0_EL1 */
 #endif
 	union {
-		u64		preempt_count;	/* 0 => preemptible, <0 => bug */
+		u64		preempt_count;	/* 0 => preemptible, <0 => bug;1.是否处于中断上下文,2.是否禁用了抢占,3.irq_enter(exit)是否在软中断/硬中断中 */
 		struct {
 #ifdef CONFIG_CPU_BIG_ENDIAN
 			u32	need_resched;

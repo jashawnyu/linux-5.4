@@ -311,7 +311,7 @@ static int __init xen_guest_init(void)
 	struct shared_info *shared_info_page = NULL;
 	int cpu;
 
-	if (!xen_domain())
+	if (!xen_domain()) //1
 		return 0;
 
 	if (!acpi_disabled)

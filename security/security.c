@@ -1555,7 +1555,7 @@ int security_prepare_creds(struct cred *new, const struct cred *old, gfp_t gfp)
 
 	if (rc)
 		return rc;
-
+// 全局的钩子链表
 	rc = call_int_hook(cred_prepare, 0, new, old, gfp);
 	if (unlikely(rc))
 		security_cred_free(new);

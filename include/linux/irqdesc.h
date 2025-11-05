@@ -53,11 +53,12 @@ struct pt_regs;
  * @debugfs_file:	dentry for the debugfs file
  * @name:		flow handler name for /proc/interrupts output
  */
+/*每个中断都有自己的irq_desc*/
 struct irq_desc {
 	struct irq_common_data	irq_common_data;
 	struct irq_data		irq_data;
 	unsigned int __percpu	*kstat_irqs;
-	irq_flow_handler_t	handle_irq;
+	irq_flow_handler_t	handle_irq; //handle_percpu_devid_irq
 #ifdef CONFIG_IRQ_PREFLOW_FASTEOI
 	irq_preflow_handler_t	preflow_handler;
 #endif

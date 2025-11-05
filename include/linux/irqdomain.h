@@ -92,7 +92,7 @@ enum irq_domain_bus_token {
  * @map: Create or update a mapping between a virtual irq number and a hw
  *       irq number. This is called only once for a given mapping.
  * @unmap: Dispose of such a mapping
- * @xlate: Given a device tree node and interrupt specifier, decode
+ * @xlate(translate): Given a device tree node and interrupt specifier, decode
  *         the hardware irq number and linux irq type value.
  *
  * Functions below are provided by the driver and called whenever a new mapping
@@ -101,12 +101,14 @@ enum irq_domain_bus_token {
  * to setup the irq_desc when returning from map().
  */
 struct irq_domain_ops {
+	/*将中断控制器设备节点匹配到主机，匹配时返回1*/
 	int (*match)(struct irq_domain *d, struct device_node *node,
 		     enum irq_domain_bus_token bus_token);
 	int (*select)(struct irq_domain *d, struct irq_fwspec *fwspec,
 		      enum irq_domain_bus_token bus_token);
 	int (*map)(struct irq_domain *d, unsigned int virq, irq_hw_number_t hw);
 	void (*unmap)(struct irq_domain *d, unsigned int virq);
+	/*translate, */
 	int (*xlate)(struct irq_domain *d, struct device_node *node,
 		     const u32 *intspec, unsigned int intsize,
 		     unsigned long *out_hwirq, unsigned int *out_type);

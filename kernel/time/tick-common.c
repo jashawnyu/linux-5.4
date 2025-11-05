@@ -80,7 +80,7 @@ int tick_is_oneshot_available(void)
 /*
  * Periodic tick
  */
-static void tick_periodic(int cpu)
+static void tick_periodic(int cpu) //CONFIG_HZ_PERIODIC 
 {
 	if (tick_do_timer_cpu == cpu) {
 		write_seqlock(&jiffies_lock);

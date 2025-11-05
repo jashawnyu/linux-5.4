@@ -1183,7 +1183,7 @@ static int irq_request_resources(struct irq_desc *desc)
 	struct irq_data *d = &desc->irq_data;
 	struct irq_chip *c = d->chip;
 
-	return c->irq_request_resources ? c->irq_request_resources(d) : 0;
+	return c->irq_request_resources ? c->irq_request_resources(d) : 0;// 0 ? 
 }
 
 static void irq_release_resources(struct irq_desc *desc)
@@ -1284,7 +1284,7 @@ setup_irq_thread(struct irqaction *new, unsigned int irq, bool secondary)
  * request/free_irq().
  */
 static int
-__setup_irq(unsigned int irq, struct irq_desc *desc, struct irqaction *new)
+__setup_irq(unsigned int irq, struct irq_desc *desc, struct irqaction *new) //Comments based on the arch_timer code path
 {
 	struct irqaction *old, **old_ptr;
 	unsigned long flags, thread_mask = 0;
@@ -1295,24 +1295,24 @@ __setup_irq(unsigned int irq, struct irq_desc *desc, struct irqaction *new)
 
 	if (desc->irq_data.chip == &no_irq_chip)
 		return -ENOSYS;
-	if (!try_module_get(desc->owner))
+	if (!try_module_get(desc->owner)) //if module is NULL, return true
 		return -ENODEV;
 
-	new->irq = irq;
+	new->irq = irq; //3
 
 	/*
 	 * If the trigger type is not specified by the caller,
 	 * then use the default for this interrupt.
 	 */
-	if (!(new->flags & IRQF_TRIGGER_MASK))
-		new->flags |= irqd_get_trigger_type(&desc->irq_data);
+	if (!(new->flags & IRQF_TRIGGER_MASK)) //(0x4400 & 0x0F) == 0
+		new->flags |= irqd_get_trigger_type(&desc->irq_data); // =0x4404, the default setting is RQF_TRIGGER_HIGH
 
 	/*
 	 * Check whether the interrupt nests into another interrupt
 	 * thread.
 	 */
-	nested = irq_settings_is_nested_thread(desc);
-	if (nested) {
+	nested = irq_settings_is_nested_thread(desc);  //desc->status_use_accessors=0x31600
+	if (nested) { //0
 		if (!new->thread_fn) {
 			ret = -EINVAL;
 			goto out_mput;
@@ -1336,7 +1336,7 @@ __setup_irq(unsigned int irq, struct irq_desc *desc, struct irqaction *new)
 	 * and the interrupt does not nest into another interrupt
 	 * thread.
 	 */
-	if (new->thread_fn && !nested) {
+	if (new->thread_fn && !nested) { //0
 		ret = setup_irq_thread(new, irq, false);
 		if (ret)
 			goto out_mput;
@@ -1356,7 +1356,7 @@ __setup_irq(unsigned int irq, struct irq_desc *desc, struct irqaction *new)
 	 * chip flags, so we can avoid the unmask dance at the end of
 	 * the threaded handler for those.
 	 */
-	if (desc->irq_data.chip->flags & IRQCHIP_ONESHOT_SAFE)
+	if (desc->irq_data.chip->flags & IRQCHIP_ONESHOT_SAFE) //(0x15 & (1<<5)) = (0x15 & 0x20) = 0
 		new->flags &= ~IRQF_ONESHOT;
 
 	/*
@@ -1376,8 +1376,8 @@ __setup_irq(unsigned int irq, struct irq_desc *desc, struct irqaction *new)
 	chip_bus_lock(desc);
 
 	/* First installed action requests resources. */
-	if (!desc->action) {
-		ret = irq_request_resources(desc);
+	if (!desc->action) { //(1)
+		ret = irq_request_resources(desc); //0
 		if (ret) {
 			pr_err("Failed to request resources for %s (irq %d) on irqchip %s\n",
 			       new->name, irq, desc->irq_data.chip->name);
@@ -1452,7 +1452,7 @@ __setup_irq(unsigned int irq, struct irq_desc *desc, struct irqaction *new)
 	 * !ONESHOT irqs the thread mask is 0 so we can avoid a
 	 * conditional in irq_wake_thread().
 	 */
-	if (new->flags & IRQF_ONESHOT) {
+	if (new->flags & IRQF_ONESHOT) { //(0x4404 & 0x2000) = 0
 		/*
 		 * Unlikely to have 32 resp 64 irqs sharing one line,
 		 * but who knows.
@@ -1506,7 +1506,7 @@ __setup_irq(unsigned int irq, struct irq_desc *desc, struct irqaction *new)
 		goto out_unlock;
 	}
 
-	if (!shared) {
+	if (!shared) { //1
 		init_waitqueue_head(&desc->wait_for_threads);
 
 		/* Setup the type (level, edge polarity) if configured: */
@@ -1575,7 +1575,7 @@ __setup_irq(unsigned int irq, struct irq_desc *desc, struct irqaction *new)
 				irq, omsk, nmsk);
 	}
 
-	*old_ptr = new;
+	*old_ptr = new; //Parameter 3 is assigned to parameter 2
 
 	irq_pm_install_action(desc, new);
 

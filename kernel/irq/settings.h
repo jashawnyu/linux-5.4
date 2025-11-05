@@ -150,7 +150,7 @@ static inline bool irq_settings_can_autoenable(struct irq_desc *desc)
 
 static inline bool irq_settings_is_nested_thread(struct irq_desc *desc)
 {
-	return desc->status_use_accessors & _IRQ_NESTED_THREAD;
+	return desc->status_use_accessors & _IRQ_NESTED_THREAD; // & (1<<15))
 }
 
 static inline bool irq_settings_is_polled(struct irq_desc *desc)

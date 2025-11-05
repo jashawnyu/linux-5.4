@@ -258,7 +258,9 @@ void disable_pid_allocation(struct pid_namespace *ns)
 	ns->pid_allocated &= ~PIDNS_ADDING;
 	spin_unlock_irq(&pidmap_lock);
 }
-
+//维护一个 idr(id radix tree) 或 XArray(newer linux verion)，将 pid_t 映射到 struct pid *
+//所以，pid_t + pid_namespace → 查 idr → 找到 struct pid → 找到 task_struct
+//从命名空间的 idr 中查找 struct pid *：
 struct pid *find_pid_ns(int nr, struct pid_namespace *ns)
 {
 	return idr_find(&ns->idr, nr);

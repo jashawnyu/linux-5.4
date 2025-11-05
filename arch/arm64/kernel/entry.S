@@ -421,7 +421,7 @@ tsk	.req	x28		// current thread_info
  * Interrupt handling.
  */
 	.macro	irq_handler
-	ldr_l	x1, handle_arch_irq
+	ldr_l	x1, handle_arch_irq //ldr_l defined at assembler.h
 	mov	x0, sp
 	irq_stack_entry
 	blr	x1

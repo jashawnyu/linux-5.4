@@ -34,7 +34,7 @@
 
 #include "efi-header.S"
 
-#define __PHYS_OFFSET	(KERNEL_START - TEXT_OFFSET) /*kernel image的起始地址*/ 
+	#define __PHYS_OFFSET	(KERNEL_START - TEXT_OFFSET) /* (_text - 0x00080000) = ((phy:0x40080000;virt according System.map:0xffff800010080000) - 0x00080000)kernel image的virtual起始地址*/ 
 
 #if (TEXT_OFFSET & 0xfff) != 0
 #error TEXT_OFFSET must be at least 4KB aligned
@@ -59,6 +59,7 @@
  * that are useful before the MMU is enabled. The allocations are described
  * in the entry routines.
  */
+/*./include/linux/init.h:#define __HEAD		.section	".head.text","ax"*/
 	__HEAD
 _head:
 	/*
@@ -1044,9 +1045,9 @@ __primary_switch:
 #endif
 	bl	__relocate_kernel
 #ifdef CONFIG_RANDOMIZE_BASE
-	ldr	x8, =__primary_switched
-	adrp	x0, __PHYS_OFFSET
-	blr	x8
+	ldr	x8, =__primary_switched //Load __primary_switched label addr into x8
+	adrp	x0, __PHYS_OFFSET //gdb(info registers) : 0x = 0x40000000 ; __PHY_OFFSET label virtual addr = 
+	blr	x8  //当前: 在物理地址空间执行 (MMU 已启用但代码还在物理地址运行); Goal: 跳转到虚拟地址空间
 
 	/*
 	 * If we return here, we have a KASLR displacement in x23 which we need

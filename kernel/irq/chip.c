@@ -933,11 +933,11 @@ void handle_percpu_devid_irq(struct irq_desc *desc)
 	 */
 	__kstat_incr_irqs_this_cpu(desc);
 
-	if (chip->irq_ack)
+	if (chip->irq_ack) //irq_ack 就是告诉中断控制器：这个中断我已经收到了
 		chip->irq_ack(&desc->irq_data);
 
 	if (likely(action)) {
-		trace_irq_handler_entry(irq, action);
+		trace_irq_handler_entry(irq, action); //tracepoint for ftrace: /sys/kernel/debug/tracing
 		res = action->handler(irq, raw_cpu_ptr(action->percpu_dev_id));
 		trace_irq_handler_exit(irq, action, res);
 	} else {

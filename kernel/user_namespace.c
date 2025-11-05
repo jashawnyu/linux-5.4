@@ -28,7 +28,7 @@ static bool new_idmap_permitted(const struct file *file,
 				struct user_namespace *ns, int cap_setid,
 				struct uid_gid_map *map);
 static void free_user_ns(struct work_struct *work);
-
+/* 增加用户命名空间引用计数 */
 static struct ucounts *inc_user_namespaces(struct user_namespace *ns, kuid_t uid)
 {
 	return inc_ucount(ns, uid, UCOUNT_USER_NAMESPACES);

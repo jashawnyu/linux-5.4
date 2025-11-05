@@ -925,7 +925,7 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
 #ifdef CONFIG_STACKPROTECTOR //1
 	tsk->stack_canary = get_random_canary();
 #endif
-	if (orig->cpus_ptr == &orig->cpus_mask)
+	if (orig->cpus_ptr == &orig->cpus_mask) //don't share cpus_mask
 		tsk->cpus_ptr = &tsk->cpus_mask;
 
 	/*
@@ -1777,7 +1777,7 @@ static __always_inline void delayed_free_task(struct task_struct *tsk)
  * parts of the process environment (as per the clone
  * flags). The actual kick-off is left to the caller.
  */
-static __latent_entropy struct task_struct *
+static __attribute__((optimize("O0"))) __latent_entropy struct task_struct *
 copy_process(struct pid *pid, int trace, int node,
 	     struct kernel_clone_args *args)
 {

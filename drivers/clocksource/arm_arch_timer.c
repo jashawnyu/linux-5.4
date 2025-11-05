@@ -987,12 +987,13 @@ static void __init arch_counter_register(unsigned type)
 	if (!arch_counter_suspend_stop)
 		clocksource_counter.flags |= CLOCK_SOURCE_SUSPEND_NONSTOP;
 	start_count = arch_timer_read_counter();
+
 	clocksource_register_hz(&clocksource_counter, arch_timer_rate);
 	cyclecounter.mult = clocksource_counter.mult;
 	cyclecounter.shift = clocksource_counter.shift;
 	timecounter_init(&arch_timer_kvm_info.timecounter,
 			 &cyclecounter, start_count);
-
+	/*用于注册调度器使用的高精度时间源,sched_clock() 的底层实现*/
 	/* 56 bits minimum, so we assume worst case rollover */
 	sched_clock_register(arch_timer_read_counter, 56, arch_timer_rate);
 }
@@ -1072,7 +1073,7 @@ static int __init arch_timer_register(void)
 		goto out;
 	}
 
-	ppi = arch_timer_ppi[arch_timer_uses_ppi];
+	ppi = arch_timer_ppi[arch_timer_uses_ppi]; //[2]; populated by irq_of_parse_and_map
 	switch (arch_timer_uses_ppi) {
 	case ARCH_TIMER_VIRT_PPI:
 		err = request_percpu_irq(ppi, arch_timer_handler_virt,
@@ -1254,8 +1255,8 @@ static int __init arch_timer_of_init(struct device_node *np)
 	}
 
 	arch_timers_present |= ARCH_TIMER_TYPE_CP15;
-	for (i = ARCH_TIMER_PHYS_SECURE_PPI; i < ARCH_TIMER_MAX_TIMER_PPI; i++)
-		arch_timer_ppi[i] = irq_of_parse_and_map(np, i);
+	for (i = ARCH_TIMER_PHYS_SECURE_PPI; i < ARCH_TIMER_MAX_TIMER_PPI; i++) 
+		arch_timer_ppi[i] = irq_of_parse_and_map(np, i); // =1, =2, =3 ; It is equal to the value of the first column of the /proc/interrupts
 
 	arch_timer_populate_kvm_info();
 
@@ -1272,7 +1273,7 @@ static int __init arch_timer_of_init(struct device_node *np)
 	 * we should use the physical timers instead.
 	 */
 	if (IS_ENABLED(CONFIG_ARM) &&
-	    of_property_read_bool(np, "arm,cpu-registers-not-fw-configured"))
+	    of_property_read_bool(np, "arm,cpu-registers-not-fw-configured")) //(0 &&)
 		arch_timer_uses_ppi = ARCH_TIMER_PHYS_SECURE_PPI;
 	else
 		arch_timer_uses_ppi = arch_timer_select_ppi();

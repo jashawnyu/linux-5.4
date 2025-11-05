@@ -60,7 +60,7 @@
 extern int register_refined_jiffies(long clock_tick_rate);
 
 /* TICK_NSEC is the time between ticks in nsec assuming SHIFTED_HZ */
-#define TICK_NSEC ((NSEC_PER_SEC+HZ/2)/HZ)
+#define TICK_NSEC ((NSEC_PER_SEC+HZ/2)/HZ) //((1000000000L + 250/2)/250)四舍五入(rounding), rather than 向下取整(truncation toward zero)
 
 /* TICK_USEC is the time between ticks in usec assuming SHIFTED_HZ */
 #define TICK_USEC ((USEC_PER_SEC + HZ/2) / HZ)

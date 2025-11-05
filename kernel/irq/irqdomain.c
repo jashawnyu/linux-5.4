@@ -885,7 +885,7 @@ void irq_dispose_mapping(unsigned int virq)
 }
 EXPORT_SYMBOL_GPL(irq_dispose_mapping);
 
-/**
+/**查找一个 irq_domain 内指定 硬件中断号（hwirq） 对应的 Linux 虚拟中断号（virq
  * irq_find_mapping() - Find a linux irq from a hw irq number.
  * @domain: domain owning this hardware interrupt
  * @hwirq: hardware irq number in that domain space

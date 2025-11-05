@@ -401,7 +401,7 @@ static inline void tick_irq_exit(void)
  * Exit an interrupt context. Process softirqs if needed and possible:
  */
 void irq_exit(void)
-{
+{//这个宏的关键作用是告诉内核通用中断代码,我（架构层）保证在退出硬中断时，IRQ 已经处于禁用状态，因此你不需要再调用
 #ifndef __ARCH_IRQ_EXIT_IRQS_DISABLED
 	local_irq_disable();
 #else

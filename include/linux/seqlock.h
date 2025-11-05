@@ -374,7 +374,7 @@ static inline void raw_write_seqcount_latch(seqcount_t *s)
 static inline void write_seqcount_begin_nested(seqcount_t *s, int subclass)
 {
 	raw_write_seqcount_begin(s);
-	seqcount_acquire(&s->dep_map, subclass, 0, _RET_IP_);
+	seqcount_acquire(&s->dep_map, subclass, 0, _RET_IP_); //default NULL
 }
 
 static inline void write_seqcount_begin(seqcount_t *s)

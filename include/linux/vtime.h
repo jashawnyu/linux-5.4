@@ -3,7 +3,7 @@
 #define _LINUX_KERNEL_VTIME_H
 
 #include <linux/context_tracking_state.h>
-#ifdef CONFIG_VIRT_CPU_ACCOUNTING_NATIVE
+#ifdef CONFIG_VIRT_CPU_ACCOUNTING_NATIVE //Depends on HAVE_VIRT_CPU_ACCOUNTING, which is not enabled
 #include <asm/vtime.h>
 #endif
 
@@ -101,17 +101,17 @@ extern void irqtime_account_irq(struct task_struct *tsk);
 #else
 static inline void irqtime_account_irq(struct task_struct *tsk) { }
 #endif
-
+//在每次上下文类型变化时准确结算上一阶段的时间
 static inline void account_irq_enter_time(struct task_struct *tsk)
 {
 	vtime_account_irq_enter(tsk);
-	irqtime_account_irq(tsk);
+	irqtime_account_irq(tsk); //!
 }
-
+//为什么不是只在中断退出时结算call irqtime_account_irq ?
 static inline void account_irq_exit_time(struct task_struct *tsk)
 {
 	vtime_account_irq_exit(tsk);
-	irqtime_account_irq(tsk);
+	irqtime_account_irq(tsk); //!
 }
 
 #endif /* _LINUX_KERNEL_VTIME_H */

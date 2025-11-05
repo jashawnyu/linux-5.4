@@ -21,7 +21,7 @@
 #include <linux/sched.h>
 #include <linux/smp.h>
 
-DEFINE_PER_CPU(unsigned long, freq_scale) = SCHED_CAPACITY_SCALE;
+DEFINE_PER_CPU(unsigned long, freq_scale) = SCHED_CAPACITY_SCALE; //qemu aarch64 is default value
 
 void arch_set_freq_scale(struct cpumask *cpus, unsigned long cur_freq,
 			 unsigned long max_freq)

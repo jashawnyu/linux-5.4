@@ -769,7 +769,7 @@ static inline void cpuacct_account_field(struct task_struct *tsk, int index,
 void __cgroup_account_cputime(struct cgroup *cgrp, u64 delta_exec);
 void __cgroup_account_cputime_field(struct cgroup *cgrp,
 				    enum cpu_usage_stat index, u64 delta_exec);
-
+//负责把任务消耗的 CPU 时间计入所属的 cgroup
 static inline void cgroup_account_cputime(struct task_struct *task,
 					  u64 delta_exec)
 {

@@ -67,7 +67,7 @@
 
 #define _PAGE_END(va)		(-(UL(1) << ((va) - 1))) //-(1<<(48-1)) = 0xffff800000000000  = 0xffff 0000 0000 0000 / 2
 
-#define KERNEL_START		_text
+#define KERNEL_START		_text //architecture related; defined at arch/arm64/kernel/vmlinux.lds
 #define KERNEL_END		_end
 
 #ifdef CONFIG_ARM64_VA_BITS_52

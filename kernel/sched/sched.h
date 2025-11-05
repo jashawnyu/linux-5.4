@@ -116,7 +116,7 @@ extern long calc_load_fold_active(struct rq *this_rq, long adjust);
  * increase coverage and consistency always enable it on 64-bit platforms.
  */
 #ifdef CONFIG_64BIT
-# define NICE_0_LOAD_SHIFT	(SCHED_FIXEDPOINT_SHIFT + SCHED_FIXEDPOINT_SHIFT)
+# define NICE_0_LOAD_SHIFT	(SCHED_FIXEDPOINT_SHIFT + SCHED_FIXEDPOINT_SHIFT) //(10 + 10)
 # define scale_load(w)		((w) << SCHED_FIXEDPOINT_SHIFT)
 # define scale_load_down(w)	((w) >> SCHED_FIXEDPOINT_SHIFT) //>> 10 ,对权重进行缩放,缩小1024倍
 #else
@@ -126,7 +126,7 @@ extern long calc_load_fold_active(struct rq *this_rq, long adjust);
 #endif
 
 /*
- * Task weight (visible to users) and its load (invisible to users) have
+ * Task weight(权重) (visible to users) and its load(负载) (invisible to users) have
  * independent resolution, but they should be well calibrated. We use
  * scale_load() and scale_load_down(w) to convert between them. The
  * following must be true:
@@ -134,7 +134,7 @@ extern long calc_load_fold_active(struct rq *this_rq, long adjust);
  *  scale_load(sched_prio_to_weight[USER_PRIO(NICE_TO_PRIO(0))]) == NICE_0_LOAD
  *
  */
-#define NICE_0_LOAD		(1L << NICE_0_LOAD_SHIFT)
+#define NICE_0_LOAD		(1L << NICE_0_LOAD_SHIFT) //(1L << 20)
 
 /*
  * Single value that decides SCHED_DEADLINE internal math precision.
@@ -500,8 +500,8 @@ struct cfs_rq {
 	unsigned int		h_nr_running;      /* SCHED_{NORMAL,BATCH,IDLE} */
 	unsigned int		idle_h_nr_running; /* SCHED_IDLE */
 
-	u64			exec_clock;
-	u64			min_vruntime;
+	u64			exec_clock;//updated in the update_curr()
+	u64			min_vruntime; //updated in update_min_vruntime()
 #ifndef CONFIG_64BIT
 	u64			min_vruntime_copy;
 #endif
@@ -512,7 +512,7 @@ struct cfs_rq {
 	 * 'curr' points to currently running entity on this cfs_rq.
 	 * It is set to NULL otherwise (i.e when none are currently running).
 	 */
-	struct sched_entity	*curr;
+	struct sched_entity	*curr; //当前正在运行（on CPU）的 sched_entity
 	struct sched_entity	*next;
 	struct sched_entity	*last;
 	struct sched_entity	*skip;
@@ -916,11 +916,11 @@ struct rq {
 	unsigned long		next_balance;
 	struct mm_struct	*prev_mm;
 
-	unsigned int		clock_update_flags;
-	u64			clock;
+	unsigned int		clock_update_flags; //请求跳过&激活跳过, boost performance
+	u64			clock; //be set in the update_rq_clock(); 当前 CPU 的调度时钟（scheduler clock）值，单位为纳秒（ns）
 	/* Ensure that all clocks are in the same cache line */
-	u64			clock_task ____cacheline_aligned;
-	u64			clock_pelt;
+	u64			clock_task ____cacheline_aligned; // update_rq_clock_task(); Excluding irqtime, 仅任务上下文时间
+	u64			clock_pelt; //update_rq_clock_pelt()
 	unsigned long		lost_idle_time;
 
 	atomic_t		nr_iowait;
@@ -948,7 +948,7 @@ struct rq {
 	struct cpu_stop_work	active_balance_work;
 
 	/* CPU of this runqueue: */
-	int			cpu;
+	int			cpu; //cpu_of()
 	int			online;
 
 	struct list_head cfs_tasks;
@@ -956,7 +956,7 @@ struct rq {
 	struct sched_avg	avg_rt;
 	struct sched_avg	avg_dl;
 #ifdef CONFIG_HAVE_SCHED_AVG_IRQ
-	struct sched_avg	avg_irq;
+	struct sched_avg	avg_irq; //update_irq_load_avg(); 只有avg_irq.util_avg在函数中被引用(qemu虚拟机下不管用，设备树未配置)
 #endif
 	u64			idle_stamp;
 	u64			avg_idle;
@@ -966,7 +966,7 @@ struct rq {
 #endif
 
 #ifdef CONFIG_IRQ_TIME_ACCOUNTING
-	u64			prev_irq_time;
+	u64			prev_irq_time; //The time since the last update_rq_clock_task() call
 #endif
 #ifdef CONFIG_PARAVIRT
 	u64			prev_steal_time;
@@ -1108,7 +1108,7 @@ static inline void assert_clock_updated(struct rq *rq)
 static inline u64 rq_clock(struct rq *rq)
 {
 	lockdep_assert_held(&rq->lock);
-	assert_clock_updated(rq);
+	assert_clock_updated(rq);//确保 runqueue 的任务上下文时间（rq->clock_task） 在使用前已经被正确更新
 
 	return rq->clock;
 }
@@ -1514,9 +1514,10 @@ static inline void set_task_rq(struct task_struct *p, unsigned int cpu)
 #endif
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
+	//fork routine: p->se.cfs_rq==NULL in the function __sched_fork
 	set_task_rq_fair(&p->se, p->se.cfs_rq, tg->cfs_rq[cpu]);
 	p->se.cfs_rq = tg->cfs_rq[cpu];
-	p->se.parent = tg->se[cpu];
+	p->se.parent = tg->se[cpu];//把任务 p 的调度实体（p->se）挂接到所属 task_group 在当前 CPU 上的调度实体（group sched_entity）下
 #endif
 
 #ifdef CONFIG_RT_GROUP_SCHED
@@ -1537,7 +1538,7 @@ static inline struct task_group *task_group(struct task_struct *p)
 
 static inline void __set_task_cpu(struct task_struct *p, unsigned int cpu)
 {
-	set_task_rq(p, cpu);
+	set_task_rq(p, cpu);//for copy_process path, update sched_entity:(cfs_rq & parent),The sched_avg:*_sum&*_avg structure has not been updated
 #ifdef CONFIG_SMP
 	/*
 	 * After ->cpu is set up to a new value, task_rq_lock(p, ...) can be
@@ -1550,7 +1551,7 @@ static inline void __set_task_cpu(struct task_struct *p, unsigned int cpu)
 #else
 	WRITE_ONCE(task_thread_info(p)->cpu, cpu);
 #endif
-	p->wake_cpu = cpu;
+	p->wake_cpu = cpu; //表示被唤醒任务将要被唤醒到的目标 CPU
 #endif
 }
 
@@ -2256,8 +2257,9 @@ void __dl_update(struct dl_bw *dl_b, s64 bw)
 
 #ifdef CONFIG_IRQ_TIME_ACCOUNTING
 struct irqtime {
-	u64			total;
-	u64			tick_delta;
+	u64			total; //irqtime_account_delta(), 包含了硬中断和软中断在 CPU 上花费的时间
+	//当前 tick 中，累计的中断时间差值（用于对账）
+	u64			tick_delta; //be set in the irqtime_account_delta() and irqtime_tick_accounted(); 
 	u64			irq_start_time;
 	struct u64_stats_sync	sync;
 };
@@ -2268,16 +2270,16 @@ DECLARE_PER_CPU(struct irqtime, cpu_irqtime);
  * Returns the irqtime minus the softirq time computed by ksoftirqd.
  * Otherwise ksoftirqd's sum_exec_runtime is substracted its own runtime
  * and never move forward.
- */
-static inline u64 irq_time_read(int cpu)
+ */ 
+static inline u64 irq_time_read(int cpu) //读取当前 CPU 上 hardirq and softirq总时间
 {
 	struct irqtime *irqtime = &per_cpu(cpu_irqtime, cpu);
 	unsigned int seq;
 	u64 total;
 
 	do {
-		seq = __u64_stats_fetch_begin(&irqtime->sync);
-		total = irqtime->total;
+		seq = __u64_stats_fetch_begin(&irqtime->sync); //return 0; arm64 platform 64 位变量（如 u64）的 读写是原子的
+		total = irqtime->total; //irqtimme_account_irq()->irqtime_account_delta()
 	} while (__u64_stats_fetch_retry(&irqtime->sync, seq));
 
 	return total;

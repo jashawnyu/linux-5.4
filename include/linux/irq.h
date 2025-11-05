@@ -170,6 +170,7 @@ struct irq_common_data {
  * @chip_data:		platform-specific per-chip private data for the chip
  *			methods, to allow shared chip implementations
  */
+/*每个 irq_data 结构体绑定一个 irq_chip，但是一个 irq_chip 可以对应多个 irq_data, many-to-one*/
 struct irq_data {
 	u32			mask;
 	unsigned int		irq;
@@ -448,7 +449,7 @@ static inline irq_hw_number_t irqd_to_hwirq(struct irq_data *d)
  */
 struct irq_chip {
 	struct device	*parent_device;
-	const char	*name;
+	const char	*name; //name for /proc/interrupts
 	unsigned int	(*irq_startup)(struct irq_data *data);
 	void		(*irq_shutdown)(struct irq_data *data);
 	void		(*irq_enable)(struct irq_data *data);
@@ -856,6 +857,8 @@ int __devm_irq_alloc_descs(struct device *dev, int irq, unsigned int from,
 			   const struct irq_affinity_desc *affinity);
 
 /* use macros to avoid needing export.h for THIS_MODULE */
+/*分配一个或多个连续的虚拟中断号（virq），并为这些 virq 创建对应的 irq_desc 结构体*/
+/*return first virq number*/
 #define irq_alloc_descs(irq, from, cnt, node)	\
 	__irq_alloc_descs(irq, from, cnt, node, THIS_MODULE, NULL)
 

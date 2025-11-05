@@ -8,6 +8,6 @@ fi
 unset https_proxy
 unset http_proxy
 #bear -- make -j8 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- 
-make -j$(nproc) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-
+make -j$(nproc) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- Image
 [ $? -eq 0 ] && ./gen_compile_commands.py && sed -i 's/-mabi=lp64//g' compile_commands.json
 

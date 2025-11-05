@@ -47,18 +47,19 @@ static void irqtime_account_delta(struct irqtime *irqtime, u64 delta,
  * Called before incrementing preempt_count on {soft,}irq_enter
  * and before decrementing preempt_count on {soft,}irq_exit.
  */
-void irqtime_account_irq(struct task_struct *curr)
+/*注意__irq_enter代码路径中先调用此函数，再设置preempt_count标志*/
+void irqtime_account_irq(struct task_struct *curr) //update per-cpu struct irqtime irq&softirq time
 {
 	struct irqtime *irqtime = this_cpu_ptr(&cpu_irqtime);
 	s64 delta;
 	int cpu;
 
-	if (!sched_clock_irqtime)
+	if (!sched_clock_irqtime) // Enabled at sched_clock_register()
 		return;
 
 	cpu = smp_processor_id();
-	delta = sched_clock_cpu(cpu) - irqtime->irq_start_time;
-	irqtime->irq_start_time += delta;
+	delta = sched_clock_cpu(cpu) - irqtime->irq_start_time; //计算从上次 irq_start_time 更新以来 CPU 时间线的推进量
+	irqtime->irq_start_time += delta; //把 irqtime 的时间参考点（irq_start_time）推进到当前时刻
 
 	/*
 	 * We do not account for softirq time from ksoftirqd here.
@@ -73,12 +74,12 @@ void irqtime_account_irq(struct task_struct *curr)
 }
 EXPORT_SYMBOL_GPL(irqtime_account_irq);
 
-static u64 irqtime_tick_accounted(u64 maxtime)
+static u64 __attribute__((optimize("O0"))) irqtime_tick_accounted(u64 maxtime)
 {
 	struct irqtime *irqtime = this_cpu_ptr(&cpu_irqtime);
 	u64 delta;
 
-	delta = min(irqtime->tick_delta, maxtime);
+	delta = min(irqtime->tick_delta, maxtime);// where ->tick_delta be set? irqtime_account_delta()
 	irqtime->tick_delta -= delta;
 
 	return delta;
@@ -168,7 +169,7 @@ void account_system_index_time(struct task_struct *p,
 	p->stime += cputime;
 	account_group_system_time(p, cputime);
 
-	/* Add system time to cpustat. */
+	/* Add system time to cpustat.(记录 CPU 在不同状态下运行的时间统计) */
 	task_group_account_field(p, index, cputime);
 
 	/* Account for system time used */
@@ -234,7 +235,7 @@ void account_idle_time(u64 cputime)
 static __always_inline u64 steal_account_process_time(u64 maxtime)
 {
 #ifdef CONFIG_PARAVIRT
-	if (static_key_false(&paravirt_steal_enabled)) {
+	if (static_key_false(&paravirt_steal_enabled)) { //0, Cause of xen_time_setup_guest() not being called
 		u64 steal;
 
 		steal = paravirt_steal_clock(smp_processor_id());
@@ -250,15 +251,15 @@ static __always_inline u64 steal_account_process_time(u64 maxtime)
 }
 
 /*
- * Account how much elapsed time was spent in steal, irq, or softirq time.
+ * Account how much elapsed(消逝) time was spent in steal, irq, or softirq time.
  */
-static inline u64 account_other_time(u64 max)
+static inline u64 account_other_time(u64 max) //统计在一个时间周期（tick）内，被“非进程”行为占用的时间
 {
 	u64 accounted;
 
 	lockdep_assert_irqs_disabled();
 
-	accounted = steal_account_process_time(max);
+	accounted = steal_account_process_time(max); // Usually return 0
 
 	if (accounted < max)
 		accounted += irqtime_tick_accounted(max - accounted);
@@ -334,12 +335,12 @@ void thread_group_cputime(struct task_struct *tsk, struct task_cputime *times)
 
 #ifdef CONFIG_IRQ_TIME_ACCOUNTING
 /*
- * Account a tick to a process and cpustat
+ * Account a tick to a process and cpustat(给进程和cpustat添加一个tick)
  * @p: the process that the CPU time gets accounted to
  * @user_tick: is the tick from userspace
  * @rq: the pointer to rq
  *
- * Tick demultiplexing follows the order
+ * Tick demultiplexing(多路分解) follows the order
  * - pending hardirq update
  * - pending softirq update
  * - user_time
@@ -354,10 +355,10 @@ void thread_group_cputime(struct task_struct *tsk, struct task_cputime *times)
  * p->stime and friends are only updated on system time and not on irq
  * softirq as those do not count in task exec_runtime any more.
  */
-static void irqtime_account_process_tick(struct task_struct *p, int user_tick,
-					 struct rq *rq, int ticks)
+static void __attribute__((optimize("O0"))) irqtime_account_process_tick(struct task_struct *p, int user_tick,
+					 struct rq *rq, int ticks) //,1)
 {
-	u64 other, cputime = TICK_NSEC * ticks;
+	u64 other, cputime = TICK_NSEC * ticks; //rounding
 
 	/*
 	 * When returning from idle, many ticks can get accounted at
@@ -366,7 +367,7 @@ static void irqtime_account_process_tick(struct task_struct *p, int user_tick,
 	 * idle, or potentially user or system time. Due to rounding,
 	 * other time can exceed ticks occasionally.
 	 */
-	other = account_other_time(ULONG_MAX);
+	other = account_other_time(ULONG_MAX);//steal+irqtime; ULONG_MAX means 不限制你统计时间，统计你能统计到的所有 steal 和 irq 时间
 	if (other >= cputime)
 		return;
 
@@ -472,15 +473,15 @@ void thread_group_cputime_adjusted(struct task_struct *p, u64 *ut, u64 *st)
  * @p: the process that the CPU time gets accounted to
  * @user_tick: indicates if the tick is a user or a system tick
  */
-void account_process_tick(struct task_struct *p, int user_tick)
+void account_process_tick(struct task_struct *p, int user_tick) /*按 tick 计量当前进程 CPU 时间消耗*/
 {
 	u64 cputime, steal;
 	struct rq *rq = this_rq();
 
-	if (vtime_accounting_cpu_enabled())
+	if (vtime_accounting_cpu_enabled()) //0
 		return;
 
-	if (sched_clock_irqtime) {
+	if (sched_clock_irqtime) { //It's set to 1 in sched_clock_register()
 		irqtime_account_process_tick(p, user_tick, rq, 1);
 		return;
 	}

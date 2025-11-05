@@ -44,7 +44,7 @@ static inline void cfs_se_util_change(struct sched_avg *avg)
 }
 
 /*
- * The clock_pelt scales the time to reflect the effective amount of
+ * The clock_pelt scales(按比例缩小) the time to reflect the effective amount of
  * computation done during the running delta time but then sync back to
  * clock_task when rq is idle.
  *
@@ -76,7 +76,7 @@ static inline void update_rq_clock_pelt(struct rq *rq, s64 delta)
 	 */
 
 	/*
-	 * Scale the elapsed time to reflect the real amount of
+	 * Scale(调整) the elapsed(过去的) time to reflect the real amount of
 	 * computation
 	 */
 	delta = cap_scale(delta, arch_scale_cpu_capacity(cpu_of(rq)));

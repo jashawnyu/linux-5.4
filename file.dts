@@ -319,13 +319,13 @@
 	};
 
 	intc@8000000 {
-		phandle = <0x8003>;
+		phandle = <0x8003>;//当别的设备通过设备树引用 interrupt-parent = <&intc> 时，内核就能找到这个 domain
 		reg = <0x00 0x8000000 0x00 0x10000 0x00 0x8010000 0x00 0x10000>;
 		compatible = "arm,cortex-a15-gic";
 		ranges;
 		#size-cells = <0x02>;
 		#address-cells = <0x02>;
-		interrupt-controller;
+		interrupt-controller;//内核会在解析设备树时，为每一个声明了 interrupt-controller 属性的节点创建一个对应的 irq_domain
 		#interrupt-cells = <0x03>;
 
 		v2m@8020000 {

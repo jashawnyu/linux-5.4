@@ -61,7 +61,7 @@
  * This is default implementation.
  * Architectures and sub-architectures can override this.
  */
-unsigned long long __weak sched_clock(void)
+unsigned long long __weak sched_clock(void) //It's overwritten in the sched_clock.c
 {
 	return (unsigned long long)(jiffies - INITIAL_JIFFIES)
 					* (NSEC_PER_SEC / HZ);
@@ -450,7 +450,7 @@ EXPORT_SYMBOL_GPL(sched_clock_idle_wakeup_event);
 
 #else /* CONFIG_HAVE_UNSTABLE_SCHED_CLOCK */
 
-void __init sched_clock_init(void)
+void __init sched_clock_init(void) //init after timer_init()->of_clk_init(NULL)
 {
 	static_branch_inc(&sched_clock_running);
 	local_irq_disable();
@@ -458,7 +458,7 @@ void __init sched_clock_init(void)
 	local_irq_enable();
 }
 
-u64 sched_clock_cpu(int cpu)
+u64 sched_clock_cpu(int cpu) //表示从系统启动以来经过的时间(通常是纳秒)
 {
 	if (!static_branch_unlikely(&sched_clock_running))
 		return 0;

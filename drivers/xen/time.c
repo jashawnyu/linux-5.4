@@ -168,7 +168,7 @@ void xen_setup_runstate_info(int cpu)
 		BUG();
 }
 
-void __init xen_time_setup_guest(void)
+void __init xen_time_setup_guest(void) //no called
 {
 	bool xen_runstate_remote;
 

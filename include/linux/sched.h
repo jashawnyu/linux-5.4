@@ -88,7 +88,7 @@ struct task_group;
 #define TASK_WAKEKILL			0x0100
 #define TASK_WAKING			0x0200
 #define TASK_NOLOAD			0x0400
-#define TASK_NEW			0x0800
+#define TASK_NEW			0x0800 //sched_fork()
 #define TASK_STATE_MAX			0x1000
 
 /* Convenience macros for the sake of set_current_state: */
@@ -394,9 +394,9 @@ struct util_est {
  * issues.
  */
 struct sched_avg {
-	u64				last_update_time;
+	u64				last_update_time;// The unit is ns; a multiple of 2^10=1024;总是按 1024ns 对齐推进，不会因为时间细微抖动频繁更新
   /* 基于可运行（runnable）时间的负载贡献总和。runnable时间包含两部分：一是在rq中等待cpu调度运行的时间，二是正在cpu上运行的时间 */
-	u64				load_sum;
+	u64				load_sum; //The unit is approximately equal to 1us
 	u64				runnable_load_sum;
   //running时间是指调度实体se正在cpu上执行时间
 	u32				util_sum;
@@ -447,18 +447,18 @@ struct sched_statistics {
 
 struct sched_entity {
 	/* For load-balancing: */
-	struct load_weight		load;
-	unsigned long			runnable_weight;
+	struct load_weight		load; //Affects sched_avg::*_avg
+	unsigned long			runnable_weight; //在考虑了 CGroup 约束 后的 有效权重
 	struct rb_node			run_node;
-	struct list_head		group_node;
-	unsigned int			on_rq;
+	struct list_head		group_node;//init in sched_fork()
+	unsigned int			on_rq;//init in sched_fork()
 
-	u64				exec_start;
-	u64				sum_exec_runtime;
-	u64				vruntime;
-	u64				prev_sum_exec_runtime;
+	u64				exec_start;//init in sched_fork
+	u64				sum_exec_runtime;//inited in the sched_fork(); updated in the update_curr()
+	u64				vruntime;//init in sched_fork; updated in the update_curr()
+	u64				prev_sum_exec_runtime;//init in sched_fork
 
-	u64				nr_migrations;
+	u64				nr_migrations;//init in sched_fork
 
 	struct sched_statistics		statistics;
 
@@ -466,7 +466,7 @@ struct sched_entity {
 	int				depth;
 	struct sched_entity		*parent;
 	/* rq on which this entity is (to be) queued: */
-	struct cfs_rq			*cfs_rq;
+	struct cfs_rq			*cfs_rq;//init in __sched_fork
 	/* rq "owned" by this entity/group: */
 	struct cfs_rq			*my_q;
 #endif
@@ -631,11 +631,11 @@ struct task_struct {
    * For reasons of header soup (see current_thread_info()), this
    * must be the first element of task_struct.
 	 */
-	struct thread_info		thread_info;
+	struct thread_info		thread_info; // architecture(e.g. arm64) related struct
 #endif
 	/* -1 unrunnable, 0 runnable, >0 stopped: */
   //进程的状态
-	volatile long			state;
+	volatile long			state; 
 
 	/*
 	 * This begins the randomizable portion of task_struct. Only
@@ -671,7 +671,7 @@ struct task_struct {
 	int				recent_used_cpu;
 	int				wake_cpu;
 #endif
-	int				on_rq;
+	int				on_rq; //init in sched_fork
 
     /* 4个成员和优先级有关below*/
 	int				prio;
@@ -679,8 +679,8 @@ struct task_struct {
 	int				normal_prio;
 	unsigned int			rt_priority;
 
-	const struct sched_class	*sched_class;
-	struct sched_entity		se;
+	const struct sched_class	*sched_class; //be set in the sched_fork()
+	struct sched_entity		se; // init by __sched_fork()
 	struct sched_rt_entity		rt;
 #ifdef CONFIG_CGROUP_SCHED
 	struct task_group		*sched_task_group;
@@ -853,8 +853,8 @@ active_mm指向从进程借用的内存描述符*/
 	/* CLONE_CHILD_CLEARTID: */
 	int __user			*clear_child_tid;
 
-	u64				utime;
-	u64				stime;
+	u64				utime;// account_user_time()
+	u64				stime; //be set in account_system_index_time()
 #ifdef CONFIG_ARCH_HAS_SCALED_CPUTIME
 	u64				utimescaled;
 	u64				stimescaled;
@@ -968,7 +968,7 @@ active_mm指向从进程借用的内存描述符*/
 	spinlock_t			alloc_lock;
 
 	/* Protection of the PI data structures: */
-	raw_spinlock_t			pi_lock;
+	raw_spinlock_t			pi_lock; //保护与 实时调度（RT scheduling）和互斥锁（mutexes）相关的优先级继承状态
 
 	struct wake_q_node		wake_q;
 
@@ -1036,7 +1036,7 @@ active_mm指向从进程借用的内存描述符*/
 
 	struct io_context		*io_context;
 
-#ifdef CONFIG_COMPACTION
+#ifdef CONFIG_COMPACTION // 内存碎片整理, 通过迁移的方式得到连续的物理页
 	struct capture_control		*capture_control;
 #endif
 	/* Ptrace state: */
@@ -1050,11 +1050,11 @@ active_mm指向从进程借用的内存描述符*/
 #endif
 #ifdef CONFIG_TASK_XACCT
 	/* Accumulated RSS usage: */
-	u64				acct_rss_mem1;
+	u64				acct_rss_mem1;//be set in __acct_update_integrals()
 	/* Accumulated virtual memory usage: */
-	u64				acct_vm_mem1;
+	u64				acct_vm_mem1;//be set in __acct_update_integrals()
 	/* stime + utime since last update: */
-	u64				acct_timexpd;
+	u64				acct_timexpd; //be set in __acct_update_integrals()
 #endif
 #ifdef CONFIG_CPUSETS
 	/* Protected by ->alloc_lock: */

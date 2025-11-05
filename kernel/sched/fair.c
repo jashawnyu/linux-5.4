@@ -185,7 +185,7 @@ void sched_init_granularity(void)
 
 #define WMULT_CONST	(~0U) // 2^32
 #define WMULT_SHIFT	32
-
+//权重不是静态表项（如 task group、cgroup 动态权重） 的情况下
 static void __update_inv_weight(struct load_weight *lw)
 {
 	unsigned long w;
@@ -216,16 +216,16 @@ static void __update_inv_weight(struct load_weight *lw)
  * Or, weight =< lw.weight (because lw.weight is the runqueue weight), thus
  * weight/lw.weight <= 1, and therefore our shift will also be positive.
  */
-static u64 __calc_delta(u64 delta_exec, unsigned long weight, struct load_weight *lw)
+static u64 __attribute__((optimize("O0"))) __calc_delta(u64 delta_exec, unsigned long weight, struct load_weight *lw)
 {
   //eg. weight=1048576=0x100000
-	u64 fact = scale_load_down(weight); //1024
+	u64 fact = scale_load_down(weight); //1024=1<<10=(NICE_0_LOAD)
 	int shift = WMULT_SHIFT;//32
 
-  //lw->weight=2097152=0x200000;
+  //lw->weight=1048576=0x100000;
 	__update_inv_weight(lw);
-
-	if (unlikely(fact >> 32)) {
+	//当 fact 超过 32 位时，右移并同时减少精度（shift）
+	if (unlikely(fact >> 32)) { //防止溢出、动态调整精度
 		while (fact >> 32) {
 			fact >>= 1;
 			shift--;
@@ -508,16 +508,16 @@ void account_cfs_rq_runtime(struct cfs_rq *cfs_rq, u64 delta_exec);
 
 static inline u64 max_vruntime(u64 max_vruntime, u64 vruntime)
 {
-	s64 delta = (s64)(vruntime - max_vruntime);
+	s64 delta = (s64)(vruntime - max_vruntime); //无符号减法 + 有符号比较
 	if (delta > 0)
 		max_vruntime = vruntime;
 
 	return max_vruntime;
 }
-
-static inline u64 min_vruntime(u64 min_vruntime, u64 vruntime)
+//差值不能超过半圈 (2⁶³),
+static inline u64 min_vruntime(u64 min_vruntime, u64 vruntime) 
 {
-	s64 delta = (s64)(vruntime - min_vruntime);
+	s64 delta = (s64)(vruntime - min_vruntime);// 无符号减法 + 有符号比较
 	if (delta < 0)
 		min_vruntime = vruntime;
 
@@ -533,12 +533,12 @@ static inline int entity_before(struct sched_entity *a,
 static void update_min_vruntime(struct cfs_rq *cfs_rq)
 {
 	struct sched_entity *curr = cfs_rq->curr;
-	struct rb_node *leftmost = rb_first_cached(&cfs_rq->tasks_timeline);
+	struct rb_node *leftmost = rb_first_cached(&cfs_rq->tasks_timeline); //获取红黑树中最左（最小）节点的缓存版本
 
 	u64 vruntime = cfs_rq->min_vruntime;
 
 	if (curr) {
-		if (curr->on_rq)
+		if (curr->on_rq) //任务在就绪队列中等待调度，这时候on_rq为1
 			vruntime = curr->vruntime;
 		else
 			curr = NULL;
@@ -546,7 +546,7 @@ static void update_min_vruntime(struct cfs_rq *cfs_rq)
 
 	if (leftmost) { /* non-empty tree */
 		struct sched_entity *se;
-		se = rb_entry(leftmost, struct sched_entity, run_node);
+		se = rb_entry(leftmost, struct sched_entity, run_node);//从红黑树节点指针 (struct rb_node *) 得到包含它的上层结构体指针
 
 		if (!curr)
 			vruntime = se->vruntime;
@@ -661,7 +661,7 @@ int sched_proc_update_handler(struct ctl_table *table, int write,
 #endif
 
 /*
- * delta /= w
+ * delta /= w ;计算任务 se 在自己的权重下，实际应该累加到 vruntime 的时间增量
  */
 static inline u64 calc_delta_fair(u64 delta, struct sched_entity *se)
 {
@@ -747,7 +747,7 @@ void init_entity_runnable_average(struct sched_entity *se)
 	 * nothing has been attached to the task group yet.
 	 */
 	if (entity_is_task(se))
-		sa->runnable_load_avg = sa->load_avg = scale_load_down(se->load.weight);
+		sa->runnable_load_avg = sa->load_avg = scale_load_down(se->load.weight);//scale_load_down(0x100000)=0x400=1024
 
 	se->runnable_weight = se->load.weight;
 
@@ -833,7 +833,7 @@ static void update_tg_load_avg(struct cfs_rq *cfs_rq, int force)
 #endif /* CONFIG_SMP */
 
 /*
- * Update the current task's runtime statistics.
+ * Update the current task's runtime statistics(统计信息).
  */
 static void update_curr(struct cfs_rq *cfs_rq)
 {
@@ -861,7 +861,7 @@ static void update_curr(struct cfs_rq *cfs_rq)
 	curr->vruntime += calc_delta_fair(delta_exec, curr);
   /*拥有最小虚拟时间的地方:
    * 1. 就绪队列本身的cfs_rq->min_vruntime成员
-   * 2. 当前正在运行的进程的最下虚拟时间，因为CFS调度器选择最适合运行的进程是选择维护的红黑树中虚拟时间最小的进程
+   * 2. 当前正在运行的进程的最小虚拟时间，因为CFS调度器选择最适合运行的进程是选择维护的红黑树中虚拟时间最小的进程
    * 3. 如果在当前进程运行的过程中，有进程加入就绪队列，那么红黑树最左边的进程的虚拟时间同样也有可能是最小的虚拟时间*/
 	update_min_vruntime(cfs_rq);
 
@@ -2634,7 +2634,7 @@ out:
 		p->node_stamp += 32 * diff;
 	}
 }
-
+	//This func only be called when CONFIG_NUMA_BALANCING is enabled, proc filesystem works with CONFIG_SCHED_DEBUG defined
 void init_numa_balancing(unsigned long clone_flags, struct task_struct *p)
 {
 	int mm_users = 0;
@@ -3198,7 +3198,9 @@ void set_task_rq_fair(struct sched_entity *se,
 	 * time. This will result in the wakee task is less decayed, but giving
 	 * the wakee more load sounds not bad.
 	 */
-	if (!(se->avg.last_update_time && prev))
+	/*copy_process path: sched_entity::sched_avg这个结构体在函数init_entity_runnable_average中被初始化为0*/
+	/*last_update_time=0 means new task path or load_balance path*/
+	if (!(se->avg.last_update_time && prev)) //copy_process path: just return here cause prev=NULL
 		return;
 
 #ifndef CONFIG_64BIT
@@ -10035,7 +10037,7 @@ static void task_fork_fair(struct task_struct *p)
 	struct rq_flags rf;
 
 	rq_lock(rq, &rf);
-	update_rq_clock(rq);
+	update_rq_clock(rq); //call update_irq_load_avg(clock_pelt)()
 
 	cfs_rq = task_cfs_rq(current);
   //cfs_rq是CFS调度器就绪队列，curr指向当前正在cpu上运行的task的调度实体
@@ -10046,7 +10048,8 @@ static void task_fork_fair(struct task_struct *p)
     //初始化当前创建的新进程的虚拟时间
 		se->vruntime = curr->vruntime;
 	}
-  /*place_entity()函数在进程创建以及唤醒的时候都会调用，创建进程的时候传递参数initial=1。主要目的是更新调度实体得到虚拟时间（se->vruntime成员）。要和cfs_rq->min_vruntime的值保持差别不大，否则疯狂占用cpu运行*/
+  /*place_entity()函数在进程创建以及唤醒的时候都会调用，创建进程的时候传递参数initial=1。
+   * 主要目的是更新调度实体得到虚拟时间（se->vruntime成员）。要和cfs_rq->min_vruntime的值保持差别不大，否则疯狂占用cpu运行*/
 	place_entity(cfs_rq, se, 1);
 
 	if (sysctl_sched_child_runs_first && curr && entity_before(curr, se)) {
@@ -10058,7 +10061,7 @@ static void task_fork_fair(struct task_struct *p)
 		resched_curr(rq);
 	}
 
-	se->vruntime -= cfs_rq->min_vruntime;//?
+	se->vruntime -= cfs_rq->min_vruntime;//减去一个小的偏移量，以避免父子进程同时竞争时完全重叠
 	rq_unlock(rq, &rf);
 }
 

@@ -343,11 +343,12 @@ static void irq_sysfs_del(struct irq_desc *desc) {}
 
 static RADIX_TREE(irq_desc_tree, GFP_KERNEL);
 
+
 static void irq_insert_desc(unsigned int irq, struct irq_desc *desc)
 {
 	radix_tree_insert(&irq_desc_tree, irq, desc);
 }
-
+//根据中断号（IRQ number）获取对应的中断描述符（irq_desc 结构体指针）
 struct irq_desc *irq_to_desc(unsigned int irq)
 {
 	return radix_tree_lookup(&irq_desc_tree, irq);
@@ -681,7 +682,7 @@ int __handle_domain_irq(struct irq_domain *domain, unsigned int hwirq,
 		generic_handle_irq(irq);
 	}
 
-	irq_exit();
+	irq_exit(); //Finally irqtime_account_delta() is called
 	set_irq_regs(old_regs);
 	return ret;
 }

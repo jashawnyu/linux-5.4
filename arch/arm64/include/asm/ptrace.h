@@ -201,7 +201,7 @@ static inline void forget_syscall(struct pt_regs *regs)
 #else
 #define compat_thumb_mode(regs) (0)
 #endif
-
+//struct pt_regs::pstate be set in load_elf_binary()->start_thread()
 #define user_mode(regs)	\
 	(((regs)->pstate & PSR_MODE_MASK) == PSR_MODE_EL0t)
 

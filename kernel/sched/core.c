@@ -148,8 +148,8 @@ static void update_rq_clock_task(struct rq *rq, s64 delta)
  */
 	s64 __maybe_unused steal = 0, irq_delta = 0;
 
-#ifdef CONFIG_IRQ_TIME_ACCOUNTING
-	irq_delta = irq_time_read(cpu_of(rq)) - rq->prev_irq_time;
+#ifdef CONFIG_IRQ_TIME_ACCOUNTING //1
+	irq_delta = irq_time_read(cpu_of(rq)) - rq->prev_irq_time;//In the interrupt context path, account_irq_exit_time() occurs before here
 
 	/*
 	 * Since irq_time is only updated on {soft,}irq_exit, we might run into
@@ -166,11 +166,13 @@ static void update_rq_clock_task(struct rq *rq, s64 delta)
 	 * the current rq->clock timestamp, except that would require using
 	 * atomic ops.
 	 */
-	if (irq_delta > delta)
+	/*有些调度器行为（如唤醒wake_up_process()间接调用到update_rq_clock()、迁移任务、处理软中断的调度事件）确实会在中断或 softirq 上下文中触发调度器逻辑*/
+	/* irq_exit可能会(depends on pending)调用invoke_softirq()->…->wake_up_process()*/
+	if (irq_delta > delta) //delta: 上一次调用update_rq_clock到现在的时间间隔
 		irq_delta = delta;
 
 	rq->prev_irq_time += irq_delta;
-	delta -= irq_delta;
+	delta -= irq_delta; //中断时间应从进程占用时间中扣除,调度器才能做出公平的调度决策
 #endif
 #ifdef CONFIG_PARAVIRT_TIME_ACCOUNTING
 	if (static_key_false((&paravirt_steal_rq_enabled))) {
@@ -188,12 +190,12 @@ static void update_rq_clock_task(struct rq *rq, s64 delta)
 	rq->clock_task += delta;
 
 #ifdef CONFIG_HAVE_SCHED_AVG_IRQ
-	if ((irq_delta + steal) && sched_feat(NONTASK_CAPACITY))
+	if ((irq_delta + steal) && sched_feat(NONTASK_CAPACITY))//在计算 CPU 容量（capacity）时是否减去那些非任务（non‑task）活动所占用的 CPU 时间
 		update_irq_load_avg(rq, irq_delta + steal);
 #endif
 	update_rq_clock_pelt(rq, delta);
 }
-
+//更新就绪队列（rq）时钟的函数
 void update_rq_clock(struct rq *rq)
 {
 	s64 delta;
@@ -2728,7 +2730,7 @@ static void __sched_fork(unsigned long clone_flags, struct task_struct *p)
 	p->rt.on_rq = 0;
 	p->rt.on_list = 0;
 
-#ifdef CONFIG_PREEMPT_NOTIFIERS //1
+#ifdef CONFIG_PREEMPT_NOTIFIERS //1,用于处理在抢占（preemption）发生时触发特定操作的一种方式
 	INIT_HLIST_HEAD(&p->preempt_notifiers);
 #endif
 
@@ -2859,7 +2861,7 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 {
 	unsigned long flags;
 
-	__sched_fork(clone_flags, p); //调用函数__sched_fork以执行基本设置
+	__sched_fork(clone_flags, p); //调用函数__sched_fork,新进程设置调度相关的结构体和状态
 	/*
 	 * We mark the process as NEW here. This guarantees that
 	 * nobody will actually run it, and a signal or other external
@@ -2873,7 +2875,7 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 	/*把新进程的调度优先级设置为当前进程的正常优先级,为什么不设置为当前进程的调度优先级？因为当前进程可能因为占有实时互斥锁而被临时提升了优先级*/
 	p->prio = current->normal_prio;
 
-	uclamp_fork(p); //0
+	uclamp_fork(p); //0,Utilization Clamping for Fork, 限制调度器认为某个任务实际“需要”的 CPU 性能的上下限
 
 	/*
 	 * Revert to default priority/policy on fork if requested.
@@ -2906,7 +2908,7 @@ SCHED_RESET_ON_FORK，要求创建新进程时把新进程的调度策略和优�
 		p->sched_class = &rt_sched_class;
 	else
 		p->sched_class = &fair_sched_class;
-
+//update sched_avg::(runnable_)load_avg and sched_entity::runnable_weight
 	init_entity_runnable_average(&p->se);
 
 	/*
@@ -2921,8 +2923,8 @@ SCHED_RESET_ON_FORK，要求创建新进程时把新进程的调度策略和优�
 	 * We're setting the CPU for the first time, we don't migrate,
 	 * so use __set_task_cpu().
 	 */
-	/*设置新进程在哪个处理器上，如果开启公平组调度和实时组调度，那么还需要设置新进程属于哪个公平运行队列和哪个实时运行队列*/
-	__set_task_cpu(p, smp_processor_id());
+	/*set_task_rq;设置新进程在哪个处理器上，如果开启公平组调度和实时组调度，那么还需要设置新进程属于哪个公平运行队列和哪个实时运行队列*/
+	__set_task_cpu(p, smp_processor_id());//update task_struct::cpu&wake_cpu, call set_task_rq()
 	//执行调度类的task_fork方法
 	if (p->sched_class->task_fork)
 		p->sched_class->task_fork(p);
@@ -3414,7 +3416,7 @@ static __always_inline struct rq *context_switch(struct rq *rq,
 			prev->active_mm = NULL;
 		}
 	}
-
+//一旦真的发生了任务切换（context switch），说明这个 rq 已经活跃或即将活跃，所以必须清除这个“跳过标志”，否则系统会错误地继续跳过它
 	rq->clock_update_flags &= ~(RQCF_ACT_SKIP | RQCF_REQ_SKIP);
 
 	prepare_lock_switch(rq, next, rf);

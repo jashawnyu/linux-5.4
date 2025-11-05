@@ -143,7 +143,7 @@ static void tick_sched_do_timer(struct tick_sched *ts, ktime_t now)
 
 static void tick_sched_handle(struct tick_sched *ts, struct pt_regs *regs)
 {
-#ifdef CONFIG_NO_HZ_COMMON
+#ifdef CONFIG_NO_HZ_COMMON //公共框架，为上面两种CONFIG_NO_HZ_IDLE(FULL)提供核心逻辑
 	/*
 	 * When we are idle and the tick is stopped, we have to touch
 	 * the watchdog as we might not schedule for a really long
