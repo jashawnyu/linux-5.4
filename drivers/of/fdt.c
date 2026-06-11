@@ -990,6 +990,11 @@ u64 __init dt_mem_next_cell(int s, const __be32 **cellp)
 	return of_read_number(p, s);
 }
 
+/*
+memory@40000000 {
+    device_type = "memory";
+    reg = <0x0 0x40000000 0 0x80000000>;
+};*/
 /**
  * early_init_dt_scan_memory - Look for and parse memory nodes
  */
