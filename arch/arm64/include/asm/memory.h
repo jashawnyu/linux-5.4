@@ -44,9 +44,8 @@
  * VA_BITS - the maximum number of bits for virtual addresses.
  */
 #define VA_BITS			(CONFIG_ARM64_VA_BITS) //48
-#define _PAGE_OFFSET(va)	(-(UL(1) << (va))) //负号这样可以把高位变1
-//长度是内核虚拟地址空间的一半
-#define PAGE_OFFSET		(_PAGE_OFFSET(VA_BITS)) //0xffff 0000 0000 0000 ,之前的4.4内核这里是0xffff800000000000
+#define _PAGE_OFFSET(va)	(-(UL(1) << (va))) //负号这样可以把高位变1, 二进制补码（two's complement）表示有符号整数
+#define PAGE_OFFSET		(_PAGE_OFFSET(VA_BITS)) //0xffff 0000 0000 0000 ,之前的4.4内核这里是0xffff800000000000(已确定)
 #define KIMAGE_VADDR		(MODULES_END)
 #define BPF_JIT_REGION_START	(KASAN_SHADOW_END)
 #define BPF_JIT_REGION_SIZE	(SZ_128M)
@@ -81,14 +80,14 @@
  * address space for the shadow region respectively. They can bloat the stack
  * significantly, so double the (minimum) stack size when they are in use.
  */
-#ifdef CONFIG_KASAN
+#ifdef CONFIG_KASAN //动态内存错误检测工具
 #define KASAN_SHADOW_OFFSET	_AC(CONFIG_KASAN_SHADOW_OFFSET, UL)
 #define KASAN_SHADOW_END	((UL(1) << (64 - KASAN_SHADOW_SCALE_SHIFT)) \
 					+ KASAN_SHADOW_OFFSET)
 #define KASAN_THREAD_SHIFT	1
 #else
 #define KASAN_THREAD_SHIFT	0
-#define KASAN_SHADOW_END	(_PAGE_END(VA_BITS_MIN))
+#define KASAN_SHADOW_END	(_PAGE_END(VA_BITS_MIN)) // (- (1 << (48 -1)))
 #endif /* CONFIG_KASAN */
 
 #define MIN_THREAD_SHIFT	(14 + KASAN_THREAD_SHIFT)
